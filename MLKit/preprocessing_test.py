@@ -1,6 +1,7 @@
 import numpy as np
+from MLKit import preprocessing as pr
 
 def test_one_hot():
 
-    hot = du.one_hot(2, 10)
+    hot = pr.one_hot(2, 10)
     assert (hot == np.array([0,0,1,0,0,0,0,0,0,0])).all()

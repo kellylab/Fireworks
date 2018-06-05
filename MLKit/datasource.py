@@ -1,4 +1,53 @@
+from abc import abstractmethod
+from Bio import SeqIO
 
 class DataSource:
     """ Class for representing a data source. It formats and reads data, and is able to convert batches into tensors. """
-    
+
+    @abstractmethod
+    def to_tensor(self, batch: dict, embedding_function: dict):
+        """
+        Converts a batch (stored as dictionary) to a dictionary of tensors. embedding_function is a dict that specifies optional
+        functions that construct embeddings and are called on the element of the given key.
+        """
+        pass
+
+    @abstractmethod
+    def __next__(self):
+        pass
+
+    def __iter__(self):
+        return self
+
+class BioSeqSource(DataSource):
+    """ Class for representing biosequence data. """
+
+    def __init__(self, path, filetype = 'fasta', **kwargs):
+        self.seq = SeqIO.parse(path, filetype, **kwargs)
+
+    def to_tensor(self, batch: dict, embedding_function: dict):
+
+        metadata = {
+        'rawsequences': batch['sequences'],
+        'names': batch['names'],
+        'ids': batch['ids'],
+        'description': batch['descriptions'],
+        'dbxfefs': batch['dbxrefs'],
+            }
+
+        tensor_dict = {
+        'sequences': embedding_function['sequences'](batch['sequences']),
+        }
+
+        return tensor_dict, metadata
+
+    def __next__(self):
+
+        gene = self.seq.__next__()
+        return {
+            'sequences': gene.seq,
+            'ids': gene.id,
+            'names': gene.name,
+            'description': gene.description,
+            'dbxrefs': gene.dbxrefs,
+        }
