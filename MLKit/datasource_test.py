@@ -28,4 +28,3 @@ def test_BioSeqSource():
 
     f = lambda batch: [1 for _ in batch]
     embedding_function = {'sequences': f}
-    batch = 
