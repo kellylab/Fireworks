@@ -1,6 +1,8 @@
 import MLKit
 import os
+import pandas as pd
 from MLKit import datasource as ds
+from MLKit.message import Message
 
 test_dir = MLKit.test_dir
 
@@ -22,9 +24,16 @@ def test_BioSeqSource():
     test_file = os.path.join(test_dir, 'sample_genes.fa')
     genes = ds.BioSeqSource(test_file)
     assert conforms_to_spec(genes)
-    for gene in genes:
-        assert type(gene) is dict
-        assert set(['sequences', 'ids', 'names', 'description', 'dbxrefs']) == set(gene.keys())
-
     f = lambda batch: [1 for _ in batch]
     embedding_function = {'sequences': f}
+
+    for gene in genes:
+        assert type(gene) is pd.DataFrame
+        assert set(['sequences', 'ids', 'names', 'descriptions', 'dbxrefs']) == set(gene.keys())
+        message, metadata = genes.to_tensor(gene, embedding_function)
+        assert type(message) is Message
+        assert type(metadata) is pd.DataFrame
+        assert set(message.keys()) == set(['sequences'])
+        assert set(metadata.keys()) == set(['ids', 'names', 'descriptions', 'dbxrefs', 'rawsequences'])
+        assert len(message) == 1
+        assert len(metadata) == 1

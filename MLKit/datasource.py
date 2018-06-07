@@ -1,5 +1,7 @@
 from abc import abstractmethod
 from Bio import SeqIO
+import pandas as pd
+from MLKit.message import Message
 
 class DataSource:
     """ Class for representing a data source. It formats and reads data, and is able to convert batches into tensors. """
@@ -31,23 +33,24 @@ class BioSeqSource(DataSource):
         'rawsequences': batch['sequences'],
         'names': batch['names'],
         'ids': batch['ids'],
-        'description': batch['descriptions'],
-        'dbxfefs': batch['dbxrefs'],
+        'descriptions': batch['descriptions'],
+        'dbxrefs': batch['dbxrefs'],
             }
 
         tensor_dict = {
         'sequences': embedding_function['sequences'](batch['sequences']),
         }
 
-        return tensor_dict, metadata
+        return Message(tensor_dict), pd.DataFrame(metadata)
 
     def __next__(self):
 
         gene = self.seq.__next__()
-        return {
-            'sequences': gene.seq,
-            'ids': gene.id,
-            'names': gene.name,
-            'description': gene.description,
-            'dbxrefs': gene.dbxrefs,
-        }
+
+        return pd.DataFrame({
+            'sequences': [str(gene.seq)],
+            'ids': [gene.id],
+            'names': [gene.name],
+            'descriptions': [gene.description],
+            'dbxrefs': [gene.dbxrefs],
+        })

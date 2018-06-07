@@ -1,9 +1,11 @@
 import collections
+import torch
 
 """
-Messages passed between objects in this framework are represented as dictionaries of iterables.
-This is similar to a pandas dataframe, except the iterables are allowed to be anything and not just a series objects.
-This means messages can contain lists, numpy arrays, tensors, etc. In particular, pandas dataframes are messages.
+Messages passed between objects in this framework are represented as dictionaries of tensors.
+This is analogous to a pandas dataframe, except the elements of the table are tensors rather than series objects. Because
+a message is just a dictionary, it can be converted to a dataframe. The inverse will only be possible if every element
+of the dataframe can be tensorized (strings can't be converted to tensors.)
 
 This file contains utility functions for working with messages. In order to avoid coupling this framework to a message class,
 messages are represented as standard python dicts and are assumed to conform the necessary interface.
@@ -16,13 +18,34 @@ class Message:
         self.dict = {}
         # Ensure lengths match up
         for key, value in message_dict.items():
-            if not hasattr(value, '__len__') or len(value) == 1 or isinstance(value, str):
-                self.dict[key] = [value]
-            elif isinstance(value, collections.Iterable) and hasattr(value, 'extend'):
-                self.dict[key] = value
-            else:
-                raise TypeError("Elements of a message must be listlike, being iterable, \
-                having a length, and implementing an extend method which enables combining messages together.")
+
+            # Make value list like if not already. We have to ensure this in order to make conversion 2 tensor work properly
+            if not hasattr(value, '__len__'):
+                value = [value]
+
+            # Attempt to convert to tensor if not already
+            if not isinstance(value, torch.Tensor):
+                try:
+                    value = torch.Tensor(value)
+                except Exception as err:
+                    raise TypeError(
+                    ("Elements of a message must be torch tensors. Tried to convert value associated with key {0} " + \
+                    "but got error: {1}").format(key, err))
+
+            # Make sure is not a 0-dim tensor
+            if value.shape == torch.Size([]):
+                value = torch.Tensor([value])
+
+            self.dict[key] = value
+
+        # for key, value in message_dict.items():
+        #     if not hasattr(value, '__len__') or len(value) == 1 or isinstance(value, str):
+        #         self.dict[key] = [value]
+        #     elif isinstance(value, collections.Iterable) and hasattr(value, 'extend'):
+        #         self.dict[key] = value
+        #     else:
+        #         raise TypeError("Elements of a message must be listlike, being iterable, \
+        #         having a length, and implementing an extend method which enables combining messages together.")
 
         lengths = [len(value) for value in self.dict.values()]
         if len(set(lengths)) != 1:
@@ -53,4 +76,7 @@ class Message:
         # TODO: Implement iterable specific versions of this (there is too much variability between
         #       different data structures to rely on one method that can use this.)
 
-        return Message({key: self[key] + (other[key]) for key in self.dict})
+        return Message({key: torch.cat([self[key], other[key]]) for key in self.dict})
+
+def combine(*args):
+    """ Combines list like objects together. """
