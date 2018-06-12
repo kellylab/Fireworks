@@ -63,3 +63,24 @@ class ComputeLengthTransform:
 
     def during_iteration(self, dataset: Dataset, batch):
         dataset.length += len(batch)
+
+
+class CachingSource(DataSource):
+
+    def __init__(self, inputs, cache_size, chunk_size):
+        super.__init__(inputs)
+        self.cache_size = cache_size
+        self.chunk_size = chunk_size
+        self.cache = {}
+        
+    def to_tensor(self, batch: dict, embedding_function: dict): pass
+
+    def check_cache(self, index): pass
+
+    def free_cache(self, n): pass
+
+    def _free_cache(self, n): pass
+
+    def insert_cache(self, message): pass
+
+    def read_cache(self, index): pass

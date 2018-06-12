@@ -1,5 +1,6 @@
 import collections
 import torch
+import pandas as pd
 
 """
 Messages passed between objects in this framework are represented as dictionaries of tensors.
@@ -12,6 +13,33 @@ messages are represented as standard python dicts and are assumed to conform the
 """
 
 class Message:
+
+    def __init__(self, tensors, metadata=None):
+        self.tensors = TensorMessage(tensors)
+        if not isinstance(metadata, pd.DataFrame):
+            raise TypeError("Metadata must be a pandas dataframe.")
+        self.metadata = pd.DataFrame([])
+        if self.metadata and len(self.tensors) != len(self.metadata):
+            raise ValueError("Tensor data and metadata must have the same length if metadata is attached.")
+        self._length = len(self.tensors)
+
+    def __len__(self):
+        return self._length
+
+    def __getitem__(self, index):
+
+        if not isinstance(index, slice):
+            if index in self.tensors.keys():
+                return self.tensors[index]
+            if index in self.metadata.keys():
+                return self.metadata[index]
+        else:
+            return Message(({key: value[index] for key, value in self.tensors.items()}, metadata={key: value[index] for key, value in self.metadata.items()})
+
+    def extend(self, other):
+        return Message(self.tensors.extend(other.tensors), pd.concat([self.metadata, other.metadata]))
+
+class TensorMessage:
 
     def __init__(self, message_dict):
 

@@ -6,17 +6,22 @@ from MLKit.message import Message
 class DataSource:
     """ Class for representing a data source. It formats and reads data, and is able to convert batches into tensors. """
 
-    @abstractmethod
-    def to_tensor(self, batch: dict, embedding_function: dict):
-        """
-        Converts a batch (stored as dictionary) to a dictionary of tensors. embedding_function is a dict that specifies optional
-        functions that construct embeddings and are called on the element of the given key.
-        """
-        pass
+    def __init__(self, inputs):
+        self.inputs = inputs
+        
+    # @abstractmethod
+    # def to_tensor(self, batch: dict, embedding_function: dict):
+    #     """
+    #     Converts a batch (stored as dictionary) to a dictionary of tensors. embedding_function is a dict that specifies optional
+    #     functions that construct embeddings and are called on the element of the given key.
+    #     """
+    #     pass
 
-    @abstractmethod
     def __next__(self):
-        pass
+        return {key: next(_input for key, _input in self.inputs.values()}
+
+    def __getitem__(self, index):
+        return {key: _input.__getitem__(index) for key, _input in self.inputs.values()}
 
     def __iter__(self):
         return self
