@@ -14,13 +14,17 @@ messages are represented as standard python dicts and are assumed to conform the
 
 class Message:
 
-    def __init__(self, tensors, metadata=None):
-        self.tensors = TensorMessage(tensors)
+    def __init__(self, tensors, metadata = None):
+
+        if type(tensors) is TensorMessage:
+            self.tensors = tensors
+            self.metadata = metadata
+
         if not isinstance(metadata, pd.DataFrame):
             raise TypeError("Metadata must be a pandas dataframe.")
         self.metadata = pd.DataFrame([])
-        if self.metadata and len(self.tensors) != len(self.metadata):
-            raise ValueError("Tensor data and metadata must have the same length if metadata is attached.")
+        if self.metadata and self.tensors and len(self.tensors) != len(self.metadata):
+            raise ValueError("Tensor data and metadata must have the same length if they are defined.")
         self._length = len(self.tensors)
 
     def __len__(self):
@@ -38,6 +42,14 @@ class Message:
 
     def extend(self, other):
         return Message(self.tensors.extend(other.tensors), pd.concat([self.metadata, other.metadata]))
+
+    def _from_tensors(self, tensors, metadata = None):
+        """ Constructs message from a dict of tensors. """
+        return Message(tensors = TensorMessage(tensors))
+
+    def _from_metadata(self, metadata):
+        """ Constructs message from metadata only. """
+        return Message(tensors = None, metadata = metadata)
 
 class TensorMessage:
 

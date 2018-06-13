@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import Dataset
+import pandas as pd
 
 class MLKitDataset(Dataset):
     """
@@ -8,9 +9,91 @@ class MLKitDataset(Dataset):
     or load it all at once), how to store it in memory, and how to apply transformations to it as needed
     """
 
-    def __init__(self, sources):
+    def __init__(self, sources, cache_size=None, chunk_size=None):
 
         self.sources = sources
+        self.cache_size = cach_size
+        self._length = None
+
+        self.check_sources()
+
+    def get_chunk(self, chunk_size = self.chunk_size):
+        """ Gets the next chunk from the dataset. """
+        return {key: get_next_n(source, chunk_size, global_index) for key, source in self.sources.items()}
+
+    def to_tensor(self, batch):
+        """ Converts a batch from this dataset into a tensor. """
+        tensors_and_meta = [source._to_tensor(batch) for source in self.sources.values()]
+        tensors = [x[0] for x in tensors_and_meta]
+        tensors = {key: value for tensor in tensors for key, value in tensor.items()}
+        meta = [x[1] for x in tensors_and_meta]
+        meta = {key: value for met in met for key, value in met.items()}
+
+        return tensors, meta
+
+    def __len__(self):
+        if self._length:
+            return self._length
+        else:
+            raise Error("This dataset does not have a length or is not aware of its length. This can be" + \
+            "because the entire dataset is not stored in memory and is dynamically streamed in at once.")
+
+    def __getitem__(self, index):
+
+        if self._length is None:
+            raise AttributeError("This dataset does not have a length or is not aware of its length." + \
+            "Hence, it's elements cannot be accessed by index.")
+        # Check if requested indices are in cache
+
+        # Get items
+
+    def __iter__(self): return self
+
+    def __next__(self):
+        if self.cache_index < len(self.tensor_cache):
+            return self.tensor_cache[self.cache_index]
+            self.cache_index += 1
+            self.global_index += 1
+            # TODO: Add asynchronous chunk download triggers
+        else:
+            # Update cache with new chunk
+            self.update_cache()
+            # Delete the first s-c elements of cache and get a chunk of c elements
+            # Convert new chunk to_tensor
+            # Combine chunks
+
+    def update_cache(self):
+        """ Updates cache by downloading a new chunk. """
+        offset = self.cache_size - self.chunk_size
+        new_cache_index = self.cache_index - offset
+        if new_cache_index < 0: # Deleting the first s-c elements would delete the current position in the dataset
+            offset = self.cache_index
+        if offset > 0:
+            # Delete the first offset elements of cache
+            self.tensor_cache = self.tensor_cache[offset:]
+            self.meta_cache = self.meta_cache.iloc[offset:]
+            # Download new chunk
+            download_size = self.cache_size - offset # Size of chunk to download
+            new_chunk = self.get_chunk(download_size)
+            tensor_chunk, meta_chunk = self.to_tensor(new_chunk)
+            self.tensor_cache = self.tensor_cache.append(tensor_chunk)
+            self.meta_cache = self.meta_cache.append(meta_chunk)
+
+    def check_sources(self):
+        """ Check sources to make sure there are no overlapping keys. """
+        pass
+
+def get_next_n(source, chunk_size, global_index = None):
+    """ Returns the next n elements from source. """
+    # If the source supports random access, get the entire chunk at once
+    if global_index and hasattr(source, '__getitem__'):
+        return source.iloc[global_index:global_index+chunk_size]
+    # Otherwise iterate through the source as needed
+    else:
+        chunk = []
+        for _ in range(chunk_size):
+            chunk.append(next(soure))
+        return pd.DataFrame(chunk)
 
 class StreamingDataset(MLKitDataset)
     """ Dataset for streaming data in online manner. """
