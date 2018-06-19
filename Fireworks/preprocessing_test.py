@@ -1,5 +1,5 @@
 import numpy as np
-from MLKit import preprocessing as pr
+from Fireworks import preprocessing as pr
 
 def test_one_hot():
 

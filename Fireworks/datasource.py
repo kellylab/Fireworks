@@ -1,14 +1,14 @@
 from abc import abstractmethod
 from Bio import SeqIO
 import pandas as pd
-from MLKit.message import Message
+from Fireworks.message import Message
 
 class DataSource:
     """ Class for representing a data source. It formats and reads data, and is able to convert batches into tensors. """
 
     def __init__(self, inputs):
         self.inputs = inputs
-        
+
     # @abstractmethod
     # def to_tensor(self, batch: dict, embedding_function: dict):
     #     """
@@ -18,7 +18,7 @@ class DataSource:
     #     pass
 
     def __next__(self):
-        return {key: next(_input for key, _input in self.inputs.values()}
+        return {key: next(_input) for key, _input in self.inputs.values()}
 
     def __getitem__(self, index):
         return {key: _input.__getitem__(index) for key, _input in self.inputs.values()}

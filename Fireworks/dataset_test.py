@@ -1,9 +1,9 @@
 import torch
-from MLKit import dataset as ds
+from Fireworks import dataset as ds
 
-def test_get_next_n(): pass 
+def test_get_next_n(): pass
 
-def test_MLKitDataset(): pass
+def test_FireworksDataset(): pass
 
 def test_get_chunk(): pass
 

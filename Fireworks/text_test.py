@@ -1,4 +1,4 @@
-from MLKit import text
+from Fireworks import text
 import random
 
 def test_space_tokenizer():
@@ -69,7 +69,7 @@ def test_apply_embeddings():
 
 
 # def test_create_pretrained_embeddings():
-#     embeddings = nlp.create_pretrained_embeddings(os.path.join(MLKit.EXTERNAL_DIR, 'glove.test.txt'))
+#     embeddings = nlp.create_pretrained_embeddings(os.path.join(Fireworks.EXTERNAL_DIR, 'glove.test.txt'))
 #     assert len(embeddings.keys()) == 18
 #     for key, item in embeddings.items():
 #         assert len(item) == 300

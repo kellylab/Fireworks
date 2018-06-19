@@ -1,10 +1,10 @@
-import MLKit
+import Fireworks
 import os
 import pandas as pd
-from MLKit import datasource as ds
-from MLKit.message import Message
+from Fireworks import datasource as ds
+from Fireworks.message import Message
 
-test_dir = MLKit.test_dir
+test_dir = Fireworks.test_dir
 
 def conforms_to_spec(datasource):
 

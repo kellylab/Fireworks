@@ -1,8 +1,9 @@
 import torch
 from torch.utils.data import Dataset
 import pandas as pd
+from Fireworks.datasource import DataSource
 
-class MLKitDataset(Dataset):
+class FireworksDataset(Dataset):
     """
     Class for reading data from a datasource. Whereas a data source handles formatting
     and tensorization of data, a dataset decides how to read that data (whether to stream it in chunks
@@ -17,8 +18,11 @@ class MLKitDataset(Dataset):
 
         self.check_sources()
 
-    def get_chunk(self, chunk_size = self.chunk_size):
+    def get_chunk(self, chunk_size = None):
         """ Gets the next chunk from the dataset. """
+        if chunk_size is None:
+            chunk_size = self.chunk_size
+
         return {key: get_next_n(source, chunk_size, global_index) for key, source in self.sources.items()}
 
     def to_tensor(self, batch):
@@ -95,7 +99,7 @@ def get_next_n(source, chunk_size, global_index = None):
             chunk.append(next(soure))
         return pd.DataFrame(chunk)
 
-class StreamingDataset(MLKitDataset)
+class StreamingDataset(FireworksDataset):
     """ Dataset for streaming data in online manner. """
 
     def preload(self): pass
@@ -108,10 +112,11 @@ class StreamingDataset(MLKitDataset)
 
     def __getitem__(self, index): pass
 
-class ChunkingDataset(MLKitDataset): pass
+class ChunkingDataset(FireworksDataset):
     """ Dataset with methods for chunking large datasets that cannot fit in memory. """
+    pass
 
-class WholeDataset(MLKitDataset):
+class WholeDataset(FireworksDataset):
     """ Dataset that loads all of its data into memory at once. """
 
     def __init__(self, source):
@@ -155,7 +160,7 @@ class CachingSource(DataSource):
         self.cache_size = cache_size
         self.chunk_size = chunk_size
         self.cache = {}
-        
+
     def to_tensor(self, batch: dict, embedding_function: dict): pass
 
     def check_cache(self, index): pass
