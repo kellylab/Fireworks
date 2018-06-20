@@ -1,6 +1,8 @@
 import collections
 import torch
 import pandas as pd
+import numpy as np
+from collections import Hashable
 
 """
 Messages passed between objects in this framework are represented as dictionaries of tensors.
@@ -49,23 +51,30 @@ class Message:
         if len(args) == 1:
             # Identify tensors and separate them out
             # The argument may be an existing Message/TensorMessage
-            pass
-        self.tensor_message = TensorMessage(tensors)
+            if type(args[0]) is Message:
+                tensors = args[0].tensor_message
+                df = args[0].df
+            else:
+                tensors, df = extract_tensors(args[0])
+
+        self.tensor_message = TensorMessage(tensors) # The TensorMessage constructor will handle type conversions as needed.
+
+        if type(df) is Message:
+            df = df.dataframe() # Pull out the df from the message
         self.df = pd.DataFrame(df)
-        tensor_length = len(self.tensor_message)
-        df_length = len(self.df)
-        if hasattr(self.df, 'shape') and (len(self.df.shape) == 1 or self.df.shape[1] == 1):
-            df_length = 1
-        # if 'baba' in kwargs:
-        #     assert False
-        if tensor_length == df_length:
-            self.length = tensor_length
-        elif tensor_length == 0: # Has only dataframes
-            self.length = df_length
-        elif df_length == 0: # Has only tensors
-            self.length = tensor_length
+
+        self.check_length()
+
+    def check_length(self):
+
+        if len(self.df) == 0:
+            self.length = len(self.tensor_message)
+        elif len(self.tensor_message) == 0:
+            self.length = len(self.df)
+        elif len(self.tensor_message) != len(self.df):
+            raise ValueError("Every element of the message, including tensors and arrays, must have the same length unless one or both are None.")
         else:
-            raise ValueError("Every element of the message, including tensors and arrays, must have the same length.")
+            self.length = len(self.tensor_message)
 
     def __len__(self):
         """
@@ -95,7 +104,24 @@ class Message:
 
         # Access elements by index
         # assert False
-        return Message(self.tensor_message[index], self.df.iloc[index], baba=True) # {k: v[index] for k, v in self.tensor_dict.items()}, {k: v.iloc[index] for k, v in self.df.items()}
+        if type(index) is int: # Making point queries into range queries of width 1 ensures correct formatting of dataframes by pandas.
+            index = slice(index, index+1)
+        return Message(self.tensor_message[index], self.df.iloc[index].reset_index(drop=True)) # {k: v[index] for k, v in self.tensor_dict.items()}, {k: v.iloc[index] for k, v in self.df.items()}
+
+    def __setitem__(self, index, value):
+
+        if isinstance(index, Hashable) and index in self.tensor_message.keys():
+            self.tensor_message[index] = value
+            self.check_length()
+        elif isinstance(index, Hashable) and index in self.df.keys():
+            self.df[index] = value
+            self.check_length()
+        else:
+            if type(index) is int: # To ensure proper formatting of dataframes, convert point queries to length 1 range queries.
+                index = slice(index, index+1)
+            value = Message(value)
+            self.tensor_message[index] = value.tensor_message
+            self.df.iloc[index] = value.df
 
     def __repr__(self):
         return "Message with \n Tensors: \n {0} \n Metadata: \n {1}".format(self.tensor_message, self.df)
@@ -105,7 +131,18 @@ class Message:
         Compines messages together.
         Should initialize other if not a message already.
         """
-        pass
+
+        other = Message(other)
+        appended_tensors = self.tensor_message.append(other.tensor_message)
+        appended_df = self.df.append(other.df).reset_index(drop=True)
+        return Message(appended_tensors, appended_df)
+
+    def merge(self, other):
+        """
+        Combines messages horizontally by producing a message with the keys/values of both.
+        """
+        other = Message(other)
+        return Message({**self.tensor_message, **other.tensor_message}, {**self.df, **other.df})
 
     def map(self, map_dict):
         """
@@ -118,13 +155,19 @@ class Message:
         Return tensors associated with message as a tensormessage.
         If keys are specified, returns tensors associated with those keys, performing conversions as needed.
         """
-        return self.tensor_message
+        if keys is None:
+            return self.tensor_message
+        else:
+            return TensorMessage({key:self[key] for key in keys})
 
     def dataframe(self, keys = None):
         """
         Returns message as a dataframe. If keys are specified, only returns those keys as a dataframe.
         """
-        return self.df
+        if keys is None:
+            return self.df
+        else:
+            return pd.DataFrame({key: np.array(self[key]) for key in keys})
 
     def cpu(self, keys = None):
         """ Moves tensors to system memory. Can specify which ones to move by specifying keys. """
@@ -138,14 +181,20 @@ class TensorMessage:
     """
     A TensorMessage is a class for representing data meant for consumption by pytorch as a dictionary of tensors.
     """
-    def __init__(self, message_dict, map_dict = None):
+    def __init__(self, message_dict = None, map_dict = None):
         """
         Initizes TensorMessage, performing type conversions as necessary.
         """
         self.tensor_dict = {}
-        if type(message_dict) is type(self):
+
+        if type(message_dict) is Message:
+            self.tensor_dict = message_dict.tensor_message.tensor_dict
+            self.length = message_dict.tensor_message.length
+        elif type(message_dict) is TensorMessage:
             self.tensor_dict = message_dict.tensor_dict
             self.length = message_dict.length
+        elif message_dict is None:
+            pass
         else:
             for key, value in message_dict.items():
                 # Make value list like if not already. For example, for length-1 messages.
@@ -176,6 +225,22 @@ class TensorMessage:
         else:
             return TensorMessage({k: v[index] for k, v in self.tensor_dict.items()})
 
+    def __setitem__(self, index, value):
+
+        if isinstance(index, Hashable) and index in self.tensor_dict: # Index is the name of a key
+            self.tensor_dict[index] = value
+            self.length = compute_length(self)
+
+        else:
+            value = TensorMessage(value)
+            for key in self.tensor_dict:
+                self.tensor_dict[key][index] = value[key]
+
+    # def __delitem__(self, index): # BUG: delitem raises sigfaults when called on a tensor.
+    #
+    #     for key in self.tensor_dict:
+    #         del self[key][index]
+
     def __getattr__(self, *args, **kwargs):
         return self.tensor_dict.__getattribute__(*args, **kwargs)
 
@@ -199,21 +264,26 @@ class TensorMessage:
 
     def append(self, other):
         """
-         Note if the target message has additional keys, those will be dropped.
-         The target message must also have every key present in this message in
-         order to avoid an value error due to length differences.
-         """
-        return TensorMessage({key: torch.cat([self[key], other[key]]) for key in self.tensor_dict})
+        Note if the target message has additional keys, those will be dropped.
+        The target message must also have every key present in this message in
+        order to avoid an value error due to length differences.
+        """
+        other = TensorMessage(other)
+        return TensorMessage({key: torch.cat([self[key], other[key]]) if key in other.keys() else self[key] for key in self.tensor_dict})
 
-    def join(self, other):
+    def merge(self, other):
         """
         Combines self with other into a message with the keys of both.
         self and other must have distinct keys.
         """
-        pass
+        other = TensorMessage(other)
+        return TensorMessage({**self, **other})
 
 def compute_length(of_this):
-
+    """
+    Of_this is a dict of listlikes. This function computes the length of that object, which is the length of all of the listlikes, which
+    are assumed to be equal. This also implicitly checks for the lengths to be equal, which is necessary for Message/TensorMessage.
+    """
     lengths = [len(value) for value in of_this.values()]
     if lengths == []:
         # An empty dict has 0 length.
@@ -222,6 +292,23 @@ def compute_length(of_this):
         raise ValueError("Every element of dict must have the same length.")
 
     return lengths[0]
+
+def extract_tensors(from_this):
+    """
+    Given a dict from_this, returns two dicts, one containing all of the key/value pairs corresponding to tensors in from_this, and the other
+    containing the remaining pairs.
+    """
+    tensor_dict = {k:v for k, v in from_this.items() if type(v) is torch.Tensor}
+    other_keys = from_this.keys() - tensor_dict.keys() if tensor_dict else from_this.keys()
+    other_dict = {k: from_this[k] for k in other_keys}
+    return tensor_dict, other_dict
+
+# def to_array(listlike):
+#     """
+#     If listlike is a tensor, converts it to a numpy array.
+#     """
+#     if type(listlike) is torch.Tensor
+#         return np.array()
 
 # class TensorMessage:
 #
@@ -289,11 +376,6 @@ def compute_length(of_this):
 #         #       different data structures to rely on one method that can use this.)
 #
 #         return Message({key: torch.cat([self[key], other[key]]) for key in self.dict})
-
-def combine(*args):
-    """ Combines list like objects together. """
-    pass
-
 # class Message:
 #
 #     def __init__(self, tensors, metadata = None):
