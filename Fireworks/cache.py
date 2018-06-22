@@ -1,10 +1,10 @@
 from Fireworks.message import Message
-
+from abc import abstractmethod
 # caches = {
 #     'LRU': cachetools.LRUCache,
 # }
 
-class Cache:
+class MessageCache:
 
     def __init__(self, max_size):
         self.max_size = max_size
@@ -12,21 +12,26 @@ class Cache:
 
     def __getitem__(self, index):
         if type(index) is int:
-            pass
+            index = slice(index, index+1)
 
-        if type(index) is slice:
-            pass
+        cache_indices = self.get_indices(index)
 
-    def search(self, **kwargs):
-        pass 
+        return self.read_cache(cache_indices)
 
-    def insert(self, data, index):
+    @abstractmethod
+    def __setitem__(self, index, message):
         if type(index) is int:
             pass
         if type(index) is slice:
             pass
 
-    def free(self, n): pass
+    def __getattr__(self, *args, **kwargs):
+        return self.cache.__getattr__(args, kwargs)
+
+    def search(self, **kwargs):
+        pass
+
+    def free(self, n): 
         """ Ensure there is enough free space for n elements. """
         free_space = self.max_size - self.size
         if n > free_space:

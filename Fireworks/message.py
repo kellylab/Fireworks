@@ -95,7 +95,7 @@ class Message:
         """
         This method must be able to access any index in the global dataset, caching as needed.
         """
-        if not isinstance(index, slice):
+        if not isinstance(index, slice) and isinstance(index, Hashable):
             # Attempt to access elements by key
             if index in self.tensor_message.keys():
                 return self.tensor_message[index]
@@ -220,7 +220,7 @@ class TensorMessage:
         self.length = compute_length(self.tensor_dict)
 
     def __getitem__(self, index):
-        if not isinstance(index, slice) and index in self.tensor_dict.keys():
+        if not isinstance(index, slice) and isinstance(index, Hashable) and index in self.tensor_dict.keys():
             return self.tensor_dict[index]
         else:
             return TensorMessage({k: v[index] for k, v in self.tensor_dict.items()})

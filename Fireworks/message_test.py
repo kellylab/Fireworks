@@ -100,6 +100,13 @@ def test_Message():
     m = Message(everything)
     attribute_test(m)
 
+def test_getitem():
+
+    m = Message(tensors, vectors)
+    assert m[0] == Message({'a': torch.Tensor([1]), 'b': torch.Tensor([4])}, {'c': np.array([7]), 'd': np.array([10])})
+    assert m[[0,2]] == Message({'a': torch.Tensor([1,3]), 'b': torch.Tensor([4,6])}, {'c': np.array([7,9]), 'd': np.array([10,12])})
+
+
 def test_cache(): pass
 
 def test_tensors():
@@ -292,7 +299,7 @@ def test_TensorMessage_set_get():
     assert email == gmail
     assert len(email) == 3
     email['a'] = torch.Tensor([9,9,9])
-    assert torch.equal(email['a'], torch.Tensor([9,9,9]))    
+    assert torch.equal(email['a'], torch.Tensor([9,9,9]))
     # del email[0]
     # assert len(email) == 2
     # assert email == yahoomail
