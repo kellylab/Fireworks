@@ -65,7 +65,6 @@ def test_Message():
         assert len(message) == length
         # Test __getitem__
 
-
     # Init empty message
     m = Message()
     assert len(m) == 0
@@ -105,7 +104,6 @@ def test_getitem():
     m = Message(tensors, vectors)
     assert m[0] == Message({'a': torch.Tensor([1]), 'b': torch.Tensor([4])}, {'c': np.array([7]), 'd': np.array([10])})
     assert m[[0,2]] == Message({'a': torch.Tensor([1,3]), 'b': torch.Tensor([4,6])}, {'c': np.array([7,9]), 'd': np.array([10,12])})
-
 
 def test_cache(): pass
 
@@ -160,7 +158,7 @@ def test_append():
     assert m == Message(v)
     m = m0.append(Message(t,v))
     assert m == Message(t,v)
-    
+
     m = m1.append(m2)
     assert len(m) == 6
     assert m == Message({'a': torch.Tensor([1,2,3,1,2,3]), 'b': torch.Tensor([4,5,6,4,5,6])}, {'c': np.array([7,8,9,7,8,9]), 'd': np.array([10,11,12,10,11,12])})
@@ -238,18 +236,31 @@ def test_join():
 
 def test_Message_set_get():
 
+    # Test point updates
     email = Message(tensors, vectors)
-    gmail = Message({'a':torch.Tensor([42,2,3]), 'b':torch.Tensor([43,5,6]), 'c': np.array([99,8,9]), 'd': np.array([100,11,12])})
+    gmail = Message({'a':torch.Tensor([1,42,3]), 'b':torch.Tensor([4,43,6]), 'c': np.array([7,99,9]), 'd': np.array([10,100,12])})
     replacement = {'a': torch.Tensor([42]), 'b': torch.Tensor([43]), 'c': np.array([99]), 'd': np.array([100])}
     assert len(email) == 3
     assert email != gmail
-    email[0] = replacement
+    email[1] = replacement
     assert email == gmail
+    # Test ranged updates
+    email = Message(tensors, vectors)
+    gmail = Message({'a':torch.Tensor([1,42,33]), 'b':torch.Tensor([4,43,66]), 'c': np.array([7,99,99]), 'd': np.array([10,100,122])})
+    replacement = {'a': torch.Tensor([42,33]), 'b': torch.Tensor([43,66]), 'c': np.array([99,99]), 'd': np.array([100,122])}
+    assert email != gmail
+    email[1:3] = replacement
+    assert email == gmail
+    # Test updates using lists as indexes
+    email = Message(tensors, vectors)
+    assert email != gmail
+    email[[1,2]] = replacement
+    assert email == gmail
+    # Test column updates
     email['a'] = torch.Tensor([9,9,9])
     assert torch.equal(email['a'], torch.Tensor([9,9,9]))
     email['c'] = np.array([9,9,9])
     assert email['c'].equals(pd.Series([9,9,9]))
-
 def test_map(): pass
 
 def test_TensorMessage():

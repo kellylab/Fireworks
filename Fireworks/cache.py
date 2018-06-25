@@ -2,10 +2,17 @@ from Fireworks.message import Message
 from abc import ABC, abstractmethod
 import pandas as pd
 from itertools import count
+from bidict import bidict
 
 # caches = {
 #     'LRU': cachetools.LRUCache,
 # }
+
+# class RangedBidict(Bidict):
+#     """
+#     Bidict that supports access using a list of keys. For example, d[[2,3,5]] would return [d[2], d[3], d[5]]
+#     """
+#     pass
 
 class MessageCache(ABC):
     """
@@ -20,21 +27,26 @@ class MessageCache(ABC):
         self.max_size = max_size
         self.cache = Message()
         # Initialize a list of pointers to keep track of internal indices
-        self.pointers = pd.Series({-1:-1}, dtype=int)
-        del self.pointers[-1]
+        # self.pointers = pd.Series({-1:-1}, dtype=int)
+        self.pointers = bidict()
+        # del self.pointers[-1]
 
     def __getitem__(self, index):
 
         if type(index) is slice:
             index = slice_to_list(index)
 
-        pointers = self.pointers[index] # This will raise an error if index not present
+        if type(index) is int:
+            pointers = self.pointers[index]
+        else:
+            pointers = [self.pointers[i] for i in index] # This will raise an error if index not present
+
         # try:
         #     cache_indices = self.indices[index]
         # except KeyError as e:
         #     raise KeyError("Index {0} not in cache.".format(e))
 
-        return self.cache[pointers.tolist()]
+        return self.cache[pointers]#list(pointers.keys())]#.tolist()]
 
     @abstractmethod
     def __setitem__(self, index, message): pass
@@ -46,7 +58,68 @@ class MessageCache(ABC):
         return len(self.cache)
 
     def __repr__(self):
-        return "MessageCache with indices {0}.".format(self.pointers.index.tolist())
+        return "MessageCache with indices {0}.".format(list(self.pointers.keys()))#.tolist())
+
+    def _insert(self, index, message):
+        """
+        Inserts message into cache along with the desired indices.
+        This method should be called by __setitem__ as needed to perform the insertion.
+        """
+        if type(index) is int:
+            index = [index]
+        if type(index) is slice:
+            index = slice_to_list(index)
+        present = set(index).intersection(set(self.pointers.keys()))
+        not_present = set(index).difference(set(self.pointers.keys()))
+        # Get indices in message
+        present_indices = get_indices(index, present)
+        not_present_indices = get_indices(index, not_present)
+        self._add_new(not_present, message[not_present_indices])
+        self._update_existing(present, message[present_indices])
+
+    def _add_new(self, index, message):
+        """
+        Adds new elements to cache and updates pointers.
+        This method should be called by __setitem__ or _insert as needed to perform insertions.
+        """
+        start = len(self.cache)
+        self.cache = self.cache.append(message)
+        stop = len(self.cache)
+        for i,j in zip(range(start, stop), index):
+            self.pointers[j] = i
+
+    def _update_existing(self, index, message):
+        """
+        Updates elements already in the message.
+        This method should be called by __setitem__ or _insert as needed to perform updates.
+        """
+        if index:
+            if type(index) is int:
+                indices = self.pointers[index]
+            else:
+                indices = [self.pointers[i] for i in index]
+            self.cache[indices] = message #indices.tolist()
+
+    def _delete(self, index):
+        """
+        Deletes elements in the message corresponding to index.
+        This method should be called by __setitem__ or __delitem__ as needed.
+        """
+        pass
+
+    def _permute(self, permutation, target = None):
+        """
+        Rearranges elements of cache based on permutation.
+        Permutation should be a list of indices. Can optionally specify target, which is the indices to apply the permutation to.
+        By default, the entire index will be treated as the target.
+        """
+        if target is None:
+            target = [self.pointers.inv[i] for i in range(len(self.cache))]
+
+        pointers = bidict({t:self.pointers[self.pointers.inv[p]] for t,p in zip(target, permutation)}) # Permute which internal index a pointer points to
+        index = [self.pointers[t] for t in target]
+        self.cache[index] = self.cache[permutation]  # Permute internal indices
+        self.pointers = pointers
 
     def search(self, **kwargs):
         pass
@@ -70,37 +143,10 @@ class DummyCache(MessageCache):
     """
 
     def __setitem__(self, index, message):
-        if type(index) is int:
-            index = [index]
-        if type(index) is slice:
-            index = slice_to_list(index)
-        present = set(index).intersection(set(self.pointers))
-        not_present = set(index).difference(set(self.pointers))
-        # Get indices in message
-        present_indices = get_indices(index, present)
-        not_present_indices = get_indices(index, not_present)
-        self.add_new(not_present, message[not_present_indices])
-        self.update_existing(present, message[present_indices])
-
-    def add_new(self, index, message):
         """
-        Adds new elements to cache and updates pointers
+        Simply inserts the message with the corresponding index without ever freeing memory.
         """
-        start = len(self.cache)
-        assert False
-        self.cache = self.cache.append(message)
-        stop = len(self.cache)
-        for i,j in zip(range(start, stop), index):
-            self.pointers[j] = i
-
-    def update_existing(self, index, message):
-        """
-        Updates elements already in the message
-        """
-        indices = self.pointers[index]
-        for i,x in zip(indices, message):
-            assert False
-            self.cache[i] = x
+        self._insert(index, message)
 
 def slice_to_list(s):
     """

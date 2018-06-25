@@ -1,8 +1,9 @@
 from Fireworks import cache
-from Fireworks.message import Message
+from Fireworks.message import Message, TensorMessage
 import torch
 import numpy as np
 import pandas as pd
+
 tensors = {
     'a': torch.Tensor([1,2,3]),
     'b': torch.Tensor([4,5,6]),
@@ -28,7 +29,7 @@ def test_slice_to_list():
     l = cache.slice_to_list(a)
     assert l == [0,2,4,6,8]
 
-def test_init():
+def test_init_set():
     m = cache.DummyCache(10)
     assert m.max_size == 10
     dummy_message = Message(tensors, vectors)
@@ -37,8 +38,22 @@ def test_init():
     assert len(m) == 1
     m[3:6] = dummy_message
     assert len(m) == 4
-    assert False
+    assert m[0] == dummy_message[0]
+    assert m[3:6] == dummy_message
+    dummy_2 = Message(tensors2, vectors2)
+    m[3:6] = dummy_2
+    assert len(m) == 4
+    assert m[0] == dummy_message[0]
+    assert m[3:6] == dummy_2
 
-def test_insert(): pass
+def test_permute():
+    m = cache.DummyCache(10)
+    dummy_message = Message(tensors, vectors)
+    m[3:6] = dummy_message
+    assert m.cache == dummy_message
+    m._permute([2,1,0])
+    assert m.cache != dummy_message
+    m._permute([2,1,0])
+    assert m.cache == dummy_message
 
-def test_free(): pass
+def test_delete(): pass
