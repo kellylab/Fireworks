@@ -152,6 +152,15 @@ def test_append():
     m5 = Message(pd.DataFrame(v))
     m6 = pd.DataFrame(v)
 
+    m0 = Message()
+    assert(len(m0) == 0)
+    m = m0.append(Message(t))
+    assert m == Message(t)
+    m = m0.append(Message(v))
+    assert m == Message(v)
+    m = m0.append(Message(t,v))
+    assert m == Message(t,v)
+    
     m = m1.append(m2)
     assert len(m) == 6
     assert m == Message({'a': torch.Tensor([1,2,3,1,2,3]), 'b': torch.Tensor([4,5,6,4,5,6])}, {'c': np.array([7,8,9,7,8,9]), 'd': np.array([10,11,12,10,11,12])})

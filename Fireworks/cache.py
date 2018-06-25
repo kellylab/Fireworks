@@ -1,5 +1,5 @@
 from Fireworks.message import Message
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 import pandas as pd
 from itertools import count
 
@@ -7,7 +7,7 @@ from itertools import count
 #     'LRU': cachetools.LRUCache,
 # }
 
-class MessageCache:
+class MessageCache(ABC):
     """
     A message cache stores parts of a larger method and supports retrievals and
     insertions based on index.
@@ -28,19 +28,25 @@ class MessageCache:
         if type(index) is slice:
             index = slice_to_list(index)
 
-        cache_indices = self.indices[index] # This will raise an error if index not present
+        pointers = self.pointers[index] # This will raise an error if index not present
         # try:
         #     cache_indices = self.indices[index]
         # except KeyError as e:
         #     raise KeyError("Index {0} not in cache.".format(e))
 
-        return self.cache[cache_indices]
+        return self.cache[pointers.tolist()]
 
     @abstractmethod
     def __setitem__(self, index, message): pass
 
     def __getattr__(self, *args, **kwargs):
         return self.cache.__getattr__(args, kwargs)
+
+    def __len__(self):
+        return len(self.cache)
+
+    def __repr__(self):
+        return "MessageCache with indices {0}.".format(self.pointers.index.tolist())
 
     def search(self, **kwargs):
         pass
@@ -57,7 +63,7 @@ class MessageCache:
     def size(self):
         return len(self.cache)
 
-class DummyCache:
+class DummyCache(MessageCache):
     """
     This is a basic implementation of a MessageCache that simply appends new
     elements and never clears memory internally
@@ -68,29 +74,33 @@ class DummyCache:
             index = [index]
         if type(index) is slice:
             index = slice_to_list(index)
-        present = index.intersection(self.pointers)
-        not_present = index.difference(self.pointers)
+        present = set(index).intersection(set(self.pointers))
+        not_present = set(index).difference(set(self.pointers))
         # Get indices in message
         present_indices = get_indices(index, present)
         not_present_indices = get_indices(index, not_present)
-        self.add_new(present, message[present_indices])
-        self.update_existing(not_present, message[not_present_indices])
+        self.add_new(not_present, message[not_present_indices])
+        self.update_existing(present, message[present_indices])
 
     def add_new(self, index, message):
         """
         Adds new elements to cache and updates pointers
         """
         start = len(self.cache)
-        self.cache.append(message)
+        assert False
+        self.cache = self.cache.append(message)
         stop = len(self.cache)
-        self.pointers[index] = [i for i in range(start,stop)]
+        for i,j in zip(range(start, stop), index):
+            self.pointers[j] = i
 
-    def update_exsiting(self, index, message):
+    def update_existing(self, index, message):
         """
         Updates elements already in the message
         """
         indices = self.pointers[index]
-        self.cache[indices] = data 
+        for i,x in zip(indices, message):
+            assert False
+            self.cache[i] = x
 
 def slice_to_list(s):
     """
@@ -105,4 +115,4 @@ def get_indices(values, listlike):
     """
     Returns the indices in litlike that match elements in values
     """
-    return [i if l in values for i,l  in zip(count, listlike)]
+    return [i for i,l  in zip(count(), listlike) if l in values]

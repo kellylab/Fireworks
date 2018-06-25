@@ -14,6 +14,9 @@ This file contains utility functions for working with messages. In order to avoi
 messages are represented as standard python dicts and are assumed to conform the necessary interface.
 """
 
+empty_tensor_message = TensorMessage()
+empty_message = Message()
+
 class Message:
     """
     A Message is a class for representing data in a way that can be consumed by different analysis pipelines in python. It does this by
@@ -62,6 +65,8 @@ class Message:
         if type(df) is Message:
             df = df.dataframe() # Pull out the df from the message
         self.df = pd.DataFrame(df)
+        # Ensure columns are in the same order always
+        self.df = self.df.reindex(sorted(self.df.columns), axis=1)
 
         self.check_length()
 
@@ -133,6 +138,10 @@ class Message:
         """
 
         other = Message(other)
+        # Check if self is empty, and if so, replace it with other.
+        if self == empty_message:
+            return other
+
         appended_tensors = self.tensor_message.append(other.tensor_message)
         appended_df = self.df.append(other.df).reset_index(drop=True)
         return Message(appended_tensors, appended_df)
@@ -269,6 +278,11 @@ class TensorMessage:
         order to avoid an value error due to length differences.
         """
         other = TensorMessage(other)
+
+        # If self is empty, just replace it with other.
+        if self == empty_tensor_message:
+            return other
+            
         return TensorMessage({key: torch.cat([self[key], other[key]]) if key in other.keys() else self[key] for key in self.tensor_dict})
 
     def merge(self, other):
