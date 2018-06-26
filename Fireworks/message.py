@@ -127,6 +127,19 @@ class Message:
             value.df.index = self.df.iloc[index].index # Indices must align when updating a dataframe or something terrible happens
             self.df.iloc[index] = value.df
 
+    def __delitem__(self, index):
+
+        if len(self.df):
+            self.df.drop(self.df.index[index], inplace=True)
+            self.length = len(self.df)
+        if len(self.tensor_message):
+            del self.tensor_message[index]
+            self.length = self.tensor_message.length
+
+    def __contains__(self, item):
+
+        return item in self.df or item in self.tensor_message 
+
     def __repr__(self):
         return "Message with \n Tensors: \n {0} \n Metadata: \n {1}".format(self.tensor_message, self.df)
 
@@ -244,10 +257,18 @@ class TensorMessage:
             for key in self.tensor_dict:
                 self.tensor_dict[key][index] = value[key]
 
-    # def __delitem__(self, index): # BUG: delitem raises sigfaults when called on a tensor.
-    #
-    #     for key in self.tensor_dict:
-    #         del self[key][index]
+    def __delitem__(self, index): # BUG: delitem raises sigfaults when called on a tensor.
+
+        # Identify complement indices (indices that will remain)
+        complement_indices = complement(index, self.length)
+        # Assign self to self[complementary indices]
+        deleted = self[complement_indices]
+        self.tensor_dict = deleted.tensor_dict
+        self.length = deleted.length
+
+    def __contains__(self, item):
+
+        return item in self.tensor_dict
 
     def __getattr__(self, *args, **kwargs):
         return self.tensor_dict.__getattribute__(*args, **kwargs)
@@ -315,6 +336,32 @@ def extract_tensors(from_this):
     other_keys = from_this.keys() - tensor_dict.keys() if tensor_dict else from_this.keys()
     other_dict = {k: from_this[k] for k in other_keys}
     return tensor_dict, other_dict
+
+def slice_to_list(s):
+    """
+    Converts a slice object to a list of indices
+    """
+    step = s.step or 1
+    start = s.start
+    stop = s.stop
+    return [x for x in range(start,stop,step)]
+
+def complement(indices, n):
+    """ Given an index, returns all indices between 0 and n that are not in the index. """
+    # everything = [i for i in range(n) if i not in index_list]
+    # indexed = everything[indices]
+    # if type(indices) is int:
+    #     indexed = [indexed]
+    # complement = [i for i in everything if i not in indexed]
+    # return complement
+    if type(indices) is slice:
+        indices = slice_to_list(indices)
+    if type(indices) is int:
+        indices = [indices]
+
+    complement = [i for i in range(0,n) if i not in indices]
+
+    return complement
 
 empty_tensor_message = TensorMessage()
 empty_message = Message()

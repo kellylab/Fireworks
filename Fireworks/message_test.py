@@ -34,6 +34,19 @@ def test_extract_tensors():
     assert t == {}
     assert v == vectors
 
+def test_complement():
+
+    n = 10
+    index = 7
+    complement = messi.complement(index, n)
+    assert complement == [0,1,2,3,4,5,6,8,9]
+    index = slice(2,5)
+    complement = messi.complement(index, n)
+    assert complement == [0,1,5,6,7,8,9]
+    index = [2,4,6]
+    complement = messi.complement(index, n)
+    assert complement == [0,1,3,5,7,8,9]
+
 def test_Message():
     """ Test init, getitem, and len methods. """
 
@@ -261,6 +274,93 @@ def test_Message_set_get():
     assert torch.equal(email['a'], torch.Tensor([9,9,9]))
     email['c'] = np.array([9,9,9])
     assert email['c'].equals(pd.Series([9,9,9]))
+
+def test_Message_del():
+
+    t = {
+        'a': torch.Tensor([1,2,3]),
+        'b': torch.Tensor([4,5,6]),
+        }
+    v = {
+        'c': np.array([7,8,9]),
+        'd': np.array([10,11,12]),
+    }
+    t2 = {
+        'a': torch.Tensor([1,2]),
+        'b': torch.Tensor([4,5]),
+        }
+    v2 = {
+        'c': np.array([7,8]),
+        'd': np.array([10,11]),
+    }
+    t3 = {
+        'a': torch.Tensor([1]),
+        'b': torch.Tensor([4]),
+        }
+    v3 = {
+        'c': np.array([7]),
+        'd': np.array([10]),
+    }
+
+    # Test deletions for messages with only tensors, only df, and both
+    # Test point deletions
+    m = Message(t,v)
+    m1 = Message(t)
+    m2 = Message(v)
+    assert m != Message(t2,v2)
+    assert m1 != Message(t2)
+    assert m2 != Message(v2)
+    assert len(m) == 3
+    assert len(m1) == 3
+    assert len(m2) == 3
+    del m[2]
+    del m1[2]
+    del m2[2]
+    assert len(m) == 2
+    assert len(m1) == 2
+    assert len(m2) == 2
+    assert m == Message(t2,v2)
+    assert m1 == Message(t2)
+    assert m2 == Message(v2)
+    # Test range deletions
+    m = Message(t,v)
+    m1 = Message(t)
+    m2 = Message(v)
+    assert m != Message(t3,v3)
+    assert m1 != Message(t3)
+    assert m2 != Message(v3)
+    assert len(m) == 3
+    assert len(m1) == 3
+    assert len(m2) == 3
+    del m[1:3]
+    del m1[1:3]
+    del m2[1:3]
+    assert len(m) == 1
+    assert len(m1) == 1
+    assert len(m2) == 1
+    assert m == Message(t3,v3)
+    assert m1 == Message(t3)
+    assert m2 == Message(v3)
+    # Test list deletions
+    m = Message(t,v)
+    m1 = Message(t)
+    m2 = Message(v)
+    assert m != Message(t3,v3)
+    assert m1 != Message(t3)
+    assert m2 != Message(v3)
+    assert len(m) == 3
+    assert len(m1) == 3
+    assert len(m2) == 3
+    del m[[1,2]]
+    del m1[[1,2]]
+    del m2[[1,2]]
+    assert len(m) == 1
+    assert len(m1) == 1
+    assert len(m2) == 1
+    assert m == Message(t3,v3)
+    assert m1 == Message(t3)
+    assert m2 == Message(v3)
+
 def test_map(): pass
 
 def test_TensorMessage():
@@ -306,7 +406,7 @@ def test_TensorMessage():
     assert (z['b'] == torch.Tensor([4, 5, 6, 80])).all()
 
 
-def test_TensorMessage_set_get():
+def test_TensorMessage_set_get_del():
 
     a = [1,2,3]
     b = [4, 5, 6]
@@ -320,9 +420,10 @@ def test_TensorMessage_set_get():
     assert len(email) == 3
     email['a'] = torch.Tensor([9,9,9])
     assert torch.equal(email['a'], torch.Tensor([9,9,9]))
-    # del email[0]
-    # assert len(email) == 2
-    # assert email == yahoomail
+    assert gmail != yahoomail
+    del gmail[0]
+    assert len(gmail) == 2
+    assert gmail == yahoomail
 
 def test_TensorMessage_eq():
 

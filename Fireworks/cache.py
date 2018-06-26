@@ -54,6 +54,10 @@ class MessageCache(ABC):
     def __getattr__(self, *args, **kwargs):
         return self.cache.__getattr__(args, kwargs)
 
+    def __contains__(self, item):
+
+        return item in self.pointers.keys()
+
     def __len__(self):
         return len(self.cache)
 
@@ -105,7 +109,22 @@ class MessageCache(ABC):
         Deletes elements in the message corresponding to index.
         This method should be called by __setitem__ or __delitem__ as needed.
         """
-        pass
+        # Get the index in the internal cache corresponding to the virtual (argument) index
+        if type(index) is slice:
+            index = slice_to_list(index)
+        if type(index) is int:
+            index = [index]
+
+        index = [i for i in index if i in self.pointers]
+        internal_indices = [self.pointers[i] for i in index]
+        # Delete those elements
+        del self.cache[internal_indices]
+        # Delete the pointers for those elements
+        for i in index:
+            del self.pointers[i]
+        f = pointer_adjustment_function(internal_indices)
+        for key, internal_index in self.pointers.items():
+            self.pointers[key] -= f(internal_index)
 
     def _permute(self, permutation, target = None):
         """
@@ -147,6 +166,30 @@ class DummyCache(MessageCache):
         Simply inserts the message with the corresponding index without ever freeing memory.
         """
         self._insert(index, message)
+
+    def __delitem__(self, index):
+        self._delete(index)
+
+def pointer_adjustment_function(index):
+    """
+    Given an index, returns a function that that takes an integer as input and returns how many elements of the index the number is greater than.
+    This is used for readjusting pointers after a deletion. For example, if you delete index 2, then every index greater than 2 must slide down 1
+    but index 0 and 1 do not more.
+    """
+    if not type(index) is list:
+        if type(index) is slice:
+            index = slice_to_list(index)
+        if type(index) is int:
+            index = [index]
+
+    index = sorted(index)
+    def adjustment_function(x):
+        for i,c in zip(index, count()):
+            if x < i:
+                return c
+        return c+1 # If x > every index
+
+    return adjustment_function
 
 def slice_to_list(s):
     """
