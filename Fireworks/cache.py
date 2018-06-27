@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import pandas as pd
 from itertools import count
 from bidict import bidict
+import numpy as np
 
 # caches = {
 #     'LRU': cachetools.LRUCache,
@@ -23,13 +24,11 @@ class MessageCache(ABC):
     in memory at a given time and allow for updates and retrievals.
     """
 
-    def __init__(self, max_size):
+    def __init__(self, max_size, buffer_size = 0):
         self.max_size = max_size
         self.cache = Message()
-        # Initialize a list of pointers to keep track of internal indices
-        # self.pointers = pd.Series({-1:-1}, dtype=int)
         self.pointers = bidict()
-        # del self.pointers[-1]
+        self.buffer_size = buffer_size # Specifies how far above max_size the cache can go before having to delete elements
 
     def __getitem__(self, index):
 
@@ -64,7 +63,7 @@ class MessageCache(ABC):
     def __repr__(self):
         return "MessageCache with indices {0}.".format(list(self.pointers.keys()))#.tolist())
 
-    def _insert(self, index, message):
+    def insert(self, index, message):
         """
         Inserts message into cache along with the desired indices.
         This method should be called by __setitem__ as needed to perform the insertion.
@@ -84,7 +83,7 @@ class MessageCache(ABC):
     def _add_new(self, index, message):
         """
         Adds new elements to cache and updates pointers.
-        This method should be called by __setitem__ or _insert as needed to perform insertions.
+        This method should be called by __setitem__ or insert as needed to perform insertions.
         """
         start = len(self.cache)
         self.cache = self.cache.append(message)
@@ -95,7 +94,7 @@ class MessageCache(ABC):
     def _update_existing(self, index, message):
         """
         Updates elements already in the message.
-        This method should be called by __setitem__ or _insert as needed to perform updates.
+        This method should be called by __setitem__ or insert as needed to perform updates.
         """
         if index:
             if type(index) is int:
@@ -104,7 +103,7 @@ class MessageCache(ABC):
                 indices = [self.pointers[i] for i in index]
             self.cache[indices] = message #indices.tolist()
 
-    def _delete(self, index):
+    def delete(self, index):
         """
         Deletes elements in the message corresponding to index.
         This method should be called by __setitem__ or __delitem__ as needed.
@@ -155,7 +154,7 @@ class MessageCache(ABC):
     def size(self):
         return len(self.cache)
 
-class DummyCache(MessageCache):
+class UnlimitedCache(MessageCache):
     """
     This is a basic implementation of a MessageCache that simply appends new
     elements and never clears memory internally
@@ -165,10 +164,71 @@ class DummyCache(MessageCache):
         """
         Simply inserts the message with the corresponding index without ever freeing memory.
         """
-        self._insert(index, message)
+        self.insert(index, message)
 
     def __delitem__(self, index):
-        self._delete(index)
+        self.delete(index)
+
+class BufferedCache(MessageCache):
+    """
+    This implements a setitem method that assumes that when the cache is full, elements must be deleted until it is max_size - buffer_size
+    in length. The deletion method, _free, must be implemented by a subclass.
+    """
+    def __setitem__(self, index, message):
+
+        # Determine how much space to free in order to insert message
+        free_space = self.max_size - len(message)
+        if len(message) > free_space:
+            self.free(len(message) - free_space)
+        else: # Can just insert
+            self.insert(index, message)
+
+    def __delitem__(self, index):
+        self.delete(index)
+
+    @abstractmethod
+    def free(self, n): pass
+
+class RRCache(BufferedCache):
+
+    def free(self, n):
+        indices_present = self.cache.keys()
+        delete_indices = list(np.random.choice(indices_present, n, replace=False))
+        self.__delete__(delete_indices)
+
+class RankingCache(MessageCache):
+    """
+    Implements a free method that deletes elements based on a ranking function.
+    """
+
+    def free(self, n):
+
+        ranks = sorted(self.rank_dict.keys(), key=self.rank_dict.values())
+        del_indices = ranks[0:n]
+        self.__delitem__(del_indices)
+
+    def self.__delitem__(index):
+        super(MessageCache).__delitem__(index)
+        # Remove index components from rank_dict
+        index = index_to_list(index)
+        for i in index:
+            del self.rank_dict[i]
+
+
+class LRUCache(BufferedCache):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.counter = 0
+
+    def update_rank(self, index):
+        index = index_to_list(index)
+        for i in index:
+            self.rank_dict[i] = self.counter
+        self.counter -= 1
+
+class LFUCache(BufferedCache): pass
+
 
 def pointer_adjustment_function(index):
     """
@@ -190,6 +250,16 @@ def pointer_adjustment_function(index):
         return c+1 # If x > every index
 
     return adjustment_function
+
+def index_to_list(index):
+    """
+    Converts an index to a list.
+    """
+    if type(index) is slice:
+        index = slice_to_list(index)
+    if type(index) is int:
+        index = [index]
+    return index
 
 def slice_to_list(s):
     """
