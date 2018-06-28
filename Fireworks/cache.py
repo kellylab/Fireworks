@@ -244,7 +244,11 @@ class RankingCache(MessageCache):
         self.on_add_new(index, message)
 
 class LRUCache(RankingCache, BufferedCache):
-
+    """
+    Implements a Least Recently Used cache. Items are deleted in descending order of how recently they were accessed.
+    A call to __getitem__ or __setitem__ counts as accessing an element.
+    """
+    
     def __init__(self, *args, buffer_size = 0, **kwargs):
         super().__init__(*args, **kwargs)
         self.init_rank_dict()
@@ -269,7 +273,10 @@ class LRUCache(RankingCache, BufferedCache):
         self.update_rank(index)
 
 class LFUCache(RankingCache, BufferedCache):
-
+    """
+    Implements a Least Frequently Used cache. Items are deleted in increasing order of how frequently they are accessed.
+    A call to __getitem__ or __setitem__ counts as accessing an element.
+    """
     def __init__(self, *args, buffer_size=0, **kwargs):
         super().__init__(*args, **kwargs)
         self.init_rank_dict()

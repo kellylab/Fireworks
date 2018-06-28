@@ -14,7 +14,10 @@ class FireworksDataset(Dataset):
 
         self.sources = sources
         self.cache_size = cach_size
-        self._length = None
+        if chunk_size is None:
+            chunk_size = round(cache_size / 2)
+        self.chunk_size = chunk_size
+        self.length = None
 
         self.check_sources()
 
@@ -27,6 +30,7 @@ class FireworksDataset(Dataset):
 
     def to_tensor(self, batch):
         """ Converts a batch from this dataset into a tensor. """
+
         tensors_and_meta = [source._to_tensor(batch) for source in self.sources.values()]
         tensors = [x[0] for x in tensors_and_meta]
         tensors = {key: value for tensor in tensors for key, value in tensor.items()}
@@ -36,19 +40,20 @@ class FireworksDataset(Dataset):
         return tensors, meta
 
     def __len__(self):
-        if self._length:
-            return self._length
+        if self.length:
+            return self.length
         else:
             raise Error("This dataset does not have a length or is not aware of its length. This can be" + \
             "because the entire dataset is not stored in memory and is dynamically streamed in at once.")
 
     def __getitem__(self, index):
 
-        if self._length is None:
+        if self.length is None:
             raise AttributeError("This dataset does not have a length or is not aware of its length." + \
             "Hence, it's elements cannot be accessed by index.")
-        # Check if requested indices are in cache
 
+        # Check if requested indices are in cache
+        index = set(index_to_list(index))
         # Get items
 
     def __iter__(self): return self
@@ -65,6 +70,11 @@ class FireworksDataset(Dataset):
             # Delete the first s-c elements of cache and get a chunk of c elements
             # Convert new chunk to_tensor
             # Combine chunks
+
+
+    def download_chunk(self):
+        """ Updates cache by downloading a new chunk. """
+
 
     def update_cache(self):
         """ Updates cache by downloading a new chunk. """
@@ -172,3 +182,13 @@ class CachingSource(DataSource):
     def insert_cache(self, message): pass
 
     def read_cache(self, index): pass
+
+def index_to_list(index):
+    """
+    Converts an index to a list.
+    """
+    if type(index) is slice:
+        index = slice_to_list(index)
+    if type(index) is int:
+        index = [index]
+    return index

@@ -51,6 +51,7 @@ class Message:
         if len(args) == 1:
             # Identify tensors and separate them out
             # The argument may be an existing Message/TensorMessage
+            # TODO: Implement ability to create a message from a list of messages/dicts 
             if type(args[0]) is Message:
                 tensors = args[0].tensor_message
                 df = args[0].df
@@ -138,7 +139,7 @@ class Message:
 
     def __contains__(self, item):
 
-        return item in self.df or item in self.tensor_message 
+        return item in self.df or item in self.tensor_message
 
     def __repr__(self):
         return "Message with \n Tensors: \n {0} \n Metadata: \n {1}".format(self.tensor_message, self.df)
