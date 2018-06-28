@@ -5,16 +5,6 @@ from itertools import count
 from bidict import bidict
 import numpy as np
 
-# caches = {
-#     'LRU': cachetools.LRUCache,
-# }
-
-# class RangedBidict(Bidict):
-#     """
-#     Bidict that supports access using a list of keys. For example, d[[2,3,5]] would return [d[2], d[3], d[5]]
-#     """
-#     pass
-
 class MessageCache(ABC):
     """
     A message cache stores parts of a larger method and supports retrievals and
@@ -24,11 +14,10 @@ class MessageCache(ABC):
     in memory at a given time and allow for updates and retrievals.
     """
 
-    def __init__(self, max_size, buffer_size = 0):
+    def __init__(self, max_size):
         self.max_size = max_size
         self.cache = Message()
         self.pointers = bidict()
-        self.buffer_size = buffer_size # Specifies how far above max_size the cache can go before having to delete elements
 
     def __getitem__(self, index):
 
@@ -72,8 +61,8 @@ class MessageCache(ABC):
             index = [index]
         if type(index) is slice:
             index = slice_to_list(index)
-        present = set(index).intersection(set(self.pointers.keys()))
-        not_present = set(index).difference(set(self.pointers.keys()))
+        present = [i for i in index if i in self.pointers.keys()] # Intersection
+        not_present = [i for i in index if i not in self.pointers.keys()] # Difference
         # Get indices in message
         present_indices = get_indices(index, present)
         not_present_indices = get_indices(index, not_present)
@@ -174,14 +163,24 @@ class BufferedCache(MessageCache):
     This implements a setitem method that assumes that when the cache is full, elements must be deleted until it is max_size - buffer_size
     in length. The deletion method, _free, must be implemented by a subclass.
     """
+
+
+    def init_buffer(self, buffer_size = 0):
+
+        self.buffer_size = buffer_size # Specifies how far above max_size the cache can go before having to delete elements
+
     def __setitem__(self, index, message):
 
+        index = index_to_list(index)
+        if len(index) != len(message):
+            raise ValueError("Message length does not math length of index for insertion.")
         # Determine how much space to free in order to insert message
-        free_space = self.max_size - len(message)
+        free_space = self.max_size - len(self)
         if len(message) > free_space:
-            self.free(len(message) - free_space)
-        else: # Can just insert
-            self.insert(index, message)
+            how_much = max(self.buffer_size - free_space, len(message) - free_space)
+            self.free(how_much)
+
+        self.insert(index, message)
 
     def __delitem__(self, index):
         self.delete(index)
@@ -201,34 +200,100 @@ class RankingCache(MessageCache):
     Implements a free method that deletes elements based on a ranking function.
     """
 
+    def init_rank_dict(self):
+        self.rank_dict = {}
+
     def free(self, n):
 
-        ranks = sorted(self.rank_dict.keys(), key=self.rank_dict.values())
+        to_sort = list(self.rank_dict.keys())
+        sort_by = list(self.rank_dict.values())
+        sorter = lambda k: self.rank_dict[k]
+        ranks = sorted(to_sort, key=sorter)
         del_indices = ranks[0:n]
         self.__delitem__(del_indices)
 
-    def self.__delitem__(index):
-        super(MessageCache).__delitem__(index)
+    def __delitem__(self, index):
+
+        self.delete(index)
         # Remove index components from rank_dict
         index = index_to_list(index)
         for i in index:
             del self.rank_dict[i]
+        self.on_delete(index)
 
+    def on_update_existing(self, index, message): pass
 
-class LRUCache(BufferedCache):
+    def on_add_new(self, index, message): pass
 
-    def __init__(self, *args, **kwargs):
+    def on_delete(self, index): pass
+
+    def on_getitem(self, index): pass
+
+    def __getitem__(self, index):
+
+        message = super().__getitem__(index)
+        self.on_getitem(index)
+        return message
+
+    def _update_existing(self, index, message):
+        super()._update_existing(index, message)
+        self.on_update_existing(index, message)
+
+    def _add_new(self, index, message):
+        super()._add_new(index, message)
+        self.on_add_new(index, message)
+
+class LRUCache(RankingCache, BufferedCache):
+
+    def __init__(self, *args, buffer_size = 0, **kwargs):
         super().__init__(*args, **kwargs)
+        self.init_rank_dict()
+        self.init_buffer(buffer_size)
         self.counter = 0
 
     def update_rank(self, index):
         index = index_to_list(index)
         for i in index:
             self.rank_dict[i] = self.counter
-        self.counter -= 1
+        self.counter += 1
 
-class LFUCache(BufferedCache): pass
+    def on_update_existing(self, index, message):
+        self.update_rank(index)
 
+    def on_add_new(self, index, message):
+        self.update_rank(index)
+
+    def on_delete(self, index): pass
+
+    def on_getitem(self, index):
+        self.update_rank(index)
+
+class LFUCache(RankingCache, BufferedCache):
+
+    def __init__(self, *args, buffer_size=0, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.init_rank_dict()
+        self.init_buffer(buffer_size)
+
+    def update_rank(self, index):
+        index = index_to_list(index)
+        for i in index:
+            if i in self.pointers:
+                self.rank_dict[i] += 1
+
+    def on_update_existing(self, index, message):
+        self.update_rank(index)
+
+    def on_add_new(self, index, message):
+        index = index_to_list(index)
+        for i in index:
+            self.rank_dict[i] = 0
+
+    def on_delete(self, index):
+        self.update_rank(index)
+
+    def on_getitem(self, index):
+        self.update_rank(index)
 
 def pointer_adjustment_function(index):
     """
@@ -274,4 +339,5 @@ def get_indices(values, listlike):
     """
     Returns the indices in litlike that match elements in values
     """
-    return [i for i,l  in zip(count(), listlike) if l in values]
+
+    return [i for i, l  in zip(count(), listlike) if l in values]

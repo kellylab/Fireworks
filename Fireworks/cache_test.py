@@ -50,7 +50,7 @@ def test_slice_to_list():
     assert l == [0,2,4,6,8]
 
 def test_init_set():
-    m = cache.DummyCache(10)
+    m = cache.UnlimitedCache(10)
     assert m.max_size == 10
     dummy_message = Message(tensors, vectors)
     assert len(m) == 0
@@ -65,9 +65,11 @@ def test_init_set():
     assert len(m) == 4
     assert m[0] == dummy_message[0]
     assert m[3:6] == dummy_2
+    m[7:10] = dummy_message
+    assert m[7:10] == dummy_message
 
 def test_del():
-    m = cache.DummyCache(10)
+    m = cache.UnlimitedCache(10)
     assert m.max_size == 10
     dummy_message = Message(tensors, vectors)
     m[0] = dummy_message[0]
@@ -92,7 +94,7 @@ def test_del():
     assert m[3:5] == dummy_message[0:2]
 
 def test_permute():
-    m = cache.DummyCache(10)
+    m = cache.UnlimitedCache(10)
     dummy_message = Message(tensors, vectors)
     m[3:6] = dummy_message
     assert m.cache == dummy_message
@@ -101,4 +103,61 @@ def test_permute():
     m._permute([2,1,0])
     assert m.cache == dummy_message
 
-def test_delete(): pass
+def test_LRUCache():
+    m = cache.LRUCache(10, buffer_size=2)
+    dummy_message = Message(tensors, vectors)
+    m[2:5] = dummy_message
+    assert m[2:5] == dummy_message
+    assert m.rank_dict.keys() == m.pointers.keys()
+    m[7:10] = dummy_message
+    assert m[2:5] == dummy_message
+    assert m[7:10] == dummy_message
+    assert m.rank_dict.keys() == m.pointers.keys()
+    m[12:15] = dummy_message
+    assert m[2:5] == dummy_message
+    assert m[7:10] == dummy_message
+    assert m[12:15] == dummy_message
+    assert m.rank_dict.keys() == m.pointers.keys()
+    # At this point, the least recently used elements are in the beginning
+    m[15:18] = dummy_message
+    assert m[15:18] == dummy_message
+    assert len(m) == 10
+    assert m.rank_dict.keys() == m.pointers.keys()
+    assert not 2 in m
+    assert not 3 in m
+    assert set([4,7,8,9,12,13,14,15,16,17]) == set(m.rank_dict.keys())
+    m[[4,8,9,13,14,15,16]] # Trigger __getitem__; Now 7, 12 and 17 should be queueud for deletion
+    m[18:21] = dummy_message
+    assert len(m) == 10
+    for i in [7,12,17]:
+        assert not i in m
+    # Trigger a buffer clearance.
+    m[29] = dummy_message[0]
+    assert len(m) == 9
+
+def test_LFUCache():
+    m = cache.LFUCache(10, buffer_size=2)
+    dummy_message = Message(tensors, vectors)
+    m[2:5] = dummy_message
+    assert m[2:5] == dummy_message
+    assert m.rank_dict.keys() == m.pointers.keys()
+    m[7:10] = dummy_message
+    assert m[2:5] == dummy_message
+    assert m[7:10] == dummy_message
+    assert m.rank_dict.keys() == m.pointers.keys()
+    m[12:15] = dummy_message
+    assert m[2:5] == dummy_message
+    assert m[7:10] == dummy_message
+    assert m[12:15] == dummy_message
+    assert m.rank_dict.keys() == m.pointers.keys()
+    # At this point, 12:15 are the least frequently used elements.
+    m[15:18] = dummy_message
+    assert m[15:18] == dummy_message
+    assert len(m) == 10
+    assert m.rank_dict.keys() == m.pointers.keys()
+    assert not 12 in m
+    assert not 13 in m
+    assert set([2,3, 4,7,8,9,14,15,16,17]) == set(m.rank_dict.keys())
+    # Trigger __getitem__
+    m[29] = dummy_message[0]
+    assert len(m) == 9
