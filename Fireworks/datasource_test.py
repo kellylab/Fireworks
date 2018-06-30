@@ -6,6 +6,22 @@ from Fireworks.message import Message
 
 test_dir = Fireworks.test_dir
 
+class one_way_dummy(ds.DataSource):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.count = 0
+
+    def __next__(self):
+        self.count += 1
+        if self.count < 20:
+            return self.count
+        else:
+            raise # This will trigger StopIteration
+
+    def reset(self):
+        self.count = 0
+
 def conforms_to_spec(datasource):
 
     assert hasattr(datasource, '__iter__')
@@ -14,10 +30,7 @@ def conforms_to_spec(datasource):
 
     return True
 
-def test_DataSource():
-
-    bob = ds.DataSource()
-    assert conforms_to_spec(bob)
+def test_DataSource(): pass
 
 def test_BioSeqSource():
 
@@ -30,10 +43,25 @@ def test_BioSeqSource():
     for gene in genes:
         assert type(gene) is pd.DataFrame
         assert set(['sequences', 'ids', 'names', 'descriptions', 'dbxrefs']) == set(gene.keys())
-        message, metadata = genes.to_tensor(gene, embedding_function)
+        message = genes.to_tensor(gene, embedding_function)
         assert type(message) is Message
-        assert type(metadata) is pd.DataFrame
-        assert set(message.keys()) == set(['sequences'])
-        assert set(metadata.keys()) == set(['ids', 'names', 'descriptions', 'dbxrefs', 'rawsequences'])
+        assert set(message.tensor_message.keys()) == set(['sequences'])
+        assert set(message.df.keys()) == set(['ids', 'names', 'descriptions', 'dbxrefs', 'rawsequences'])
         assert len(message) == 1
-        assert len(metadata) == 1
+    # Reset and do it again to confirm we can repeat the source
+    genes.reset()
+    for gene in genes:
+        assert type(gene) is pd.DataFrame
+        assert set(['sequences', 'ids', 'names', 'descriptions', 'dbxrefs']) == set(gene.keys())
+        message = genes.to_tensor(gene, embedding_function)
+        assert type(message) is Message
+        assert set(message.tensor_message.keys()) == set(['sequences'])
+        assert set(message.df.keys()) == set(['ids', 'names', 'descriptions', 'dbxrefs', 'rawsequences'])
+        assert len(message) == 1
+
+def test_LoopingSource():
+
+    dumbo = one_way_dummy()
+    loopy = ds.LoopingSource(inputs = {'dumbo': dumbo})
+
+def test_CachingSource(): pass 

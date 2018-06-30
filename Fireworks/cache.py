@@ -248,7 +248,7 @@ class LRUCache(RankingCache, BufferedCache):
     Implements a Least Recently Used cache. Items are deleted in descending order of how recently they were accessed.
     A call to __getitem__ or __setitem__ counts as accessing an element.
     """
-    
+
     def __init__(self, *args, buffer_size = 0, **kwargs):
         super().__init__(*args, **kwargs)
         self.init_rank_dict()
