@@ -37,6 +37,7 @@ class Message:
         If *args has __getitem__ and keys() attributes --> construct a message from elements of dict, separating tensors from pd series
         An optional cache class can be provided to specify a caching strategy.
         """
+
         """ Init must be idempotent, attempt to perform type conversions as necessary, and compute/check length. """
         if len(args) == 0:
             tensors = {}
@@ -51,10 +52,13 @@ class Message:
         if len(args) == 1:
             # Identify tensors and separate them out
             # The argument may be an existing Message/TensorMessage
-            # TODO: Implement ability to create a message from a list of messages/dicts 
+            # TODO: Implement ability to create a message from a list of messages/dicts
             if type(args[0]) is Message:
                 tensors = args[0].tensor_message
                 df = args[0].df
+            elif args[0] is None:
+                tensors = {}
+                df = {}
             else:
                 tensors, df = extract_tensors(args[0])
 
@@ -355,6 +359,7 @@ def complement(indices, n):
     #     indexed = [indexed]
     # complement = [i for i in everything if i not in indexed]
     # return complement
+
     if type(indices) is slice:
         indices = slice_to_list(indices)
     if type(indices) is int:
@@ -363,6 +368,30 @@ def complement(indices, n):
     complement = [i for i in range(0,n) if i not in indices]
 
     return complement
+
+def cat(list_of_args):
+    """
+    Concatenates messages in list_of_args into one message.
+    """
+
+    m = Message(list_of_args[0])
+    if len(list_of_args) > 1:
+        for arg in list_of_args[1:]:
+            m = m.append(Message(arg))
+
+    return m
+
+def merge(list_of_args):
+    """
+    Merges messages in list_of_args into one message with all the keys combined.
+    """
+
+    m = Message(list_of_args[0])
+    if len(list_of_args) > 1:
+        for arg in list_of_args[1:]:
+            m = m.merge(Message(arg))
+
+    return m
 
 empty_tensor_message = TensorMessage()
 empty_message = Message()

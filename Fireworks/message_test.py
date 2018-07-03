@@ -433,3 +433,12 @@ def test_TensorMessage_eq():
     # Test init
     email = TensorMessage({'a': a, 'b':b})
     gmail = TensorMessage(email)
+
+def test_cat():
+
+    m = Message(tensors, vectors)
+    m0 = m[0]
+    m1 = m[1]
+    m2 = m[2]
+    babaghanush = messi.cat([m0,m1,m2])
+    assert babaghanush == m

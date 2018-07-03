@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from Fireworks import datasource as ds
 from Fireworks.message import Message
+import numpy as np
 
 test_dir = Fireworks.test_dir
 
@@ -15,12 +16,33 @@ class one_way_dummy(ds.DataSource):
     def __next__(self):
         self.count += 1
         if self.count < 20:
-            return self.count
+            return {'count': np.array([self.count])}
         else:
             raise # This will trigger StopIteration
 
     def reset(self):
         self.count = 0
+
+class reset_dummy(ds.DataSource):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.count = 0
+
+    def reset(self):
+        self.count = 0
+
+class next_dummy(ds.DataSource):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.count = 0
+
+    def __next__(self):
+        self.count += 1
+        if self.count < 20:
+            return {'count': np.array([self.count])}
+        else:
+            raise # This will trigger StopIteration
 
 def conforms_to_spec(datasource):
 
@@ -61,7 +83,26 @@ def test_BioSeqSource():
 
 def test_LoopingSource():
 
+    # Test type checking
+    # try:
+    #     dumbo = reset_dummy()
+    #     poopy = ds.LoopingSource(inputs = {'mumbo': dumbo})
+    # except TypeError:
+    #     assert True
+    # else:
+    #     assert False
+    # try:
+    #     dumbo = next_dummy()
+    #     scooby = ds.LoopingSource(inputs = {'jumbo': dumbo})
+    # except TypeError:
+    #     assert True
+    # else:
+    #     assert False
     dumbo = one_way_dummy()
     loopy = ds.LoopingSource(inputs = {'dumbo': dumbo})
+    loopy[10]
+    loopy[5]
+    assert False
 
-def test_CachingSource(): pass 
+
+def test_CachingSource(): pass

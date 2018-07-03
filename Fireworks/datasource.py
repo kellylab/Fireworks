@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 from Bio import SeqIO
 import pandas as pd
+import Fireworks
 from Fireworks.message import Message
+from Fireworks.utils import index_to_list
 from abc import ABC, abstractmethod
 
 class Source(ABC):
@@ -20,14 +22,15 @@ class Source(ABC):
     def __getattr__(self, *args, **kwargs):
 
         if self.input_sources is None:
-            raise AttributeError("Source {0} does not have this attribute.".format(self.name))
+            raise AttributeError("Source {0} does not have attribute {1}.".format(self.name, str(args)))
 
-        responses = [source.__getattr__(*args,**kwargs) for source in self.input_sources]
-        return Message(responses)
+        responses = [source.__getattribute__(args[0])(**kwargs) for source in self.input_sources.values()]
+        return Fireworks.merge(responses)
 
 class DataSource(Source):
     """ Class for representing a data source. It formats and reads data, and is able to convert batches into tensors. """
 
+    name = 'DataSource'
 
     # @abstractmethod
     def to_tensor(self, batch: Message, embedding_function: dict = None):
@@ -49,6 +52,8 @@ class DataSource(Source):
 
 class BioSeqSource(DataSource):
     """ Class for representing biosequence data. """
+
+    name = 'BioSeqSource'
 
     def __init__(self, path, filetype = 'fasta', **kwargs):
         self.path = path
@@ -97,23 +102,34 @@ class LoopingSource(Source):
     will simulate __getitem__ by repeatedly looping through the iterator as needed.
     """
 
+    name = 'LoopingSource'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.check_inputs()
         self.position = 0
+        self.length = None
 
     def __getitem__(self, index):
         """
         Retreives items in index by looping through inputs as many times as needed.
         """
+
+        # TODO: Check if index exceeds length, either explicitly or implicitly.
+        
         # Sort index
         index = sorted(index_to_list(index))
         above = [i for i in index if i >= self.position] # Go forward to reach these
         below = [i for i in index if i < self.position] # Will have to reset the loop to reach these
-        above_values = fireworks.cat([self.step_forward(i) for i in above])
+        if len(above) > 0:
+            above_values = Fireworks.cat([self.step_forward(i) for i in above])
+        else:
+            above_values = Message()
         if len(below) > 0:
             self.reset() # Position will now be reset to 0
-            below_values = fireworks.cat([self.step_forward(i) for i in below])
+            below_values = Fireworks.cat([self.step_forward(i) for i in below])
+        else:
+            below_values = Message()
         return below_values.append(above_values) # TODO: Resort this message so values are in the order requested by index
 
     def __len__(self):
@@ -127,7 +143,26 @@ class LoopingSource(Source):
         Go forward one step. This can be used to loop over the inputs while automatically recording
         length once one cycle has been performed.
         """
-        return self.step_forward(1)
+        if self.length is None:
+            return self.step_forward(1)
+        else:
+            p = (self.position + 1) % self.length
+            self.position = p
+            return self[p]
+
+    def check_inputs(self):
+        """
+        Checks inputs to determine if they implement __next__ and reset methods.
+        """
+        for name, source in self.input_sources.items():
+            if not (hasattr(source, '__next__') and hasattr(source, 'reset')):
+                raise TypeError('Source {0} does not have __next__ and reset methods.'.format(name))
+
+    def reset(self):
+
+        for source in self.input_sources.values():
+            source.reset()
+        self.position = 0
 
     def compute_length(self):
         """
@@ -150,9 +185,11 @@ class LoopingSource(Source):
             raise ValueError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
         if n < self.position:
             raise ValueError("Can only step forward to a value higher than current position.")
-        for _ in range(n - self.position + 1):
+        x = Message()
+        for _ in range(n - self.position):
             try:
-                x = self.__next__()
+                # x = x.append(Fireworks.merge([source.__next__() for source in self.input_sources.values()]))
+                x = Fireworks.merge([source.__next__() for source in self.input_sources.values()])
                 self.position += 1
             except StopIteration:
                 self.length = self.position
@@ -196,7 +233,7 @@ class CachingSource(Source):
         Length is computed implicitly and lazily. If any operation causes the source
         to reach the end of it's inputs, that position is stored as the length.
         Alternatively, if this method is called before that happens, the source will attempt to
-        loop to the end and calculate the length.  
+        loop to the end and calculate the length.
         """
         if self.length is not None:
             self.compute_length()
