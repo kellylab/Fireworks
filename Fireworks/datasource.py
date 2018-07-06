@@ -199,13 +199,13 @@ class LoopingSource(Source):
 
 class CachingSource(Source):
     """
-    Given input sources that implement __next__, will store all calls to __next__ into an internal cache and therafter allow __getitem__
-    calls that either access from the cache or trigger __next__ calls to add to the cache.
+    Given input sources that implement __getitem__, will store all calls to __getitem__ into an internal cache and therafter __getitem__
+    calls will either access from the cache or trigger __getitem__ calls on the input and an update to the cache.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, cache_size = 100, cache_type = 'LRU', **kwargs):
         super().__init__(*args, **kwargs)
-        self.position = 0
         self.length = None
+        self.cache_size = cache_size
         self.init_cache(*args, **kwargs)
 
     @abstractmethod
@@ -213,13 +213,28 @@ class CachingSource(Source):
         """
         This should initialize a cache object called self.cache
         """
-        pass
+        choices = {'LRU': LRUCache, 'LFU': LFUCache}
+        self.cache = choices[cache_type](*args, cache_size = self.cache_size, **kwargs)
 
     def __getitem__(self, index):
 
         index = index_to_list(index)
-        self.step_forward(max(index))
-        return self.cache[index]
+        # Identify what is in the cache and what isn't.
+        in_cache = [i for i in index if i in self.cache.pointers] # Elements of index corresponding to in_cache elements
+        in_cache_indices = [j for i,j in zip(index, count()) if i in self.cache.pointers] # Indices in index corresponding to in_cache elements
+        not_in_cache = [i for i in index if i not in self.cache.pointers] # Elements of index corresponding to not_in_cache elements
+        not_in_cache_indices = [j for i,j in zip(index, count()) if i not in self.cache.pointers] # Indices in index corresponding to not_in_cache elements
+        # Retrieve from cache existing elements
+        in_cache_elements = self.cache[in_cache] # elements in cache corresponding to indices in cache
+        # Update cache to have other elements
+        not_in_cache_elements = Fireworks.merge({source[not_in_cache] for source in self.input_sources})
+        self.cache[not_in_cache] = not_in_cache_elements
+        # Reorder and merge requested elements
+        message = in_cache.append(not_in_cache)
+        permutation = in_cache_indices.extend(not_in_cache_indices) # Elements must be reordered based on their order in index
+        message = message.permute(permutation)
+
+        return message
 
     def __len__(self):
         """
@@ -230,6 +245,7 @@ class CachingSource(Source):
         """
         if self.length is not None:
             self.compute_length()
+            return self.length
         else:
             return self.length
 
@@ -238,26 +254,9 @@ class CachingSource(Source):
         Step forward as far as the inputs will allow and compute length.
         Note: If the inputs are infinite, then this will go on forever.
         """
-        while True:
+        for i in count():
             try:
-                self.step_forward(1)
+                self[i]
             except StopIteration:
-                self.length = self.position
-                self.reset()
+                self.length = i+1
                 break
-
-    def step_forward(self, n):
-        """
-        Calls __next__ until self.position == n, adding elements to the cache at each step.
-        """
-        if self.length is not None and n < self.length:
-            if self.position < n:
-                for i in range(n-self.position+1):
-                    try:
-                        self.cache[i] = self.__next__()
-                        self.position += 1
-                    except StopIteration:
-                        self.length = self.position
-                        raise StopIteration
-        else:
-            raise ValueError("Requested index is out of bounds for inputs with length {0}.".format(self.length))

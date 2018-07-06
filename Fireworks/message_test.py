@@ -405,7 +405,6 @@ def test_TensorMessage():
     assert (z['a'] == torch.Tensor([1,2,3,1])).all()
     assert (z['b'] == torch.Tensor([4, 5, 6, 80])).all()
 
-
 def test_TensorMessage_set_get_del():
 
     a = [1,2,3]
@@ -442,3 +441,28 @@ def test_cat():
     m2 = m[2]
     babaghanush = messi.cat([m0,m1,m2])
     assert babaghanush == m
+
+def test_TensorMessage_permute():
+    a = [1,2,3]
+    b = [4, 5, 6]
+    email = TensorMessage({'a': a, 'b':b})
+    gmail = email.permute([2,1,0])
+    assert gmail == TensorMessage({'a':[3,2,1], 'b':[6,5,4]})
+    gmail = email.permute([0,0,0])
+    assert gmail == TensorMessage({'a':[1,1,1], 'b':[4,4,4]})
+
+def test_permute():
+
+    tensors = {
+        'a': torch.Tensor([1,2,3]),
+        'b': torch.Tensor([4,5,6]),
+        }
+    vectors = {
+        'c': np.array([7,8,9]),
+        'd': np.array([10,11,12]),
+    }
+    email = Message(tensors, vectors)
+    gmail = email.permute([2,1,0])
+    assert gmail == Message({'a':[3,2,1], 'b':[6,5,4]}, {'c': np.array([9,8,7]), 'd': np.array([12,11,10])})
+    gmail = email.permute([0,0,0])
+    assert gmail == Message({'a':[1,1,1], 'b':[4,4,4]}, {'c': np.array([7,7,7]), 'd': np.array([10,10,10])})

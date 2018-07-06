@@ -71,7 +71,6 @@ class FireworksDataset(Dataset):
             # Convert new chunk to_tensor
             # Combine chunks
 
-
     def download_chunk(self):
         """ Updates cache by downloading a new chunk. """
 

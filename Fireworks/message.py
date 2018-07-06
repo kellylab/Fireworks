@@ -2,6 +2,7 @@ import collections
 import torch
 import pandas as pd
 import numpy as np
+from copy import deepcopy
 from collections import Hashable
 
 """
@@ -195,6 +196,16 @@ class Message:
         else:
             return pd.DataFrame({key: np.array(self[key]) for key in keys})
 
+    def permute(self, index):
+        """
+        Reorders elements of message based on index.
+        """
+        df_index = self.df.index
+        df = self.df.reindex(index)
+        df.index = df_index
+        tensor_message = self.tensor_message.permute(index)
+        return Message(tensor_message, df)
+
     def cpu(self, keys = None):
         """ Moves tensors to system memory. Can specify which ones to move by specifying keys. """
         pass
@@ -212,6 +223,7 @@ class TensorMessage:
         Initizes TensorMessage, performing type conversions as necessary.
         """
         self.tensor_dict = {}
+        self.map_dict = map_dict
 
         if type(message_dict) is Message:
             self.tensor_dict = message_dict.tensor_message.tensor_dict
@@ -227,8 +239,8 @@ class TensorMessage:
                 if not hasattr(value, '__len__'):
                     value = [value]
                 # Apply (optional) mappings. For example, to specify a torch.BytesTensor instead of a FloatTensor.
-                if type(map_dict) is dict and key in map_dict:
-                    value = map_dict[key](value)
+                if type(self.map_dict) is dict and key in map_dict:
+                    value = self.map_dict[key](value)
                 # Convert to tensor if not already
                 if not isinstance(value, torch.Tensor):
                     try:
@@ -254,9 +266,11 @@ class TensorMessage:
     def __setitem__(self, index, value):
 
         if isinstance(index, Hashable) and index in self.tensor_dict: # Index is the name of a key
-            self.tensor_dict[index] = value
-            self.length = compute_length(self)
-
+            try:
+                self.tensor_dict[index] = value # TODO: If the update is invalid, then this step should not occur.
+                self.length = compute_length(self)
+            except ValueError as e:
+                raise ValueError(e)
         else:
             value = TensorMessage(value)
             for key in self.tensor_dict:
@@ -270,6 +284,14 @@ class TensorMessage:
         deleted = self[complement_indices]
         self.tensor_dict = deleted.tensor_dict
         self.length = deleted.length
+
+    def __copy__(self):
+
+        return TensorMessage(self.tensor_dict, self.map_dict)
+
+    def __deepcopy__(self, memo):
+
+        return TensorMessage(deepcopy(self.tensor_dict), deepcopy(self.map_dict))
 
     def __contains__(self, item):
 
@@ -317,6 +339,13 @@ class TensorMessage:
         """
         other = TensorMessage(other)
         return TensorMessage({**self, **other})
+
+    def permute(self, index):
+        """
+        Rearranges elements of TensorMessage to align with new index.
+        """
+        permutation = self[index]
+        return permutation
 
 def compute_length(of_this):
     """

@@ -121,4 +121,11 @@ def test_LoopingSource():
         assert False
     assert loopy.length == 20
 
-def test_CachingSource(): pass
+def test_CachingSource():
+    # Test type checking
+
+    # Test __getitem__
+
+    # Test explicit length calculation
+
+    # Test implicit length calculation
