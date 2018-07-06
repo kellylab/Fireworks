@@ -107,8 +107,9 @@ class LoopingSource(Source):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.check_inputs()
-        self.position = 0
+        self.reset()
         self.length = None
+
 
     def __getitem__(self, index):
         """
@@ -116,18 +117,18 @@ class LoopingSource(Source):
         """
 
         # TODO: Check if index exceeds length, either explicitly or implicitly.
-        
+
         # Sort index
         index = sorted(index_to_list(index))
         above = [i for i in index if i >= self.position] # Go forward to reach these
         below = [i for i in index if i < self.position] # Will have to reset the loop to reach these
         if len(above) > 0:
-            above_values = Fireworks.cat([self.step_forward(i) for i in above])
+            above_values = Fireworks.cat([self.step_forward(i+1) for i in above])
         else:
             above_values = Message()
         if len(below) > 0:
             self.reset() # Position will now be reset to 0
-            below_values = Fireworks.cat([self.step_forward(i) for i in below])
+            below_values = Fireworks.cat([self.step_forward(i+1) for i in below])
         else:
             below_values = Message()
         return below_values.append(above_values) # TODO: Resort this message so values are in the order requested by index
@@ -137,6 +138,7 @@ class LoopingSource(Source):
             return self.length
         else:
             self.compute_length()
+            return self.length
 
     def __next__(self):
         """
@@ -171,9 +173,8 @@ class LoopingSource(Source):
         """
         while True:
             try:
-                self.step_forward(1)
+                self.step_forward(self.position+1)
             except StopIteration:
-                self.length = self.position
                 self.reset()
                 break
 

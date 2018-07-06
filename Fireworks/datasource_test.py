@@ -15,10 +15,10 @@ class one_way_dummy(ds.DataSource):
 
     def __next__(self):
         self.count += 1
-        if self.count < 20:
-            return {'count': np.array([self.count])}
+        if self.count <= 20:
+            return {'count': np.array([self.count-1])}
         else:
-            raise # This will trigger StopIteration
+            raise StopIteration# This will trigger StopIteration
 
     def reset(self):
         self.count = 0
@@ -42,7 +42,7 @@ class next_dummy(ds.DataSource):
         if self.count < 20:
             return {'count': np.array([self.count])}
         else:
-            raise # This will trigger StopIteration
+            raise StopIteration # This will trigger StopIteration
 
 def conforms_to_spec(datasource):
 
@@ -84,25 +84,41 @@ def test_BioSeqSource():
 def test_LoopingSource():
 
     # Test type checking
-    # try:
-    #     dumbo = reset_dummy()
-    #     poopy = ds.LoopingSource(inputs = {'mumbo': dumbo})
-    # except TypeError:
-    #     assert True
-    # else:
-    #     assert False
-    # try:
-    #     dumbo = next_dummy()
-    #     scooby = ds.LoopingSource(inputs = {'jumbo': dumbo})
-    # except TypeError:
-    #     assert True
-    # else:
-    #     assert False
+    try:
+        dumbo = reset_dummy()
+        poopy = ds.LoopingSource(inputs = {'mumbo': dumbo})
+    except TypeError:
+        assert True
+    else:
+        assert False
+    try:
+        dumbo = next_dummy()
+        scooby = ds.LoopingSource(inputs = {'jumbo': dumbo})
+    except TypeError:
+        assert True
+    else:
+        assert False
     dumbo = one_way_dummy()
     loopy = ds.LoopingSource(inputs = {'dumbo': dumbo})
     loopy[10]
     loopy[5]
-    assert False
-
+    numba1 = len(loopy)
+    numba2 = len(loopy) # Call __len__ twice to ensure both compute_length and retrieval of length works
+    assert numba1 == 20
+    assert numba2 == 20
+    x = loopy[0]
+    assert x == Message({'count': [0]})
+    loopy[10]
+    loopy = ds.LoopingSource(inputs = {'dumbo': dumbo})
+    x = loopy[0]
+    assert x == Message({'count': [0]}) # Check that the input sources were reset.
+    assert loopy.length is None
+    try: # Test if length is implicitly calculated whenever input sources run out.
+        loopy[21]
+    except StopIteration:
+        assert True
+    else:
+        assert False
+    assert loopy.length == 20
 
 def test_CachingSource(): pass
