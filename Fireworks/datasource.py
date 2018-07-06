@@ -4,7 +4,9 @@ import pandas as pd
 import Fireworks
 from Fireworks.message import Message
 from Fireworks.utils import index_to_list
+from Fireworks.cache import LRUCache, LFUCache
 from abc import ABC, abstractmethod
+from itertools import count
 
 class Source(ABC):
     """
@@ -202,22 +204,38 @@ class CachingSource(Source):
     Given input sources that implement __getitem__, will store all calls to __getitem__ into an internal cache and therafter __getitem__
     calls will either access from the cache or trigger __getitem__ calls on the input and an update to the cache.
     """
-    def __init__(self, *args, cache_size = 100, cache_type = 'LRU', **kwargs):
+    def __init__(self, *args, cache_size = 100, cache_type = 'LRU', infinite = False, **kwargs):
         super().__init__(*args, **kwargs)
+        self.check_inputs()
         self.length = None
+        self.lower_bound = 0
+        self.upper_bound = None
+        self.infinite = infinite
         self.cache_size = cache_size
+        self.cache_type = cache_type
         self.init_cache(*args, **kwargs)
 
-    @abstractmethod
+    # @abstractmethod # TODO: Make different types of caches implementable via subclasses
     def init_cache(self, *args, **kwargs):
         """
         This should initialize a cache object called self.cache
         """
         choices = {'LRU': LRUCache, 'LFU': LFUCache}
-        self.cache = choices[cache_type](*args, cache_size = self.cache_size, **kwargs)
+        self.cache = choices[self.cache_type](max_size = self.cache_size,)
+
+    def check_inputs(self):
+        """
+        Checks inputs to determine if they implement __getitem__.
+        """
+        for name, source in self.input_sources.items():
+            if not (hasattr(source, '__getitem__')):
+                raise TypeError('Source {0} does not have __getitem__ method.'.format(name))
 
     def __getitem__(self, index):
 
+        if self.length and index: # Implicit length check if length is known
+            if max(index) >= self.length:
+                raise ValueError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
         index = index_to_list(index)
         # Identify what is in the cache and what isn't.
         in_cache = [i for i in index if i in self.cache.pointers] # Elements of index corresponding to in_cache elements
@@ -227,12 +245,24 @@ class CachingSource(Source):
         # Retrieve from cache existing elements
         in_cache_elements = self.cache[in_cache] # elements in cache corresponding to indices in cache
         # Update cache to have other elements
-        not_in_cache_elements = Fireworks.merge({source[not_in_cache] for source in self.input_sources})
+        not_in_cache_elements = Fireworks.merge([source[not_in_cache] for source in self.input_sources.values()])
         self.cache[not_in_cache] = not_in_cache_elements
         # Reorder and merge requested elements
-        message = in_cache.append(not_in_cache)
-        permutation = in_cache_indices.extend(not_in_cache_indices) # Elements must be reordered based on their order in index
+        message = in_cache_elements.append(not_in_cache_elements)
+        indices = in_cache_indices
+        indices.extend(not_in_cache_indices)
+        # Elements must be reordered based on their order in index
+        permutation = indices.copy()
+        for i,j in zip(indices, count()):
+            permutation[i] = j
+        # permutation = in_cache_indices.extend(not_in_cache_indices)
         message = message.permute(permutation)
+
+        # Implicit update of internal knowledge of length
+        if index and self.length is None and not self.infinite:
+            l = max(index)
+            if l > self.lower_bound:
+                self.lower_bound = l
 
         return message
 
@@ -243,7 +273,9 @@ class CachingSource(Source):
         Alternatively, if this method is called before that happens, the source will attempt to
         loop to the end and calculate the length.
         """
-        if self.length is not None:
+        if self.infinite:
+            raise ValueError("Source is labelled as having infinite length (ie. yields items indefinitely).")
+        elif self.length is None:
             self.compute_length()
             return self.length
         else:
@@ -254,9 +286,12 @@ class CachingSource(Source):
         Step forward as far as the inputs will allow and compute length.
         Note: If the inputs are infinite, then this will go on forever.
         """
-        for i in count():
-            try:
-                self[i]
-            except StopIteration:
-                self.length = i+1
-                break
+        if not self.infinite:
+            while True:
+                try:
+                    self[1 + self.lower_bound] # Use knowledge of lower bound from previous getitem calls to accelerate this process
+                except ValueError:
+                    self.length = 1 + self.lower_bound
+                    break
+        else:
+            raise ValueError("Source is labelled as having infinite length (ie. yields items indefinitely).")

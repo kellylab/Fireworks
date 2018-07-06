@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from Fireworks import datasource as ds
 from Fireworks.message import Message
+from Fireworks.utils import index_to_list
 import numpy as np
 
 test_dir = Fireworks.test_dir
@@ -43,6 +44,25 @@ class next_dummy(ds.DataSource):
             return {'count': np.array([self.count])}
         else:
             raise StopIteration # This will trigger StopIteration
+
+class getitem_dummy(ds.DataSource):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.length = 20
+
+    def __getitem__(self, index):
+
+        index = index_to_list(index)
+        if index == []:
+            return None
+        elif max(index) < self.length and min(index) >= 0:
+            return {'values': np.array(index)}
+        else:
+            raise ValueError("Out of bounds for dummy source with length {0}.".format(self.length))
+
+    def __len__(self):
+        return self.length
 
 def conforms_to_spec(datasource):
 
@@ -122,10 +142,46 @@ def test_LoopingSource():
     assert loopy.length == 20
 
 def test_CachingSource():
+
     # Test type checking
+    dumbo = next_dummy()
+    try:
+        cashmoney = ds.CachingSource(inputs={'dumbo': dumbo})
+    except TypeError:
+        assert True
+    else:
+        assert False
+    dumbo = getitem_dummy()
+    cashmoney = ds.CachingSource(inputs={'dumbo': dumbo})
 
     # Test __getitem__
-
+    assert cashmoney.cache.cache == Message()
+    x = cashmoney[2]
+    assert x == Message({'values':[2]})
+    assert cashmoney.cache.cache == Message({'values':[2]})
+    x = cashmoney[2,3,4]
+    x = cashmoney[2,3,4]
+    assert x == Message({'values':[2,3,4]})
+    assert cashmoney.cache.cache == Message({'values':[2,3,4]})
+    x = cashmoney[5,2,3]
+    assert x == Message({'values':[5,2,3]})
+    assert set(cashmoney.cache.pointers.keys()) == set([2,3,4,5])
+    x = cashmoney[8,5,1,4,0,9,2]
+    assert x == Message({'values':[8,5,1,4,0,9,2]})
+    assert set(cashmoney.cache.pointers.keys()) == set([0,1,2,3,4,5,8,9])
     # Test explicit length calculation
-
+    assert cashmoney.length is None
+    length = len(cashmoney)
+    assert length == 20
     # Test implicit length calculation
+    cashmoney = ds.CachingSource(inputs={'dumbo': dumbo})
+    assert cashmoney.length is None
+    assert cashmoney.lower_bound == 0
+    cashmoney[10]
+    assert cashmoney.lower_bound == 10
+    cashmoney[8]
+    assert cashmoney.lower_bound == 10
+    cashmoney[12,15]
+    assert cashmoney.lower_bound == 15
+    length = len(cashmoney)
+    assert length == 20

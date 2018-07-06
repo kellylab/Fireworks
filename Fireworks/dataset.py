@@ -74,7 +74,6 @@ class FireworksDataset(Dataset):
     def download_chunk(self):
         """ Updates cache by downloading a new chunk. """
 
-
     def update_cache(self):
         """ Updates cache by downloading a new chunk. """
         offset = self.cache_size - self.chunk_size

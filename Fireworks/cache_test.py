@@ -102,7 +102,6 @@ def test_permute():
     assert m.cache != dummy_message
     m._permute([2,1,0])
     assert m.cache == dummy_message
-    assert False 
 
 def test_LRUCache():
     m = cache.LRUCache(10, buffer_size=2)
