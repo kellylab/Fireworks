@@ -197,14 +197,6 @@ class LoopingSource(Source):
                 raise StopIteration # raise ValueError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
         return x
 
-    # def reset_inputs(self):
-    #
-    #     new_inputs = []
-    #     for source in self.input_sources:
-    #         new_inputs.append(source.reset())
-    #     self.input_sources = new_inputs
-    #     self.position = 0
-
 class CachingSource(Source):
     """
     Given input sources that implement __next__, will store all calls to __next__ into an internal cache and therafter allow __getitem__
