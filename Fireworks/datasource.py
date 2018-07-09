@@ -295,3 +295,34 @@ class CachingSource(Source):
                     break
         else:
             raise ValueError("Source is labelled as having infinite length (ie. yields items indefinitely).")
+
+class ShufflerSource(Source):
+    """
+    Given input sources that implement __getitem__ and __len__, will shuffle the indices so that iterating through
+    the source or calling __getitem__ will return different values.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.check_inputs()
+
+    def check_inputs(self):
+        """
+        Check inputs to see if they implement __getitem__ and __len__
+        """
+        for name, source in self.input_sources.items():
+            if not (hasattr(source, '__getitem__')):
+                raise TypeError('Source {0} does not have __getitem__ method.'.format(name))
+            if not(hasattr(source, '__len__')):
+                raise TypeError('Source {0} does not have __len__ method.'.format(name))
+
+    def __getitem__(self, index): pass
+
+    def shuffle(self, order = None): pass
+
+    def reset(self):
+        """
+        Triggers a shuffle on reset.
+        """
+        pass
+
+class

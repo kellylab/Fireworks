@@ -73,3 +73,5 @@ def test_apply_embeddings():
 #     assert len(embeddings.keys()) == 18
 #     for key, item in embeddings.items():
 #         assert len(item) == 300
+
+def test_too_big() : pass

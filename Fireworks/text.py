@@ -98,3 +98,13 @@ def make_indices(vocabulary): # TODO: write test
     embeddings_dict['EOS'] = special_tokens['EOS']
     embeddings_dict['UNK'] = special_tokens['UNK']
     return embeddings_dict
+
+def too_big(dataset, start, end, dim = 300, cutoff = 620000):
+    """ Calculates if a batch consisting of dataset[start:end] is too big based on cutoff. """
+
+    sizes = [len(x) for x in dataset[start:end]['embeddings']]
+    max_size = max(sizes)
+    dim = dim
+    batch_size = end-start
+    size = dim*max_size*batch_size
+    return size > cutoff
