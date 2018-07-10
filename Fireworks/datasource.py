@@ -21,13 +21,33 @@ class Source(ABC):
     def __init__(self, *args, inputs = None, **kwargs):
         self.input_sources = inputs
 
-    def __getattr__(self, *args, **kwargs):
+    def recursive_call(self, method, *args, **kwargs):
+        """
+        Recursively calls method on input_sources until reaching an upstream source that implements the method and
+        returns the response as a message (empty if response is None).
+        """
+
+        if hasattr(self, method):
+            return self.__getattribute__(method,*args,**kwargs)
 
         if self.input_sources is None:
-            raise AttributeError("Source {0} does not have attribute {1}.".format(self.name, str(args)))
+            raise AttributeError("Source {0} does not have method {1}.".format(self.name, str(method)))
 
-        responses = [source.__getattribute__(args[0])(**kwargs) for source in self.input_sources.values()]
+        responses = [source.recursive_call(method)(*args, **kwargs) for source in self.input_sources.values()]
+
         return Fireworks.merge(responses)
+
+    def check_inputs(self): pass
+
+    # def __getattr__(self, *args, **kwargs):
+    #
+    #     if len(args) > 1:
+    #         positional_args = args[1:]
+    #     else:
+    #         positional_args = []
+    #
+    #     return self.recursive_call(args[0], *positional_args, **kwargs)
+
 
 class DataSource(Source):
     """ Class for representing a data source. It formats and reads data, and is able to convert batches into tensors. """
@@ -196,7 +216,7 @@ class LoopingSource(Source):
                 self.position += 1
             except StopIteration:
                 self.length = self.position
-                raise StopIteration # raise ValueError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
+                raise IndexError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
         return x
 
 class CachingSource(Source):
@@ -242,6 +262,7 @@ class CachingSource(Source):
         in_cache_indices = [j for i,j in zip(index, count()) if i in self.cache.pointers] # Indices in index corresponding to in_cache elements
         not_in_cache = [i for i in index if i not in self.cache.pointers] # Elements of index corresponding to not_in_cache elements
         not_in_cache_indices = [j for i,j in zip(index, count()) if i not in self.cache.pointers] # Indices in index corresponding to not_in_cache elements
+
         # Retrieve from cache existing elements
         in_cache_elements = self.cache[in_cache] # elements in cache corresponding to indices in cache
         # Update cache to have other elements
@@ -290,7 +311,7 @@ class CachingSource(Source):
             while True:
                 try:
                     self[1 + self.lower_bound] # Use knowledge of lower bound from previous getitem calls to accelerate this process
-                except ValueError:
+                except IndexError:
                     self.length = 1 + self.lower_bound
                     break
         else:

@@ -117,7 +117,7 @@ class Message:
             index = slice(index, index+1)
 
         il = index_to_list(index)
-        if max(il) >= self.length:
+        if il and max(il) >= self.length:
             raise IndexError
 
         if len(self.tensor_message) == 0:
@@ -211,10 +211,16 @@ class Message:
         """
         Reorders elements of message based on index.
         """
-        df_index = self.df.index
-        df = self.df.reindex(index)
-        df.index = df_index
-        tensor_message = self.tensor_message.permute(index)
+        df = self.df
+        tensor_message = self.tensor_message
+
+        if len(df):
+            df_index = self.df.index
+            df = self.df.reindex(index)
+            df.index = df_index
+        if len(tensor_message):
+            tensor_message = self.tensor_message.permute(index)
+
         return Message(tensor_message, df)
 
     def cpu(self, keys = None):
@@ -273,7 +279,7 @@ class TensorMessage:
             return self.tensor_dict[index]
         else:
             il = index_to_list(index)
-            if max(il) >= self.length:
+            if il and max(il) >= self.length:
                 raise IndexError
             return TensorMessage({k: v[index] for k, v in self.tensor_dict.items()})
 

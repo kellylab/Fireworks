@@ -10,7 +10,7 @@ class MessageCache(ABC):
     A message cache stores parts of a larger method and supports retrievals and
     insertions based on index.
     The use case for a MessageCache is for storing parts of a large dataset in memory.
-    The MessageCache can keep track of which elmeents and which indices are present
+    The MessageCache can keep track of which elements and which indices are present
     in memory at a given time and allow for updates and retrievals.
     """
 
@@ -29,12 +29,7 @@ class MessageCache(ABC):
         else:
             pointers = [self.pointers[i] for i in index] # This will raise an error if index not present
 
-        # try:
-        #     cache_indices = self.indices[index]
-        # except KeyError as e:
-        #     raise KeyError("Index {0} not in cache.".format(e))
-
-        return self.cache[pointers]#list(pointers.keys())]#.tolist()]
+        return self.cache[pointers] #list(pointers.keys())]#.tolist()]
 
     @abstractmethod
     def __setitem__(self, index, message): pass
@@ -66,6 +61,7 @@ class MessageCache(ABC):
         # Get indices in message
         present_indices = get_indices(index, present)
         not_present_indices = get_indices(index, not_present)
+
         self._add_new(not_present, message[not_present_indices])
         self._update_existing(present, message[present_indices])
 
@@ -178,6 +174,7 @@ class BufferedCache(MessageCache):
         free_space = self.max_size - len(self)
         if len(message) > free_space:
             how_much = max(self.buffer_size - free_space, len(message) - free_space)
+            
             self.free(how_much)
 
         self.insert(index, message)

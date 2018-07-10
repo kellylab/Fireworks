@@ -485,3 +485,15 @@ def test_permute():
     assert gmail == Message({'a':[3,2,1], 'b':[6,5,4]}, {'c': np.array([9,8,7]), 'd': np.array([12,11,10])})
     gmail = email.permute([0,0,0])
     assert gmail == Message({'a':[1,1,1], 'b':[4,4,4]}, {'c': np.array([7,7,7]), 'd': np.array([10,10,10])})
+    # Test with only tensors
+    email = Message(tensors)
+    gmail = email.permute([2,1,0])
+    assert gmail == Message({'a':[3,2,1], 'b':[6,5,4]}, {})
+    gmail = email.permute([0,0,0])
+    assert gmail == Message({'a':[1,1,1], 'b':[4,4,4]}, {})
+    # Test with only dataframes
+    email = Message(vectors)
+    gmail = email.permute([2,1,0])
+    assert gmail == Message({'c': np.array([9,8,7]), 'd': np.array([12,11,10])})
+    gmail = email.permute([0,0,0])
+    assert gmail == Message({'c': np.array([7,7,7]), 'd': np.array([10,10,10])})
