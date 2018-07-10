@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from itertools import product
 import pandas as pd
+from itertools import count
 
 tensors = {
     'a': torch.Tensor([1,2,3]),
@@ -360,6 +361,24 @@ def test_Message_del():
     assert m == Message(t3,v3)
     assert m1 == Message(t3)
     assert m2 == Message(v3)
+
+def test_Message_iter():
+
+    m = Message(tensors, vectors)
+    l = len(m)
+    for x,i in zip(m, count()):
+        assert type(x) is Message
+        if i > l:
+            assert False
+    assert i == l - 1
+
+    t = TensorMessage(tensors)
+    l = len(t)
+    for x,i in zip(t, count()):
+        assert type(x) is TensorMessage
+        if i > l:
+            assert False
+    assert i == l - 1
 
 def test_map(): pass
 

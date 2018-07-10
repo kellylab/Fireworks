@@ -185,9 +185,9 @@ class LoopingSource(Source):
         Steps forward through inputs until position = n and then returns that value.
         """
         if self.length is not None and n > self.length:
-            raise ValueError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
+            raise IndexError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
         if n < self.position:
-            raise ValueError("Can only step forward to a value higher than current position.")
+            raise IndexError("Can only step forward to a value higher than current position.")
         x = Message()
         for _ in range(n - self.position):
             try:
@@ -235,7 +235,7 @@ class CachingSource(Source):
 
         if self.length and index: # Implicit length check if length is known
             if max(index) >= self.length:
-                raise ValueError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
+                raise IndexError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
         index = index_to_list(index)
         # Identify what is in the cache and what isn't.
         in_cache = [i for i in index if i in self.cache.pointers] # Elements of index corresponding to in_cache elements
@@ -324,5 +324,3 @@ class ShufflerSource(Source):
         Triggers a shuffle on reset.
         """
         pass
-
-class

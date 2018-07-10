@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from copy import deepcopy
 from collections import Hashable
+from Fireworks.utils import index_to_list
 
 """
 Messages passed between objects in this framework are represented as dictionaries of tensors.
@@ -114,7 +115,17 @@ class Message:
         # assert False
         if type(index) is int: # Making point queries into range queries of width 1 ensures correct formatting of dataframes by pandas.
             index = slice(index, index+1)
-        return Message(self.tensor_message[index], self.df.iloc[index].reset_index(drop=True)) # {k: v[index] for k, v in self.tensor_dict.items()}, {k: v.iloc[index] for k, v in self.df.items()}
+
+        il = index_to_list(index)
+        if max(il) >= self.length:
+            raise IndexError
+
+        if len(self.tensor_message) == 0:
+            return Message(self.df.iloc[index].reset_index(drop=True))
+        if len(self.df) == 0:
+            return Message(self.tensor_message[index])
+        else:
+            return Message(self.tensor_message[index], self.df.iloc[index].reset_index(drop=True)) # {k: v[index] for k, v in self.tensor_dict.items()}, {k: v.iloc[index] for k, v in self.df.items()}
 
     def __setitem__(self, index, value):
 
@@ -261,6 +272,9 @@ class TensorMessage:
         if not isinstance(index, slice) and isinstance(index, Hashable) and index in self.tensor_dict.keys():
             return self.tensor_dict[index]
         else:
+            il = index_to_list(index)
+            if max(il) >= self.length:
+                raise IndexError
             return TensorMessage({k: v[index] for k, v in self.tensor_dict.items()})
 
     def __setitem__(self, index, value):
