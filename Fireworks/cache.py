@@ -104,11 +104,22 @@ class MessageCache(ABC):
         # Delete those elements
         del self.cache[internal_indices]
         # Delete the pointers for those elements
+        # TODO: Optimize this
+        # Pointers have to remapped upon deletion. This requires creating a temporary dict to store
+        # the new pointers and remapping old pointers to distinct numbers to prevent duplication errors
+        # during remapping. This is because pointers is a bidict, meaning that there can be no duplication of
+        # keys OR values (ie. the k-v mapping must be isomorphic at all times)
         for i in index:
             del self.pointers[i]
         f = pointer_adjustment_function(internal_indices)
+        temp_dict = {}
+        i = -1
         for key, internal_index in self.pointers.items():
-            self.pointers[key] -= f(internal_index)
+            temp_dict[key] = self.pointers[key] - f(internal_index)
+            self.pointers[key] = i
+            i -= 1
+        for key, internal_index in self.pointers.items():
+            self.pointers[key] = temp_dict[key]
 
     def _permute(self, permutation, target = None):
         """
@@ -172,9 +183,10 @@ class BufferedCache(MessageCache):
             raise ValueError("Message length does not math length of index for insertion.")
         # Determine how much space to free in order to insert message
         free_space = self.max_size - len(self)
+
         if len(message) > free_space:
             how_much = max(self.buffer_size - free_space, len(message) - free_space)
-            
+
             self.free(how_much)
 
         self.insert(index, message)
@@ -200,13 +212,14 @@ class RankingCache(MessageCache):
     def init_rank_dict(self):
         self.rank_dict = {}
 
-    def free(self, n):
+    def free(self, n, x=0):
 
         to_sort = list(self.rank_dict.keys())
         sort_by = list(self.rank_dict.values())
         sorter = lambda k: self.rank_dict[k]
         ranks = sorted(to_sort, key=sorter)
         del_indices = ranks[0:n]
+
         self.__delitem__(del_indices)
 
     def __delitem__(self, index):

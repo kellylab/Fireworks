@@ -253,10 +253,10 @@ class CachingSource(Source):
 
     def __getitem__(self, index):
 
+        index = index_to_list(index)
         if self.length and index: # Implicit length check if length is known
             if max(index) >= self.length:
                 raise IndexError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
-        index = index_to_list(index)
         # Identify what is in the cache and what isn't.
         in_cache = [i for i in index if i in self.cache.pointers] # Elements of index corresponding to in_cache elements
         in_cache_indices = [j for i,j in zip(index, count()) if i in self.cache.pointers] # Indices in index corresponding to in_cache elements
