@@ -129,16 +129,38 @@ class Message:
 
     def __setitem__(self, index, value):
 
-        if isinstance(index, Hashable) and index in self.tensor_message.keys():
-            self.tensor_message[index] = value
-            self.check_length()
-        elif isinstance(index, Hashable) and index in self.df.keys():
-            self.df[index] = value
-            self.check_length()
-        else:
+        if type(index) is str: # Index is a column name
+            # Check if the update would require moving a column from df to tensor_message or vice-versa, in which case, delete the original
+            # and then insert the new value into the correct location.
+            if (type(value) is torch.Tensor and index in self.df.columns) or (not type(value) is torch.Tensor and index in self.tensor_message.columns):
+                del self[index]
 
-            if type(index) is int: # To ensure proper formatting of dataframes, convert point queries to length 1 range queries.
-                index = slice(index, index+1)
+            # Update or insert
+            if type(value) is torch.Tensor:
+                if len(value) == self.length:
+                    self.tensor_message[index] = value
+                    self.check_length()
+                else:
+                    raise ValueError("Cannot set value {0} of length {1} to column name {2} for message with length {3}. Lengths of all columns \
+                must be the same.".format(value, len(value), index, self.length))
+            else:
+                if len(value) == self.length:
+                    self.df[index] = value
+                    self.check_length()
+                else:
+                    raise ValueError("Cannot set value {0} of length {1} to column name {2} for message with length {3}. Lengths of all columns \
+                must be the same.".format(value, len(value), index, self.length))
+
+        # if isinstance(index, Hashable) and index in self.tensor_message.keys():
+        #
+        #     self.check_length()
+        # elif isinstance(index, Hashable) and index in self.df.keys():
+        #     self.df[index] = value
+        #     self.check_length()
+        else: # Index is a range
+            # if type(index) is int: # To ensure proper formatting of dataframes, convert point queries to length 1 range queries.
+            #     index = slice(index, index+1)
+            index = index_to_list(index)
             value = Message(value)
             self.tensor_message[index] = value.tensor_message
             value.df.index = self.df.iloc[index].index # Indices must align when updating a dataframe or something terrible happens
@@ -146,19 +168,42 @@ class Message:
 
     def __delitem__(self, index):
 
-        if len(self.df):
-            self.df.drop(self.df.index[index], inplace=True)
-            self.length = len(self.df)
-        if len(self.tensor_message):
+        if index in self.tensor_message:
             del self.tensor_message[index]
-            self.length = self.tensor_message.length
+        elif isinstance(index, Hashable) and index in self.df:
+            del self.df[index]
+        else: # Is a point/range deletion
+            if len(self.df):
+                self.df.drop(self.df.index[index], inplace=True)
+                self.length = len(self.df)
+            if len(self.tensor_message):
+                del self.tensor_message[index]
+                self.length = self.tensor_message.length
 
     def __contains__(self, item):
 
-        return item in self.df or item in self.tensor_message
+        if isinstance(item, Hashable):
+            return item in self.df or item in self.tensor_message
+        else:
+            return False
 
     def __repr__(self):
         return "Message with \n Tensors: \n {0} \n Metadata: \n {1}".format(self.tensor_message, self.df)
+
+    @property
+    def columns(self):
+        """
+        Returns names of tensors in TensorMessage
+        """
+        return self.df.columns.append(pd.Index(self.tensor_message.keys()))
+
+    @property
+    def index(self):
+        """
+        Returns index for internal tensors
+        """
+        # NOTE: Index currently has no meaning, because messages are currently required to be indexed from 0:length
+        return self.df.index
 
     def append(self, other):
         """
@@ -225,11 +270,11 @@ class Message:
 
     def cpu(self, keys = None):
         """ Moves tensors to system memory. Can specify which ones to move by specifying keys. """
-        pass
+        self.tensor_message = self.tensor_message.cpu(keys)
 
     def cuda(self, device = 0, keys = None):
         """ Moves tensors to gpu with given device number. Can specify which ones to move by specifying keys. """
-        pass
+        self.tensor_message = self.tensor_message.cuda(device, keys)
 
 class TensorMessage:
     """
@@ -285,25 +330,32 @@ class TensorMessage:
 
     def __setitem__(self, index, value):
 
-        if isinstance(index, Hashable) and index in self.tensor_dict: # Index is the name of a key
-            try:
-                self.tensor_dict[index] = value # TODO: If the update is invalid, then this step should not occur.
-                self.length = compute_length(self)
-            except ValueError as e:
-                raise ValueError(e)
-        else:
+        if type(index) is str: # Index is the name of a key
+            if len(value) == self.length or self.length == 0:
+                try:
+                    self.tensor_dict[index] = value # TODO: If the update is invalid, then this step should not occur.
+                    self.length = compute_length(self)
+                except ValueError as e:
+                    raise ValueError(e)
+            else:
+                raise ValueError("Cannot set value {0} of length {1} to column name {2} for message with length {3}. Lengths of all columns \
+                must be the same.".format(value, len(value), index, self.length))
+        else: # Index is a range
             value = TensorMessage(value)
             for key in self.tensor_dict:
                 self.tensor_dict[key][index] = value[key]
 
     def __delitem__(self, index): # BUG: delitem raises sigfaults when called on a tensor.
 
-        # Identify complement indices (indices that will remain)
-        complement_indices = complement(index, self.length)
-        # Assign self to self[complementary indices]
-        deleted = self[complement_indices]
-        self.tensor_dict = deleted.tensor_dict
-        self.length = deleted.length
+        if isinstance(index, Hashable) and index in self.tensor_dict.keys():
+            del self.tensor_dict[index]
+        else:
+            # Identify complement indices (indices that will remain)
+            complement_indices = complement(index, self.length)
+            # Assign self to self[complementary indices]
+            deleted = self[complement_indices]
+            self.tensor_dict = deleted.tensor_dict
+            self.length = deleted.length
 
     def __copy__(self):
 
@@ -315,7 +367,10 @@ class TensorMessage:
 
     def __contains__(self, item):
 
-        return item in self.tensor_dict
+        if isinstance(item, Hashable):
+            return item in self.tensor_dict
+        else:
+            return False
 
     def __getattr__(self, *args, **kwargs):
         return self.tensor_dict.__getattribute__(*args, **kwargs)
@@ -337,6 +392,21 @@ class TensorMessage:
 
     def __repr__(self):
         return "TensorMessage: {0}".format(self.tensor_dict)
+
+    @property
+    def columns(self):
+        """
+        Returns names of tensors in TensorMessage
+        """
+        return self.tensor_dict.keys()
+
+    @property
+    def index(self):
+        """
+        Returns index for internal tensors
+        """
+        # NOTE: Index currently has no meaning, because messages are currently required to be indexed from 0:length
+        return pd.RangeIndex(0,self.length)
 
     def append(self, other):
         """
@@ -366,6 +436,30 @@ class TensorMessage:
         """
         permutation = self[index]
         return permutation
+
+    def cuda(self, device = 0, keys=None):
+        """
+        Moves all tensors in TensorMessage to cuda device specified by device number. Specify keys to limit the transformation
+        to specific keys only.
+        """
+        if keys is None:
+            keys = self.tensor_dict.keys()
+        for key in keys:
+            self.tensor_dict[key] = self.tensor_dict[key].cuda(device)
+
+        return self
+
+    def cpu(self, keys=None):
+        """
+        Moves all tensors in TensorMessage to cpu. Specify keys to limit the transformation
+        to specific keys only.
+        """
+        if keys is None:
+            keys = self.tensor_dict.keys()
+        for key in keys:
+            self.tensor_dict[key] = self.tensor_dict[key].cpu()
+
+        return self
 
 def compute_length(of_this):
     """

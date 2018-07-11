@@ -196,7 +196,7 @@ class LoopingSource(Source):
         while True:
             try:
                 self.step_forward(self.position+1)
-            except StopIteration:
+            except (StopIteration, IndexError):
                 self.reset()
                 break
 

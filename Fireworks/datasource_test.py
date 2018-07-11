@@ -59,7 +59,7 @@ class getitem_dummy(ds.DataSource):
         elif max(index) < self.length and min(index) >= 0:
             return {'values': np.array(index)}
         else:
-            raise ValueError("Out of bounds for dummy source with length {0}.".format(self.length))
+            raise IndexError("Out of bounds for dummy source with length {0}.".format(self.length))
 
     def __len__(self):
         return self.length
@@ -135,7 +135,7 @@ def test_LoopingSource():
     assert loopy.length is None
     try: # Test if length is implicitly calculated whenever input sources run out.
         loopy[21]
-    except StopIteration:
+    except IndexError:
         assert True
     else:
         assert False

@@ -275,6 +275,24 @@ def test_Message_set_get():
     assert torch.equal(email['a'], torch.Tensor([9,9,9]))
     email['c'] = np.array([9,9,9])
     assert email['c'].equals(pd.Series([9,9,9]))
+    # Test column updates that switch from df to tensor and vice-versa
+    email = Message(tensors, vectors)
+    assert set(email.columns) == set(['a','b','c','d'])
+    assert set(email.tensor_message.columns) == set(['a','b'])
+    assert set(email.df.columns) == set(['c','d'])
+    new_a = np.array([1,2,3]) # Switch from tensor to vector
+    email['a'] = new_a
+    assert set(email.columns) == set(['a','b','c','d'])
+    assert set(email.tensor_message.columns) == set(['b'])
+    assert set(email.df.columns) == set(['a','c','d'])
+    assert (email['a'] == new_a).all()
+    new_c = torch.Tensor([7,8,9])
+    email['c'] = new_c
+    assert set(email.columns) == set(['a','b','c','d'])
+    assert set(email.tensor_message.columns) == set(['b','c'])
+    assert set(email.df.columns) == set(['a','d'])
+    assert (email['c'] == new_c).all()
+
 
 def test_Message_del():
 
@@ -362,6 +380,15 @@ def test_Message_del():
     assert m1 == Message(t3)
     assert m2 == Message(v3)
 
+    # Test column deletions
+    m = Message(t,v)
+    assert set(m.columns) == set(['a','b','c','d'])
+    del m['a']
+    assert set(m.columns)== set(['b','c','d'])
+    del m['c']
+    assert set(m.columns) == set(['b','d'])
+
+
 def test_Message_iter():
 
     m = Message(tensors, vectors)
@@ -442,6 +469,11 @@ def test_TensorMessage_set_get_del():
     del gmail[0]
     assert len(gmail) == 2
     assert gmail == yahoomail
+    # Test column deletions
+    email = TensorMessage({'a': a, 'b':b})
+    assert set(email.columns) == set(['a','b'])
+    del email['a']
+    assert set(email.columns) == set(['b'])
 
 def test_TensorMessage_eq():
 
