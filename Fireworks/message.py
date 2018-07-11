@@ -101,15 +101,15 @@ class Message:
         return tensors_equal and df_equal
 
     def __getitem__(self, index):
-        """
-        This method must be able to access any index in the global dataset, caching as needed.
-        """
+
         if not isinstance(index, slice) and isinstance(index, Hashable):
             # Attempt to access elements by key
             if index in self.tensor_message.keys():
                 return self.tensor_message[index]
             elif index in self.df.keys():
                 return self.df[index]
+        elif type(index) is str:
+            raise KeyError
 
         # Access elements by index
         # assert False
@@ -322,6 +322,8 @@ class TensorMessage:
     def __getitem__(self, index):
         if not isinstance(index, slice) and isinstance(index, Hashable) and index in self.tensor_dict.keys():
             return self.tensor_dict[index]
+        elif isinstance(index, str):
+            raise KeyError
         else:
             il = index_to_list(index)
             if il and max(il) >= self.length:
