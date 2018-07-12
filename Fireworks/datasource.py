@@ -7,6 +7,8 @@ from Fireworks.utils import index_to_list
 from Fireworks.cache import LRUCache, LFUCache
 from abc import ABC, abstractmethod
 from itertools import count
+import types
+import random
 
 class Source(ABC):
     """
@@ -316,6 +318,147 @@ class CachingSource(Source):
                     break
         else:
             raise ValueError("Source is labelled as having infinite length (ie. yields items indefinitely).")
+
+class LabelSource(Source):
+    """
+    This source takes one source as input and inserts a column called 'label' to all outputs where the label is
+    the name of the input source.
+    """
+
+    def __init__(self, *args, labels_column = 'labels', **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.labels_column = labels_column
+        self.check_inputs()
+
+    def check_inputs(self):
+        if len(self.input_sources) > 1:
+            raise ValueError("A label source can only have one input source.")
+        for label, source in self.input_sources.items(): # There is only one
+            self.label = label
+            self.input_source = source
+
+    def __getattr__(self, *args, **kwargs):
+        """
+        Pass through all methods of the input source while adding labels.
+        """
+        output = self.input_source.__getattribute__(*args, **kwargs)
+        if type(output) is types.MethodType: # Wrap the method in a converter
+            return self.method_wrapper(output)
+        else:
+            return self.attribute_wrapper(output)
+
+    def method_wrapper(self, function):
+        """
+        Wraps method with a label attacher such that whenever the method is called, the output is modified
+        by adding the label.
+        """
+        def new_function(*args, **kwargs):
+
+            output = function(*args, **kwargs)
+            try:
+                output = Message(output)
+            except:
+                return output
+            return self.insert_labels(output)
+
+        return new_function
+
+    def attribute_wrapper(self, attribute):
+        """
+        Wraps attribute with new label if attribute returns a message.
+        """
+        try:
+            output = Message(attribute)
+        except:
+            return attribute
+        return self.insert_labels(output)
+
+    def insert_labels(self, message):
+
+        l = len(message)
+        message[self.labels_column] = [self.label for _ in range(l)]
+
+        return message
+
+class AggregatorSource(Source):
+    """
+    This source takes multiple sources implementing __next__ as input and implements a new __next__ method that samples
+    its input sources.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.check_inputs()
+
+    def check_inputs(self):
+
+        for name, source in self.input_sources.items():
+            if not (hasattr(source, '__next__') and hasattr(source, 'reset')):
+                raise ValueError("Input sources must implement __next__ and reset.")
+
+    def __next__(self):
+        """
+        Call __next__ on one of the input sources based on sampling algorithm until all sources run out (can run indefinetely if one
+        or more inputs are infinite.)
+        """
+        # Choose which input to sample
+        sample = self.sample_inputs()
+        # Return value
+        try:
+            return self.input_sources[sample].__next__()
+        except StopIteration: # Remove sample from available_inputs list
+            self.available_inputs.remove(sample)
+            if not self.available_inputs: # Set of inputs is empty, because they have all finished iterating
+                raise StopIteration
+
+    def reset(self):
+        for name, source in self.input_sources.items():
+            source.reset()
+        self.available_inputs = set(self.input_sources.keys()) # Keep track of which sources have not yet run out.
+
+
+
+    def __iter__(self):
+        self.reset()
+        return self
+
+    @abstractmethod
+    def sample_inputs(self):
+        """
+        Returns the key associated with an input source that should be stepped through next.
+        """
+
+class RandomAggregatorSource(AggregatorSource):
+    """
+    AggregatorSource that randomly chooses inputs to step through.
+    """
+    # TODO: Add support for weighted random sampling
+
+    def sample_inputs(self):
+        return random.sample(self.available_inputs, 1)[0]
+
+class ClockworkAggregatorSource(AggregatorSource):
+    """
+    AggregatorSource that iterates through input sources one at a time.
+    """
+    # TODO: Add support for weighted iteration and setting order (ie. spend two cycles on one input and one on another)
+
+    def reset(self):
+        super().reset()
+        self.cycle_dict = {i: name for i,name in zip(count(),self.available_inputs)}
+        self.current_cycle = 0
+
+    def sample_inputs(self):
+        """
+        Loops through inputs until finding one that is available.
+        """
+        # if not self.available_inputs:
+        #     raise StopIteration
+        while True:
+            sample = self.cycle_dict[self.current_cycle]
+            self.current_cycle = (self.current_cycle + 1) % len(self.cycle_dict)
+            if sample in self.available_inputs:
+                return sample
 
 class ShufflerSource(Source):
     """

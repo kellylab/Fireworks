@@ -5,6 +5,8 @@ from Fireworks import datasource as ds
 from Fireworks.message import Message
 from Fireworks.utils import index_to_list
 import numpy as np
+import math
+import itertools
 
 test_dir = Fireworks.test_dir
 
@@ -74,6 +76,43 @@ def conforms_to_spec(datasource):
 
 def test_DataSource(): pass
 
+def test_LabelSource():
+
+    dumbo = one_way_dummy()
+    rumbo = one_way_dummy()
+    bumbo = reset_dummy()
+    gumbo = next_dummy()
+    jumbo = next_dummy()
+
+    labeler = ds.LabelSource(inputs = {'yes': dumbo})
+    mislabeler = ds.LabelSource(inputs = {'yes': rumbo}, labels_column='barrels')
+    donkeykong = ds.LabelSource(inputs = {'yes':gumbo})
+    dixiekong = ds.LabelSource(inputs = {'yes': jumbo}, labels_column='bananas')
+    labeler.reset()
+    assert labeler.count == 0
+    mislabeler.reset()
+    assert mislabeler.count == 0
+    def test_iteration(source, n, label):
+        for i in range(n):
+            x = source.__next__()
+            assert len(x) == 1
+            assert (x[label] == ['yes']).all()
+
+    test_iteration(labeler, 10, 'labels')
+    test_iteration(mislabeler, 10, 'barrels')
+    test_iteration(donkeykong, 12, 'labels')
+    test_iteration(dixiekong, 14, 'bananas')
+    assert labeler.count == 10
+    assert mislabeler.count == 10
+    assert donkeykong.count == 12
+    assert dixiekong.count == 14
+
+    labeler = ds.LabelSource(inputs = {'yes': bumbo})
+    labeler.reset()
+    assert labeler.count == 0
+
+
+
 def test_BioSeqSource():
 
     test_file = os.path.join(test_dir, 'sample_genes.fa')
@@ -140,6 +179,45 @@ def test_LoopingSource():
     else:
         assert False
     assert loopy.length == 20
+
+def test_AggregatorSource():
+
+    dumbo = one_way_dummy()
+    bumbo = one_way_dummy()
+    gumbo = one_way_dummy()
+
+    angry = ds.RandomAggregatorSource(inputs={'dumbo': dumbo, 'bumbo': bumbo, 'gumbo': gumbo})
+    angry.reset()
+    assert angry.available_inputs == set(['dumbo', 'bumbo', 'gumbo'])
+    numbaz = Message()
+
+    counter = lambda l,i: sum([1 for x in l if x == i]) # Counts how often i appears in l
+    while True:
+        try:
+            numbaz = numbaz.append(angry.__next__())
+        except StopIteration:
+            break
+    assert dumbo.count == 21
+    assert bumbo.count == 21
+    assert gumbo.count == 21
+    assert len(numbaz) == 60
+    counts = {i:counter(numbaz['count'],i) for i in range(20)}
+    for count in counts.values():
+        assert count == 3 # Make sure each element showed up 3 times, corresponding to the 3 inputs
+
+    mangry = ds.ClockworkAggregatorSource(inputs = {'dumbo': dumbo, 'bumbo': bumbo, 'gumbo': gumbo})
+    bumbaz = Message()
+    for nextone in mangry:
+        bumbaz = bumbaz.append(nextone)
+    assert dumbo.count == 21
+    assert bumbo.count == 21
+    assert gumbo.count == 21
+    assert len(bumbaz) == 60
+    for x,i in zip(bumbaz, itertools.count()):
+        assert x['count'][0] == math.floor(i/3)
+    counts = {i:counter(bumbaz['count'],i) for i in range(20)}
+    for count in counts.values():
+        assert count == 3 # Make sure each element showed up 3 times, corresponding to the 3 inputs
 
 def test_CachingSource():
 
