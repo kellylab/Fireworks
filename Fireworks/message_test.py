@@ -148,7 +148,7 @@ def test_cpu_gpu():
     if torch.cuda.is_available():
         m.cuda()
         for key, tensor in m.tensors().items():
-            assert tensor.device.type == 'gpu'
+            assert tensor.device.type == 'cuda'
         m.cpu()
         for key, tensor in m.tensors().items():
             assert tensor.device.type == 'cpu'
