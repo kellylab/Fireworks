@@ -180,7 +180,7 @@ class BufferedCache(MessageCache):
 
         index = index_to_list(index)
         if len(index) != len(message):
-            raise ValueError("Message length does not math length of index for insertion.")
+            raise ValueError("Message length does not match length of index for insertion.")
         # Determine how much space to free in order to insert message
         free_space = self.max_size - len(self)
 

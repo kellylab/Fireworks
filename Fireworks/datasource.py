@@ -109,16 +109,19 @@ class BioSeqSource(DataSource):
 
         gene = self.seq.__next__()
 
-        return pd.DataFrame({
-            'sequences': [str(gene.seq)],
-            'ids': [gene.id],
-            'names': [gene.name],
-            'descriptions': [gene.description],
-            'dbxrefs': [gene.dbxrefs],
-        })
+        try:
+            return pd.DataFrame({
+                'sequences': [str(gene.seq)],
+                'ids': [gene.id],
+                'names': [gene.name],
+                'descriptions': [gene.description],
+                'dbxrefs': [gene.dbxrefs],
+            })
+        except StopIteration:
+            raise StopIteration
 
     def __iter__(self):
-        return self
+        return self.reset()
 
 class LoopingSource(Source):
     """
@@ -164,7 +167,7 @@ class LoopingSource(Source):
             self.compute_length()
             return self.length
 
-    def __next__(self):
+    def __next__(self): # QUESTION: Should __next__ calls be supported for this source?
         """
         Go forward one step. This can be used to loop over the inputs while automatically recording
         length once one cycle has been performed.
@@ -410,13 +413,13 @@ class AggregatorSource(Source):
             self.available_inputs.remove(sample)
             if not self.available_inputs: # Set of inputs is empty, because they have all finished iterating
                 raise StopIteration
+            else: # Recursively try again
+                return self.__next__()
 
     def reset(self):
         for name, source in self.input_sources.items():
             source.reset()
         self.available_inputs = set(self.input_sources.keys()) # Keep track of which sources have not yet run out.
-
-
 
     def __iter__(self):
         self.reset()
@@ -427,6 +430,7 @@ class AggregatorSource(Source):
         """
         Returns the key associated with an input source that should be stepped through next.
         """
+        pass
 
 class RandomAggregatorSource(AggregatorSource):
     """
