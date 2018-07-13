@@ -104,22 +104,21 @@ class MessageCache(ABC):
         # Delete those elements
         del self.cache[internal_indices]
         # Delete the pointers for those elements
-        # TODO: Optimize this
-        # Pointers have to remapped upon deletion. This requires creating a temporary dict to store
-        # the new pointers and remapping old pointers to distinct numbers to prevent duplication errors
-        # during remapping. This is because pointers is a bidict, meaning that there can be no duplication of
-        # keys OR values (ie. the k-v mapping must be isomorphic at all times)
         for i in index:
             del self.pointers[i]
         f = pointer_adjustment_function(internal_indices)
-        temp_dict = {}
-        i = -1
-        for key, internal_index in self.pointers.items():
-            temp_dict[key] = self.pointers[key] - f(internal_index)
-            self.pointers[key] = i
-            i -= 1
-        for key, internal_index in self.pointers.items():
-            self.pointers[key] = temp_dict[key]
+        self.pointers = dict(self.pointers) # Convert to normal dict to prevent duplication errors
+        for key, value in self.pointers.items():
+            self.pointers[key] -= f(value)
+        self.pointers = bidict(self.pointers)
+        # temp_dict = {}
+        # i = -1
+        # for key, internal_index in self.pointers.items():
+        #     temp_dict[key] = self.pointers[key] - f(internal_index)
+        #     self.pointers[key] = i
+        #     i -= 1
+        # for key, internal_index in self.pointers.items():
+        #     self.pointers[key] = temp_dict[key]
 
     def _permute(self, permutation, target = None):
         """

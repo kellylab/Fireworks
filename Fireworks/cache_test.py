@@ -134,6 +134,7 @@ def test_LRUCache():
     # Trigger a buffer clearance.
     m[29] = dummy_message[0]
     assert len(m) == 9
+    assert False 
 
 def test_LFUCache():
     m = cache.LFUCache(10, buffer_size=2)

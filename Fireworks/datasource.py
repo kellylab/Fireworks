@@ -229,7 +229,7 @@ class CachingSource(Source):
     Given input sources that implement __getitem__, will store all calls to __getitem__ into an internal cache and therafter __getitem__
     calls will either access from the cache or trigger __getitem__ calls on the input and an update to the cache.
     """
-    def __init__(self, *args, cache_size = 100, cache_type = 'LRU', infinite = False, **kwargs):
+    def __init__(self, *args, cache_size = 100, buffer_size = 0, cache_type = 'LRU', infinite = False, **kwargs):
         super().__init__(*args, **kwargs)
         self.check_inputs()
         self.length = None
@@ -238,6 +238,7 @@ class CachingSource(Source):
         self.infinite = infinite
         self.cache_size = cache_size
         self.cache_type = cache_type
+        self.buffer_size = buffer_size 
         self.init_cache(*args, **kwargs)
 
     # @abstractmethod # TODO: Make different types of caches implementable via subclasses
@@ -246,7 +247,7 @@ class CachingSource(Source):
         This should initialize a cache object called self.cache
         """
         choices = {'LRU': LRUCache, 'LFU': LFUCache}
-        self.cache = choices[self.cache_type](max_size = self.cache_size,)
+        self.cache = choices[self.cache_type](max_size = self.cache_size, buffer_size=self.buffer_size)
 
     def check_inputs(self):
         """
