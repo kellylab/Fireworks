@@ -19,7 +19,7 @@ class MessageCache(ABC):
         self.cache = Message()
         self.pointers = bidict()
 
-    def __getitem__(self, index):
+    def __getitem__(self, index): # TODO: Optimize for range queries.
 
         if type(index) is slice:
             index = slice_to_list(index)
@@ -133,6 +133,14 @@ class MessageCache(ABC):
         index = [self.pointers[t] for t in target]
         self.cache[index] = self.cache[permutation]  # Permute internal indices
         self.pointers = pointers
+
+    def sort(self):
+        """
+        Rearranges internal cache indices to be in sorted order.
+        """
+        # Identify sort permutation
+        # Apply sort permutation
+        pass
 
     def search(self, **kwargs):
         pass

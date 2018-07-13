@@ -5,10 +5,13 @@ import Fireworks
 from Fireworks.message import Message
 from Fireworks.utils import index_to_list
 from Fireworks.cache import LRUCache, LFUCache
+from Fireworks.preprocessing import one_hot
 from abc import ABC, abstractmethod
 from itertools import count
 import types
 import random
+from bidict import bidict
+import torch
 
 class Source(ABC):
     """
@@ -23,21 +26,23 @@ class Source(ABC):
     def __init__(self, *args, inputs = None, **kwargs):
         self.input_sources = inputs
 
-    def recursive_call(self, method, *args, **kwargs):
+    def recursive_call(self, method, *args, ignore_first = True, **kwargs):
         """
         Recursively calls method on input_sources until reaching an upstream source that implements the method and
         returns the response as a message (empty if response is None).
         """
 
-        if hasattr(self, method):
-            return self.__getattribute__(method,*args,**kwargs)
+        if not ignore_first:
+            if hasattr(self, method):
+                return self.__getattribute__(method)(*args,**kwargs)
 
-        if self.input_sources is None:
+        if not self.input_sources:
             raise AttributeError("Source {0} does not have method {1}.".format(self.name, str(method)))
 
-        responses = [source.recursive_call(method)(*args, **kwargs) for source in self.input_sources.values()]
+        responses = [source.recursive_call(method, *args, ignore_first=False, **kwargs) for source in self.input_sources.values()]
 
-        return Fireworks.merge(responses)
+        if responses:
+            return Fireworks.merge(responses)
 
     def check_inputs(self): pass
 
@@ -51,59 +56,60 @@ class Source(ABC):
     #     return self.recursive_call(args[0], *positional_args, **kwargs)
 
 
-class DataSource(Source):
-    """ Class for representing a data source. It formats and reads data, and is able to convert batches into tensors. """
+# class DataSource(Source):
+#     """ Class for representing a data source. It formats and reads data, and is able to convert batches into tensors. """
+#
+#     name = 'DataSource'
+#
+#     # @abstractmethod
+#     def to_tensor(self, batch: Message, embedding_function: dict = None):
+#         """
+#         Converts a batch (stored as dictionary) to a dictionary of tensors. embedding_function is a dict that specifies optional
+#         functions that construct embeddings and are called on the element of the given key.
+#         """
+#         # TODO: If no embedding_function is provided, or if a key maps to None, attempt to automatically convert the batch to tensors.
+#         pass
+#
+#     # def __next__(self):
+#     #     return {key: next(souce) for key, source in self.inputs.values()}
+#     #
+#     # def __getitem__(self, index):
+#     #     return {key: _input.__getitem__(index) for key, _input in self.inputs.values()}
+#
+#     def __iter__(self):
+#         return self
 
-    name = 'DataSource'
-
-    # @abstractmethod
-    def to_tensor(self, batch: Message, embedding_function: dict = None):
-        """
-        Converts a batch (stored as dictionary) to a dictionary of tensors. embedding_function is a dict that specifies optional
-        functions that construct embeddings and are called on the element of the given key.
-        """
-        # TODO: If no embedding_function is provided, or if a key maps to None, attempt to automatically convert the batch to tensors.
-        pass
-
-    # def __next__(self):
-    #     return {key: next(souce) for key, source in self.inputs.values()}
-    #
-    # def __getitem__(self, index):
-    #     return {key: _input.__getitem__(index) for key, _input in self.inputs.values()}
-
-    def __iter__(self):
-        return self
-
-class BioSeqSource(DataSource):
+class BioSeqSource(Source):
     """ Class for representing biosequence data. """
 
     name = 'BioSeqSource'
 
-    def __init__(self, path, filetype = 'fasta', **kwargs):
+    def __init__(self, path, inputs = None, filetype = 'fasta', **kwargs):
         self.path = path
         self.filetype = filetype
         self.kwargs = kwargs
         self.seq = SeqIO.parse(self.path, self.filetype, **self.kwargs)
+        self.input_sources = {}
 
     def reset(self):
         self.seq = SeqIO.parse(self.path, self.filetype, **self.kwargs)
         return self
 
-    def to_tensor(self, batch: Message, embedding_function: dict):
-
-        metadata = {
-        'rawsequences': batch['sequences'],
-        'names': batch['names'],
-        'ids': batch['ids'],
-        'descriptions': batch['descriptions'],
-        'dbxrefs': batch['dbxrefs'],
-            }
-
-        tensor_dict = {
-        'sequences': embedding_function['sequences'](batch['sequences']),
-        }
-
-        return Message(tensor_dict, metadata)
+    # def to_tensor(self, batch: Message, embedding_function: dict):
+    #
+    #     metadata = {
+    #     'rawsequences': batch['sequences'],
+    #     'names': batch['names'],
+    #     'ids': batch['ids'],
+    #     'descriptions': batch['descriptions'],
+    #     'dbxrefs': batch['dbxrefs'],
+    #         }
+    #
+    #     tensor_dict = {
+    #     'sequences': embedding_function['sequences'](batch['sequences']),
+    #     }
+    #
+    #     return Message(tensor_dict, metadata)
 
     def __next__(self):
 
@@ -136,7 +142,6 @@ class LoopingSource(Source):
         self.check_inputs()
         self.reset()
         self.length = None
-
 
     def __getitem__(self, index):
         """
@@ -238,7 +243,7 @@ class CachingSource(Source):
         self.infinite = infinite
         self.cache_size = cache_size
         self.cache_type = cache_type
-        self.buffer_size = buffer_size 
+        self.buffer_size = buffer_size
         self.init_cache(*args, **kwargs)
 
     # @abstractmethod # TODO: Make different types of caches implementable via subclasses
@@ -323,7 +328,33 @@ class CachingSource(Source):
         else:
             raise ValueError("Source is labelled as having infinite length (ie. yields items indefinitely).")
 
-class LabelSource(Source):
+class PassThroughSource(Source): # TODO: Implement
+    """
+    This source passes through all method/attribute calls to its (single) input source except for whatever is overridden by subclasses.
+    """
+    name = 'Pass-through source'
+    def __init__(self, *args, labels_column = 'labels', **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.check_inputs()
+        for title, source in self.input_sources.items(): # There is only one
+            self.input_title = title
+            self.input_source = source
+
+    def check_inputs(self):
+        if len(self.input_sources) > 1:
+            raise ValueError("A pass-through source can only have one input source.")
+
+    def __getitem__(self, *args, **kwargs):
+        return self.input_source.__getitem__(*args, **kwargs)
+
+    def __getattr__(self, *args, **kwargs):
+        """
+        Pass through all methods of the input source while adding labels.
+        """
+        return self.input_source.__getattribute__(*args, **kwargs)
+
+class Title2LabelSource(Source):
     """
     This source takes one source as input and inserts a column called 'label' to all outputs where the label is
     the name of the input source.
@@ -357,6 +388,7 @@ class LabelSource(Source):
         Wraps method with a label attacher such that whenever the method is called, the output is modified
         by adding the label.
         """
+
         def new_function(*args, **kwargs):
 
             output = function(*args, **kwargs)
@@ -384,6 +416,29 @@ class LabelSource(Source):
         message[self.labels_column] = [self.label for _ in range(l)]
 
         return message
+
+class LabelerSource(PassThroughSource):
+    """
+    This source implements a to_tensor function that converts labels contained in messages to tensors based on an internal labels dict.
+    """
+
+    def __init__(self, labels, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.labels = labels
+        self.labels_dict = bidict({label:i for label,i in zip(labels,count())})
+
+    def to_tensor(self, batch, labels_column = 'labels'):
+
+        batch['labels_name'] = batch[labels_column]
+        labels = batch[labels_column]
+        labels = [self.labels_dict[label] for label in labels]
+        labels = torch.Tensor([one_hot(label,len(self.labels_dict)) for label in labels])
+        batch['labels'] = labels
+        try: # Allow an upstream source to attempt to perform to_tensor if it can
+            batch = self.recursive_call('to_tensor', batch)
+            return batch
+        except AttributeError:
+            return batch
 
 class AggregatorSource(Source):
     """
