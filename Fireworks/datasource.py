@@ -348,6 +348,9 @@ class PassThroughSource(Source): # TODO: Implement
     def __getitem__(self, *args, **kwargs):
         return self.input_source.__getitem__(*args, **kwargs)
 
+    def __len__(self, *args, **kwargs):
+        return self.input_source.__len__(*args, **kwargs)
+
     def __getattr__(self, *args, **kwargs):
         """
         Pass through all methods of the input source while adding labels.
