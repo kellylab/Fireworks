@@ -10,7 +10,7 @@ import itertools
 
 test_dir = Fireworks.test_dir
 
-class one_way_dummy(ds.DataSource):
+class one_way_dummy(ds.Source):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -26,7 +26,7 @@ class one_way_dummy(ds.DataSource):
     def reset(self):
         self.count = 0
 
-class reset_dummy(ds.DataSource):
+class reset_dummy(ds.Source):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.count = 0
@@ -34,7 +34,7 @@ class reset_dummy(ds.DataSource):
     def reset(self):
         self.count = 0
 
-class next_dummy(ds.DataSource):
+class next_dummy(ds.Source):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -47,7 +47,7 @@ class next_dummy(ds.DataSource):
         else:
             raise StopIteration # This will trigger StopIteration
 
-class getitem_dummy(ds.DataSource):
+class getitem_dummy(ds.Source):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -56,6 +56,7 @@ class getitem_dummy(ds.DataSource):
     def __getitem__(self, index):
 
         index = index_to_list(index)
+
         if index == []:
             return None
         elif max(index) < self.length and min(index) >= 0:
@@ -263,3 +264,14 @@ def test_CachingSource():
     assert cashmoney.lower_bound == 15
     length = len(cashmoney)
     assert length == 20
+
+def test_IndexMapperSource():
+
+    getty = getitem_dummy()
+    input_indices = [i for i in range(12)]
+    output_indices = [i for i in reversed(range(12))]
+
+    flipped = ds.IndexMapperSource(input_indices, output_indices, inputs={'getty':getty})
+    assert len(flipped) == 12
+    for i in range(12):
+        assert (flipped[i]['values'] == 11-i).all()

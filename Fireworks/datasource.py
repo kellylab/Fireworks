@@ -4,7 +4,7 @@ import pandas as pd
 import Fireworks
 from Fireworks.message import Message
 from Fireworks.utils import index_to_list
-from Fireworks.cache import LRUCache, LFUCache
+from Fireworks.cache import LRUCache, LFUCache, UnlimitedCache
 from Fireworks.preprocessing import one_hot
 from abc import ABC, abstractmethod
 from itertools import count
@@ -12,6 +12,7 @@ import types
 import random
 from bidict import bidict
 import torch
+import math
 
 class Source(ABC):
     """
@@ -265,7 +266,7 @@ class CachingSource(Source):
     def __getitem__(self, index):
 
         index = index_to_list(index)
-        if self.length and index: # Implicit length check if length is known
+        if self.length and len(index): # Implicit length check if length is known
             if max(index) >= self.length:
                 raise IndexError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
         # Identify what is in the cache and what isn't.
@@ -291,7 +292,7 @@ class CachingSource(Source):
         message = message.permute(permutation)
 
         # Implicit update of internal knowledge of length
-        if index and self.length is None and not self.infinite:
+        if len(index) and self.length is None and not self.infinite:
             l = max(index)
             if l > self.lower_bound:
                 self.lower_bound = l
@@ -551,3 +552,28 @@ class ShufflerSource(Source):
         Triggers a shuffle on reset.
         """
         pass
+
+class IndexMapperSource(Source):
+    """
+    Given input sources that implement __getitem__, returns a source that maps indices in input_indices to output_indices via __getitem__
+    """
+    def __init__(self, input_indices, output_indices, *args,**kwargs):
+        super().__init__(*args, **kwargs)
+        self.check_inputs()
+        if len(input_indices) != len(output_indices):
+            raise ValueError("The number of input indices does not match the number of output indices.")
+        self.pointers = UnlimitedCache()
+        self.pointers[input_indices] = Message({'output':output_indices})
+
+    def check_inputs(self):
+        for name, source in self.input_sources.items():
+            if not hasattr(source, '__getitem__'):
+                raise ValueError("Input sources must be indexable.")
+
+    def __getitem__(self, index):
+
+        index = index_to_list(index)
+        return Fireworks.merge([source[self.pointers[index]['output'].values] for source in self.input_sources.values()])
+
+    def __len__(self):
+        return len(self.pointers)

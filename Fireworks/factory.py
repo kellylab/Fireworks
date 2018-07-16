@@ -20,16 +20,20 @@ class Factory:
         while True:
             past_params, past_metrics = self.read()
             try:
+                # Generate new set of parameters
                 params = self.generator(past_params, past_metrics)
+                # Generate an evaluator from the params
                 evaluator = self.trainer(params)
                 # NOTE: This part is pytorch ignite syntax
                 for name, metric in self.metrics_dict.items():
                     metric.attach(evaluator, name) # TODO: Make sure this resets the metric
+                # Running the evaluator should perform training on the dataset followed by evlaution and return evaluation metrics
                 evaluator.run(self.dataloader)
+                # Evaluate the metrics that were attached to the evaluator
                 computed_metrics = {name: metric.compute() for name, metric in self.metrics_dict.items()}
                 self.write(params, computed_metrics)
                 evaluator = None
-            except EndHyperparameterOptimization: # TODO: Create a specific end of training exception here
+            except EndHyperparameterOptimization:
                 break
 
     @abc.abstractmethod

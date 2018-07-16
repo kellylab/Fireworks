@@ -163,6 +163,9 @@ class UnlimitedCache(MessageCache):
     elements and never clears memory internally
     """
 
+    def __init__(self):
+        super().__init__(None) # No max size
+
     def __setitem__(self, index, message):
         """
         Simply inserts the message with the corresponding index without ever freeing memory.
