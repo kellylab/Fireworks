@@ -30,7 +30,7 @@ class Message:
     Additionally, messages behave as much as possible like dicts. In many scenarios, a dict will be able to substitute for a message and vice-versa.
     """
 
-    def __init__(self, *args, cache = None, **kwargs):
+    def __init__(self, *args, cache = None, check_length = True, **kwargs):
         """
         Initializes a message
         If *args is empty --> empty message
@@ -72,7 +72,8 @@ class Message:
         # Ensure columns are in the same order always
         self.df = self.df.reindex(sorted(self.df.columns), axis=1)
 
-        self.check_length()
+        if check_length:
+            self.check_length()
 
     def check_length(self):
 
@@ -102,30 +103,42 @@ class Message:
 
     def __getitem__(self, index):
 
-        if not isinstance(index, slice) and isinstance(index, Hashable):
-            # Attempt to access elements by key
+        t = type(index)
+        if t is int:
+            if index >= self.length:
+                raise IndexError
+            index = slice(index,index+1)
+            return self._getindex(index)
+        elif t is slice:
+            if max(index.start, index.stop) > self.length:
+                raise IndexError
+            return self._getindex(index)
+        elif t is list: # Must account for list of indices and list of strings
+            if len(index) == 0:
+                return Message(check_length=False)
+            tt = type(index[0])
+            if tt is int: # Is index
+                return self._getindex(index)
+            if tt is str: # Is list of column names
+                return Message({s:self.tensor_message[s] if s in self.tensor_message.keys() else self.df[s] for s in index}, check_length=False)
+        elif t is str:
             if index in self.tensor_message.keys():
                 return self.tensor_message[index]
             elif index in self.df.keys():
                 return self.df[index]
-        elif type(index) is str:
-            raise KeyError
-
-        # Access elements by index
-        # assert False
-        if type(index) is int: # Making point queries into range queries of width 1 ensures correct formatting of dataframes by pandas.
-            index = slice(index, index+1)
-
-        il = index_to_list(index)
-        if il and max(il) >= self.length:
-            raise IndexError
-
-        if len(self.tensor_message) == 0:
-            return Message(self.df.iloc[index].reset_index(drop=True))
-        if len(self.df) == 0:
-            return Message(self.tensor_message[index])
         else:
-            return Message(self.tensor_message[index], self.df.iloc[index].reset_index(drop=True)) # {k: v[index] for k, v in self.tensor_dict.items()}, {k: v.iloc[index] for k, v in self.df.items()}
+            raise KeyError("{0} is not a column name or a valid index for this message.".format(str(index)))
+
+    def _getindex(self, index):
+        """
+        Returns a submessage based on requested index.
+        """
+        if len(self.tensor_message) == 0:
+            return Message(self.df.iloc[index].reset_index(drop=True), check_length=False)
+        if len(self.df) == 0:
+            return Message(self.tensor_message[index], check_length=False)
+        else:
+            return Message(self.tensor_message[index], self.df.iloc[index].reset_index(drop=True), check_length=False)
 
     def __setitem__(self, index, value):
 
