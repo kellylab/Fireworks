@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from copy import deepcopy
 from collections import Hashable
-from Fireworks.utils import index_to_list
+from Fireworks.utils import index_to_list, slice_length
 
 """
 Messages passed between objects in this framework are represented as dictionaries of tensors.
@@ -30,7 +30,7 @@ class Message:
     Additionally, messages behave as much as possible like dicts. In many scenarios, a dict will be able to substitute for a message and vice-versa.
     """
 
-    def __init__(self, *args, cache = None, check_length = True, **kwargs):
+    def __init__(self, *args, cache = None, length = None, **kwargs):
         """
         Initializes a message
         If *args is empty --> empty message
@@ -72,7 +72,7 @@ class Message:
         # Ensure columns are in the same order always
         self.df = self.df.reindex(sorted(self.df.columns), axis=1)
 
-        if check_length:
+        if length is None:
             self.check_length()
 
     def check_length(self):
@@ -110,17 +110,17 @@ class Message:
             index = slice(index,index+1)
             return self._getindex(index)
         elif t is slice:
-            if max(index.start, index.stop) > self.length:
-                raise IndexError
+            # if max(index.start, index.stop) > self.length:
+            #     raise IndexError
             return self._getindex(index)
         elif t is list: # Must account for list of indices and list of strings
             if len(index) == 0:
-                return Message(check_length=False)
+                return Message(length=0)
             tt = type(index[0])
             if tt is int: # Is index
                 return self._getindex(index)
             if tt is str: # Is list of column names
-                return Message({s:self.tensor_message[s] if s in self.tensor_message.keys() else self.df[s] for s in index}, check_length=False)
+                return Message({s:self.tensor_message[s] if s in self.tensor_message.keys() else self.df[s] for s in index}, length = slice_length(index))
         elif t is str:
             if index in self.tensor_message.keys():
                 return self.tensor_message[index]
@@ -134,11 +134,11 @@ class Message:
         Returns a submessage based on requested index.
         """
         if len(self.tensor_message) == 0:
-            return Message(self.df.iloc[index].reset_index(drop=True), check_length=False)
+            return Message(self.df.iloc[index].reset_index(drop=True), length=slice_length(index))
         if len(self.df) == 0:
-            return Message(self.tensor_message[index], check_length=False)
+            return Message(self.tensor_message[index], length=slice_length(index))
         else:
-            return Message(self.tensor_message[index], self.df.iloc[index].reset_index(drop=True), check_length=False)
+            return Message(self.tensor_message[index], self.df.iloc[index].reset_index(drop=True), length=slice_length(index))
 
     def __setitem__(self, index, value):
 
@@ -180,22 +180,61 @@ class Message:
             self.df.iloc[index] = value.df
 
     def __delitem__(self, index):
+        """
+        Checks if index is a string (column name) or index (row, range of rows) and deletes the appropriate part of the message.
+        If index is a list, it can be a list of either column names or indices.
+        """
+        t = type(index)
+        if t is str: # Delete column
+            if index in self.tensor_message.tensor_dict.keys():
+                del self.tensor_message.tensor_dict[index]
+            elif index in self.df.columns:
+                del self.df[index]
+            else:
+                raise KeyError("Column {0} not found in message.")
+        elif t is int: # Delete single row
+            if index >= self.length:
+                raise IndexError("Cannot delete element {0} from message with length {1}".format(index, self.length))
+            self._delindex(index)
+        elif t is slice:
+            # m = max(index.start, index.stop)
+            # if m > self.length:
+            #     raise IndexError("Cannot delete slice {0} from message with length {1}".format(index, self.length))
+            self._delindex(index)
+        elif t is list:
+            if len(index): # Otherwise list is empty and do nothing
+                tt = type(index[0])
+                if tt is str: # Delete columns
+                    for column in index:
+                        if column in self.tensor_message.tensor_dict.keys():
+                            del self.tensor_message.tensor_dict[column]
+                        elif column in self.df.columns:
+                            del self.tensor_message[column]
+                        else:
+                            raise KeyError("Column {0} not found in message.")
+                elif tt is int: # Delete multiple indices
+                    m = max(index)
+                    if m > self.length:
+                        raise IndexError("Cannot delete element {0} from message with length {1}.".format(m, self.length))
+                    else:
+                        self._delindex(index)
+        else:
+            raise IndexError("{0} is not a column(s) or index in this message.".format(str(index)))
 
-        if index in self.tensor_message:
+    def _delindex(self, index):
+        """
+        Deletes the given index after it has been validated by __delitem__
+        """
+        if len(self.df):
+            self.df.drop(self.df.index[index], inplace=True)
+            self.length = len(self.df)
+        if len(self.tensor_message):
             del self.tensor_message[index]
-        elif isinstance(index, Hashable) and index in self.df:
-            del self.df[index]
-        else: # Is a point/range deletion
-            if len(self.df):
-                self.df.drop(self.df.index[index], inplace=True)
-                self.length = len(self.df)
-            if len(self.tensor_message):
-                del self.tensor_message[index]
-                self.length = self.tensor_message.length
+            self.length = self.tensor_message.length
 
     def __contains__(self, item):
 
-        if isinstance(item, Hashable):
+        if type(item) is str:
             return item in self.df or item in self.tensor_message
         else:
             return False
@@ -240,11 +279,16 @@ class Message:
         other = Message(other)
         return Message({**self.tensor_message, **other.tensor_message}, {**self.df, **other.df})
 
-    def map(self, map_dict):
+    def map(self, mapping):
         """
-        Applies functions in map_dict to the correspondign keys. map_dict is a dict of keys:functions specifying the mappings.
+        Applies function mapping to message. If mapping is a dict, then maps will be applied to the correspondign keys as columns, leaving
+        columns not present in mapping untouched.
+        In otherwords, mapping would be a dict of column_name:functions specifying the mappings.
         """
-        pass
+        if type(mapping) is dict:
+            return Message({key: mapping[key](self[key]) if key in mapping else self[key] for key in self.columns})
+        else:
+            return Message({key: mapping(self[key]) for key in self.columns})
 
     def tensors(self, keys = None):
         """
@@ -332,16 +376,32 @@ class TensorMessage:
 
         self.length = compute_length(self.tensor_dict)
 
-    def __getitem__(self, index):
-        if not isinstance(index, slice) and isinstance(index, Hashable) and index in self.tensor_dict.keys():
-            return self.tensor_dict[index]
-        elif isinstance(index, str):
-            raise KeyError
-        else:
-            il = index_to_list(index)
-            if il and max(il) >= self.length:
+    def __getitem__(self, index): # TODO: Add support for nonstandard slices (0:, :-k, etc.)
+
+        t = type(index)
+        if t is str:
+            return self.tensor_dict[index] # This will raise a key error if column not present
+        elif t is int:
+            if index >= self.length:
                 raise IndexError
-            return TensorMessage({k: v[index] for k, v in self.tensor_dict.items()})
+            else:
+                return TensorMessage({key: value[index] for key, value in self.tensor_dict.items()})
+        elif t is slice:
+            # if max(index.stop, index.start) > self.length:
+            #     raise IndexError
+            # else:
+            return TensorMessage({key: value[index] for key, value in self.tensor_dict.items()})
+        elif t is list: # Check if list of column names or indices
+            if len(index):
+                tt = type(index[0])
+                if tt is str:
+                    return TensorMessage({key:self.tensor_dict[key] for key in index})
+                elif tt is int:
+                    return TensorMessage({key: value[index] for key, value in self.tensor_dict.items()})
+            else: # Empty list
+                return TensorMessage()
+        else:
+            raise KeyError("{0} is not a column name or a valid index for this message.".format(str(index)))
 
     def __setitem__(self, index, value):
 
@@ -362,15 +422,104 @@ class TensorMessage:
 
     def __delitem__(self, index): # BUG: delitem raises sigfaults when called on a tensor.
 
-        if isinstance(index, Hashable) and index in self.tensor_dict.keys():
-            del self.tensor_dict[index]
-        else:
-            # Identify complement indices (indices that will remain)
-            complement_indices = complement(index, self.length)
-            # Assign self to self[complementary indices]
-            deleted = self[complement_indices]
-            self.tensor_dict = deleted.tensor_dict
-            self.length = deleted.length
+        t = type(index)
+        if t is str:
+            del self.tensor_dict[index] # Will automatically throw a KeyError if not in the dict
+        elif t is int:
+            if index > self.length:
+                raise IndexError
+            self._delindex(index)
+        elif t is slice:
+            # if max(index.stop, index.start) > self.length:
+            #     raise IndexError
+            self._delslice(index)
+        elif t is list:
+            if len(index):
+                tt = type(index[0])
+                if tt is str:
+                    for column in index:
+                        del self.tensor_dict[column]
+                elif tt is int:
+                    self._dellist(index)
+            else:
+                raise KeyError
+
+        # if isinstance(index, Hashable) and index in self.tensor_dict.keys():
+        #     del self.tensor_dict[index]
+        # else:
+        #     # Identify complement indices (indices that will remain)
+        #     complement_indices = complement(index, self.length)
+        #     # Assign self to self[complementary indices]
+        #     deleted = self[complement_indices]
+        #     self.tensor_dict = deleted.tensor_dict
+        #     self.length = deleted.length
+
+    def _delindex(self, index):
+        """
+        Deletes single row corresponding to a single index.
+        """
+        new_length = self.length - 1
+        if index == 0:
+            if self.length == 1: # Deleting the only row of a 1-row Message
+                self.tensor_dict = {}
+                self.length = new_length
+            else: # Deleting first row of an n-row message
+
+                self.tensor_dict = self[1:self.length].tensor_dict
+                self.length = new_length
+        elif index == self.length-1: # Deleting the last row
+            self.tensor_dict = self[:self.length-1].tensor_dict
+            self.length = new_length
+        else: # Delete an in-between row
+            self.tensor_dict = TensorMessage(cat([self[0:index], self[index+1:self.length]])).tensor_dict
+
+    def _delslice(self, orange):
+        """
+        Deletes rows corresponding to a slice object.
+        This involves finding the complementary set of indices and returning those.
+        """
+        if orange.step is None or orange.step in [0, 1, -1]: # Unit step size
+            # NOTE: We will treat -1 and 1 as the same for now
+            if orange.step == -1: # Is backwards
+                start = orange.stop
+                stop = orange.start
+            else:
+                start = orange.start
+                stop = orange.step
+
+            if start is None:
+                start = 0
+            if stop is None:
+                stop = self.length
+
+            if start >= stop:
+                raise IndexError("Invalid slice {0}.".format(str(orange)))
+            if start > 0:
+                bottom_message = self[0:start]
+            else:
+                bottom_message = TensorMessage()
+            if stop < self.length and stop > start:
+                top_message = self[stop:self.length]
+            else:
+                top_message = TensorMessage()
+
+            new_message = TensorMessage(cat([bottom_message, top_message]))
+
+            self.tensor_dict = new_message.tensor_dict
+            self.length = new_message.length
+
+        else: # Step count is some number that must be accounted for
+            listy = slice_to_list(orange) # NOTE: This is low priority so for now we just convert to list and delete that way
+            self._dellist(listy)
+
+    def _dellist(self, listy):
+        """
+        Deletes rows corresponding to indices in a list.
+        This involves finding the complementary set of indices and returning those.
+        """
+        complement = [i for i in range(self.length) if i not in listy]
+        self.tensor_dict = self[complement]
+        self.length = len(complement)
 
     def __copy__(self):
 
@@ -390,6 +539,9 @@ class TensorMessage:
     def __getattr__(self, *args, **kwargs):
         return self.tensor_dict.__getattribute__(*args, **kwargs)
 
+    def keys(self,*args, **kwargs):
+        return self.tensor_dict.keys(*args, **kwargs)
+
     def __len__(self):
         return self.length
 
@@ -397,6 +549,7 @@ class TensorMessage:
         """
         Two tensor messages are equivalent if they have the same keys and their elements are equal.
         """
+
         keys_equal = set(self.keys()) == set(other.keys())
         if not keys_equal:
             return False
@@ -523,7 +676,7 @@ def complement(indices, n):
     if type(indices) is int:
         indices = [indices]
 
-    complement = [i for i in range(0,n) if i not in indices]
+    complement = [i for i in range(n) if i not in indices]
 
     return complement
 
