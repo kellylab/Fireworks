@@ -73,6 +73,9 @@ def test_Message():
             'd': np.array([11,12]),
         }))
 
+        assert (message['a'] == torch.Tensor([1,2,3])).all()
+        assert message[['a','c']] == Message({'a': torch.Tensor([1,2,3]), 'c': np.array([7,8,9])})
+
         assert message[1:3] == Message({'a': torch.Tensor([2,3]),'b': torch.Tensor([5,6])}, pd.DataFrame({'c': np.array([8,9]),'d': np.array([11,12])}))
 
         # Test length
