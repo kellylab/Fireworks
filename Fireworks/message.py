@@ -74,6 +74,8 @@ class Message:
 
         if length is None:
             self.check_length()
+        else:
+            self.length = length
 
     def check_length(self):
 
@@ -659,8 +661,7 @@ class TensorMessage:
         # If self is empty, just replace it with other.
         if self == empty_tensor_message:
             return other
-
-        return TensorMessage({key: torch.cat([self[key], other[key]]) if key in other.keys() else self[key] for key in self.tensor_dict})
+        return TensorMessage({key: torch.cat([self[key], other[key]]) if key in other.keys() else self[key] for key in self.tensor_dict.keys()})
 
     def merge(self, other):
         """

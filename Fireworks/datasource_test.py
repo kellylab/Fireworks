@@ -70,14 +70,13 @@ class getitem_dummy(ds.Source):
 def conforms_to_spec(datasource):
 
     assert hasattr(datasource, '__iter__')
-    assert hasattr(datasource, 'to_tensor')
     assert hasattr(datasource, '__next__')
 
     return True
 
 def test_DataSource(): pass
 
-def test_LabelSource():
+def test_Title2LabelSource():
 
     dumbo = one_way_dummy()
     rumbo = one_way_dummy()
@@ -85,10 +84,10 @@ def test_LabelSource():
     gumbo = next_dummy()
     jumbo = next_dummy()
 
-    labeler = ds.LabelSource(inputs = {'yes': dumbo})
-    mislabeler = ds.LabelSource(inputs = {'yes': rumbo}, labels_column='barrels')
-    donkeykong = ds.LabelSource(inputs = {'yes':gumbo})
-    dixiekong = ds.LabelSource(inputs = {'yes': jumbo}, labels_column='bananas')
+    labeler = ds.Title2LabelSource(inputs = {'yes': dumbo})
+    mislabeler = ds.Title2LabelSource(inputs = {'yes': rumbo}, labels_column='barrels')
+    donkeykong = ds.Title2LabelSource(inputs = {'yes':gumbo})
+    dixiekong = ds.Title2LabelSource(inputs = {'yes': jumbo}, labels_column='bananas')
     labeler.reset()
     assert labeler.count == 0
     mislabeler.reset()
@@ -108,7 +107,7 @@ def test_LabelSource():
     assert donkeykong.count == 12
     assert dixiekong.count == 14
 
-    labeler = ds.LabelSource(inputs = {'yes': bumbo})
+    labeler = ds.Title2LabelSource(inputs = {'yes': bumbo})
     labeler.reset()
     assert labeler.count == 0
 
@@ -123,23 +122,19 @@ def test_BioSeqSource():
     embedding_function = {'sequences': f}
 
     for gene in genes:
-        assert type(gene) is pd.DataFrame
-        assert set(['sequences', 'ids', 'names', 'descriptions', 'dbxrefs']) == set(gene.keys())
-        message = genes.to_tensor(gene, embedding_function)
-        assert type(message) is Message
-        assert set(message.tensor_message.keys()) == set(['sequences'])
-        assert set(message.df.keys()) == set(['ids', 'names', 'descriptions', 'dbxrefs', 'rawsequences'])
-        assert len(message) == 1
+        assert set(['sequences', 'ids', 'names', 'descriptions', 'dbxrefs']) == set(gene.columns)
+        assert type(gene) is Message
+        assert set(gene.tensor_message.keys()) == set()
+        assert set(gene.df.keys()) == set(['ids', 'names', 'descriptions', 'dbxrefs', 'sequences'])
+        assert len(gene) == 1
     # Reset and do it again to confirm we can repeat the source
     genes.reset()
     for gene in genes:
-        assert type(gene) is pd.DataFrame
-        assert set(['sequences', 'ids', 'names', 'descriptions', 'dbxrefs']) == set(gene.keys())
-        message = genes.to_tensor(gene, embedding_function)
-        assert type(message) is Message
-        assert set(message.tensor_message.keys()) == set(['sequences'])
-        assert set(message.df.keys()) == set(['ids', 'names', 'descriptions', 'dbxrefs', 'rawsequences'])
-        assert len(message) == 1
+        assert set(['sequences', 'ids', 'names', 'descriptions', 'dbxrefs']) == set(gene.columns)
+        assert type(gene) is Message
+        assert set(gene.tensor_message.keys()) == set()
+        assert set(gene.df.keys()) == set(['ids', 'names', 'descriptions', 'dbxrefs', 'sequences'])
+        assert len(gene) == 1
 
 def test_LoopingSource():
 

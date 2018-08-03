@@ -50,8 +50,7 @@ def test_slice_to_list():
     assert l == [0,2,4,6,8]
 
 def test_init_set():
-    m = cache.UnlimitedCache(10)
-    assert m.max_size == 10
+    m = cache.UnlimitedCache()
     dummy_message = Message(tensors, vectors)
     assert len(m) == 0
     m[0] = dummy_message[0]
@@ -69,8 +68,7 @@ def test_init_set():
     assert m[7:10] == dummy_message
 
 def test_del():
-    m = cache.UnlimitedCache(10)
-    assert m.max_size == 10
+    m = cache.UnlimitedCache()
     dummy_message = Message(tensors, vectors)
     m[0] = dummy_message[0]
     m[3:6] = dummy_message
@@ -94,7 +92,7 @@ def test_del():
     assert m[3:5] == dummy_message[0:2]
 
 def test_permute():
-    m = cache.UnlimitedCache(10)
+    m = cache.UnlimitedCache()
     dummy_message = Message(tensors, vectors)
     m[3:6] = dummy_message
     assert m.cache == dummy_message
@@ -134,7 +132,6 @@ def test_LRUCache():
     # Trigger a buffer clearance.
     m[29] = dummy_message[0]
     assert len(m) == 9
-    assert False 
 
 def test_LFUCache():
     m = cache.LFUCache(10, buffer_size=2)

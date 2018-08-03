@@ -117,7 +117,7 @@ class BioSeqSource(Source):
         gene = self.seq.__next__()
 
         try:
-            return pd.DataFrame({
+            return Message({
                 'sequences': [str(gene.seq)],
                 'ids': [gene.id],
                 'names': [gene.name],
