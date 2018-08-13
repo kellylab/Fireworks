@@ -1,4 +1,9 @@
-from sqlalchemy import Table, Column, Base
+from sqlalchemy import Table, Column, Integer
+from sqlalchemy.ext.declarative import declarative_base
+from Fireworks.datasource import Source
+
+
+Base = declarative_base()
 
 class TableSource(Source):
     """
@@ -31,12 +36,27 @@ class TableSource(Source):
         kwargs = {key: row[key] for key in self.columns}
         return self.table(**kwargs)
 
-def create_table(name, columns_dict):
+def create_table(name, columns, primary_key = None):
     """
     Creates a table given a dict of column names to data types. This is an easy
     way to quickly create a schema for a data pipeline.
     """
 
+    if primary_key is None: # Create a default, autoincrementing primary key
+        columns.insert(0, Column('id', Integer, primary_key=True, autoincrement=True)) # Prepend to columns list
+
     class SimpleTable(Base):
-        __tablename__ = name
-        pass 
+        __table__ = Table(name, Base.metadata, *columns)
+
+        def __repr__(self):
+            return "Table {name} with values {values}".format(name=self.__table__.name,
+            values = ", ".join(["{0}={1}".format(c.name, self.__getattribute__(c.name)) for c in columns]))
+
+    return SimpleTable
+
+
+# Get Representation
+# Test row generation
+# Test with SQLite backend
+# Test with CSV, Message, and Fasta
+# Create reader sources
