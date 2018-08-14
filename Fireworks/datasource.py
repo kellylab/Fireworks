@@ -25,7 +25,15 @@ class Source(ABC):
     name = 'base_source'
 
     def __init__(self, *args, inputs = None, **kwargs):
-        self.input_sources = inputs
+
+        if type(inputs) is dict:
+            self.input_sources = inputs
+        elif isinstance(inputs, Source): # Can give just one source as input without having to type out an entire dict
+            self.input_sources = {'data': inputs}
+        elif inputs is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
+            self.input_sources = {}
+        else:
+            raise TypeError("inputs must be a dict of sources or a single source")
 
     def recursive_call(self, method, *args, ignore_first = True, **kwargs):
         """
@@ -329,10 +337,13 @@ class CachingSource(Source):
         else:
             raise ValueError("Source is labelled as having infinite length (ie. yields items indefinitely).")
 
-class PassThroughSource(Source): # TODO: Implement
+class PassThroughSource(Source):
     """
-    This source passes through all method/attribute calls to its (single) input source except for whatever is overridden by subclasses.
+    This source passes through data access calls and methods to its (single) input source except for whatever is overridden by subclasses.
+    NOTE: Only the special methods explicitly defined here (getitem, len, delitem, setitem, next, iter) are passed through.
+    Non-special methods are passed through normally.
     """
+
     name = 'Pass-through source'
     def __init__(self, *args, labels_column = 'labels', **kwargs):
 
@@ -349,12 +360,24 @@ class PassThroughSource(Source): # TODO: Implement
     def __getitem__(self, *args, **kwargs):
         return self.input_source.__getitem__(*args, **kwargs)
 
+    def __setitem__(self, *args, **kwargs):
+        return self.input_source.__setitem__(*args, **kwargs)
+
+    def __delitem__(self, *args, **kwargs):
+        return self.input_source.__delitem__(*args, **kwargs)
+
     def __len__(self, *args, **kwargs):
         return self.input_source.__len__(*args, **kwargs)
 
+    def __next__(self, *args, **kwargs):
+        return self.input_source.__next__(*args, **kwargs)
+
+    def __iter__(self, *args, **kwargs):
+        return self.input_source.__iter__(*args, **kwargs)
+
     def __getattr__(self, *args, **kwargs):
         """
-        Pass through all methods of the input source while adding labels.
+        Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)
         """
         return self.input_source.__getattribute__(*args, **kwargs)
 
