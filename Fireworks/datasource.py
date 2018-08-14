@@ -344,7 +344,7 @@ class PassThroughSource(Source):
     Non-special methods are passed through normally.
     """
 
-    name = 'Pass-through source'
+    name = 'Passthrough source'
     def __init__(self, *args, labels_column = 'labels', **kwargs):
 
         super().__init__(*args, **kwargs)
@@ -380,6 +380,53 @@ class PassThroughSource(Source):
         Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)
         """
         return self.input_source.__getattribute__(*args, **kwargs)
+
+class HookedPassThroughSource(PassThroughSource): # BUG NOTE: Methods that return self will break the passthrough at the moment
+    """
+    This source is the same as PassThroughSource, but it has hooks which can be implemented by subclasses to modify the behavior of
+    passed through calls.
+    """
+
+    name = 'Hooked-passthrough source'
+
+    def _getitem_hook(self, message): return message
+
+    # def _setitem_hook(self, *args, **kwargs): pass
+    #
+    # def _delitem_hook(self, *args, **kwargs): pass
+    #
+    # def _len_hook(self, *args, **kwargs): return args[0]
+
+    def _next_hook(self, message): return message
+
+    # def _iter_hook(self, *args, **kwargs): return args[0]
+
+    def __getitem__(self, *args, **kwargs):
+
+        return self._getitem_hook(self.input_source.__getitem__(*args, **kwargs))
+
+    # def __setitem__(self, *args, **kwargs):
+    #     self._setitem_hook(self.input_source.__setitem__(*args, **kwargs))
+    #
+    # def __delitem__(self, *args, **kwargs):
+    #     self._delitem_hook(self.input_source.__delitem__(*args, **kwargs))
+    #
+    # def __len__(self, *args, **kwargs):
+    #     return self._len_hook(self.input_source.__len__(*args, **kwargs))
+
+    def __next__(self, *args, **kwargs):
+        return self._next_hook(self.input_source.__next__(*args, **kwargs))
+
+    def __iter__(self, *args, **kwargs):
+
+        self.input_source = self.input_source.__iter__(*args, **kwargs)
+        return self
+
+    # def __getattr__(self, *args, **kwargs):
+    #     """
+    #     Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)
+    #     """
+    #     return self.input_source.__getattribute__(*args, **kwargs)
 
 class Title2LabelSource(Source):
     """

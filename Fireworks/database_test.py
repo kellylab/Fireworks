@@ -44,6 +44,7 @@ def test_TableSource():
     dummy = dummy_source()
     tab = dummy_table('jojo')
     engine = create_engine('sqlite:///:memory:', echo=True)
+
     tab.metadata.create_all(engine)
     ts = db.TableSource(tab, engine, ['name', 'values'], inputs=dummy)
     batch = ts[2:10]
