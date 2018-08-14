@@ -1,19 +1,22 @@
 from sqlalchemy import Table, Column, Integer
 from sqlalchemy.ext.declarative import declarative_base
-from Fireworks.datasource import Source
+from sqlalchemy.orm import sessionmaker
+
+from Fireworks.datasource import Source, PassThroughSource
 
 
 Base = declarative_base()
 
-class TableSource(Source):
+class TableSource(PassThroughSource):
     """
     Represents an SQLalchemy Table while having the functionality of a Source.
     """
-    def __init__(self, input_sources, table, **kwargs):
-        super().__init__(input_sources, **kwargs)
+    def __init__(self, table, engine, columns, inputs = None, **kwargs):
+        super().__init__(inputs=inputs, **kwargs)
+        Session = sessionmaker(bind=engine)
+        self.session = Session()
         self.table = table # An SQLalchemy table class
-
-    def reset(self): pass
+        self.columns = columns
 
     def commit(self):
         self.session.commit()
@@ -29,11 +32,18 @@ class TableSource(Source):
         rows = [self.make_row(row) for row in batch]
         self.session.add_all(rows)
 
+    def query(self, entities=None, *args, **kwargs):
+
+        if entities is None:
+            entities = self.table
+            
+        return self.session.query(entities, *args, **kwargs)
+
     def upsert(self, batch): pass
 
     def make_row(self, row):
 
-        kwargs = {key: row[key] for key in self.columns}
+        kwargs = {key: row[key][0] for key in self.columns}
         return self.table(**kwargs)
 
 def create_table(name, columns, primary_key = None):
