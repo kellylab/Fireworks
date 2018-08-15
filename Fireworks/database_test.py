@@ -2,6 +2,7 @@ from sqlalchemy import Table, Column, Integer, String, create_engine
 from Fireworks import Message
 from Fireworks import database as db
 from Fireworks import datasource as ds
+import os
 import numpy as np
 import itertools
 
@@ -39,6 +40,26 @@ def dummy_table(table_name):
 
     return tab
 
+def test_make_row():
+
+    tab = dummy_table('bubsy')
+    tom = tab(name='ok', values=33)
+    assert tom.name == 'ok'
+    assert tom.values == 33
+
+def test_create_table():
+
+    tab = dummy_table('munki')
+    assert tab.__table__.name == 'munki'
+    for colname in ['name', 'values', 'id']:
+        assert hasattr(tab, colname)
+
+def test_parse_columns():
+
+    tab = dummy_table('joseph')
+    colnames = db.parse_columns(tab)
+    assert set(['values', 'id', 'name']) == set(colnames)
+
 def test_TableSource():
 
     dummy = dummy_source()
@@ -55,17 +76,17 @@ def test_TableSource():
         assert row.name == 'johnny'
         assert int.from_bytes(row.values, byteorder='little') == i+2 # Have to convert integers back from little endian
 
-
-def test_make_row():
-
-    tab = dummy_table('bubsy')
-    tom = tab(name='ok', values=33)
-    assert tom.name == 'ok'
-    assert tom.values == 33
-
-def test_create_table():
-
-    tab = dummy_table('munki')
-    assert tab.__table__.name == 'munki'
-    for colname in ['name', 'values', 'id']:
-        assert hasattr(tab, colname)
+def test_DBSource():
+    dummy = dummy_source()
+    tab = dummy_table('jotoaro')
+    engine = create_engine('sqlite:///jotaro.sqlite', echo=True)
+    if os.path.exists('jotaro.sqlite'):
+        os.remove('jotaro.sqlite')
+    tab.metadata.create_all(engine)
+    ts = db.TableSource(tab, engine, ['name', 'values'], inputs=dummy)
+    batch = ts[2:10]
+    ts.insert(batch)
+    ts.commit()
+    deedee = db.DBSource(tab, engine)
+    for row, i in zip(deedee, itertools.count()):
+        assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
