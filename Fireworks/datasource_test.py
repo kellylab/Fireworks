@@ -314,16 +314,16 @@ def test_PassThroughSource():
     dumbo = smart_dummy()
     pishpish = ds.PassThroughSource(inputs=dumbo)
     assert pishpish.count == 0
-    assert pishpish.__next__() == {'values': [0]}
+    assert Message(pishpish.__next__()) == Message({'values': [0]})
     assert pishpish.count == 1
     pishpish.reset()
     assert pishpish.count == 0
-    assert pishpish[12] == {'values': [12]}
+    assert Message(pishpish[12]) == Message({'values': [12]})
     assert Message(pishpish[10:14]) == Message({'values': [10,11,12,13]})
     for i, j in zip(pishpish.reset(), itertools.count()):
-        assert i == {'values': [j]}
+        assert Message(i) == Message({'values': [j]})
 
-    assert i == {'values': [19]}
+    assert Message(i) == Message({'values': [19]})
 
 def test_HookedPassThroughSource():
 
@@ -344,11 +344,11 @@ def test_HookedPassThroughSource():
 
     pishpish = Hooker(inputs=dumbo)
     assert pishpish.count == 0
-    assert pishpish.__next__() == Message({'values': [0], 'interception': ['yaro']})
+    assert Message(pishpish.__next__()) == Message({'values': [0], 'interception': ['yaro']})
     assert pishpish.count == 1
     pishpish.reset()
     assert pishpish.count == 0
-    assert pishpish[12] == Message({'values': [12], 'interception': ['aho']})
+    assert Message(pishpish[12]) == Message({'values': [12], 'interception': ['aho']})
     assert Message(pishpish[10:14]) == Message({'values': [10,11,12,13], 'interception': ['aho','aho','aho','aho']})
     pishpish.reset()
     for i, j in zip(pishpish, itertools.count()):

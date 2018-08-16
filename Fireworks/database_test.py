@@ -33,7 +33,7 @@ class dummy_source(ds.Source):
 def dummy_table(table_name):
 
     columns = [
-        Column('name', String()),
+        Column('name', String),
         Column('values', Integer),
         ]
     tab = db.create_table(table_name, columns)
@@ -74,7 +74,8 @@ def test_TableSource():
     # Check if it worked
     for row, i in zip(ts.query(), itertools.count()):
         assert row.name == 'johnny'
-        assert int.from_bytes(row.values, byteorder='little') == i+2 # Have to convert integers back from little endian
+        # assert int.from_bytes(row.values, byteorder='little') == i+2 # Have to convert integers back from little endian
+        assert row.values == i+2
 
 def test_DBSource():
     dummy = dummy_source()

@@ -3,7 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from Fireworks import Message
 from Fireworks.datasource import Source, PassThroughSource
-
+import numpy as np
 
 Base = declarative_base()
 
@@ -43,7 +43,7 @@ class TableSource(PassThroughSource):
 
     def make_row(self, row):
 
-        kwargs = {key: row[key][0] for key in self.columns}
+        kwargs = {key: cast(row[key][0]) for key in self.columns}
         return self.table(**kwargs)
 
 def create_table(name, columns, primary_key = None):
@@ -118,10 +118,17 @@ def to_message(row, columns_and_types=None):
     if columns_and_types is None:
         columns_and_types = parse_columns_and_types(row)
 
-    row_dict = {c: [convert(getattr(row,c), t)] for c,t in columns_and_types.items()}
+    row_dict = {c: [getattr(row,c)] for c in columns_and_types.keys()}
 
     return Message(row_dict)
 
+def cast(value):
+    """
+    Converts values to basic types (ie. np.int64 to int)
+    """
+    if type(value) is np.int64:
+        value = int(value)
+    return value
 # Get Representation
 # Test row generation
 # Test with SQLite backend
