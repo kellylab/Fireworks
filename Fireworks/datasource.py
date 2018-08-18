@@ -35,23 +35,35 @@ class Source(ABC):
         else:
             raise TypeError("inputs must be a dict of sources or a single source")
 
-    def recursive_call(self, method, *args, ignore_first = True, **kwargs):
+    def recursive_call(self, attribute, *args, ignore_first = True, **kwargs):
         """
-        Recursively calls method on input_sources until reaching an upstream source that implements the method and
+        Recursively calls method/attribute on input_sources until reaching an upstream source that implements the method and
         returns the response as a message (empty if response is None).
         """
 
         if not ignore_first:
-            if hasattr(self, method):
-                return self.__getattribute__(method)(*args,**kwargs)
+            if hasattr(self, attribute):
+                if args or kwargs: # Is a method call
+                    return self.__getattribute__(attribute)(*args,**kwargs)
+
+                else: # Is an attribute
+                    try:
+                        return self.__getattribute__(attribute)
+                    except AttributeError:
+                        return self.__getattr__(attribute)
 
         if not self.input_sources:
-            raise AttributeError("Source {0} does not have method {1}.".format(self.name, str(method)))
+            raise AttributeError("Source {0} does not have method/attribute {1}.".format(self.name, str(attribute)))
 
-        responses = [source.recursive_call(method, *args, ignore_first=False, **kwargs) for source in self.input_sources.values()]
+        responses = [source.recursive_call(attribute, *args, ignore_first=False, **kwargs) for source in self.input_sources.values()]
 
         if responses:
-            return Fireworks.merge(responses)
+            if isinstance(responses[0], Source):
+                return Fireworks.merge(responses)
+            elif len(responses) == 1:
+                return responses[0]
+            else:
+                return {key: response for key, respone in zip(self.input_sources.keys(), responses)}
 
     def check_inputs(self): pass
 
@@ -379,7 +391,7 @@ class PassThroughSource(Source):
         """
         Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)
         """
-        return self.input_source.__getattribute__(*args, **kwargs)
+        return self.recursive_call(*args, **kwargs) #self.input_source.__getattribute__(*args, **kwargs)
 
 class HookedPassThroughSource(PassThroughSource): # BUG NOTE: Methods that return self will break the passthrough at the moment
     """
@@ -403,7 +415,7 @@ class HookedPassThroughSource(PassThroughSource): # BUG NOTE: Methods that retur
 
     def __getitem__(self, *args, **kwargs):
 
-        return self._getitem_hook(self.input_source.__getitem__(*args, **kwargs))
+        return self._getitem_hook(self.input_source.__getitem__(*args, **kwargs)) #self.input_source.__getitem__(*args, **kwargs))
 
     # def __setitem__(self, *args, **kwargs):
     #     self._setitem_hook(self.input_source.__setitem__(*args, **kwargs))

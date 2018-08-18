@@ -15,8 +15,15 @@ class TableSource(PassThroughSource):
         super().__init__(inputs=inputs, **kwargs)
         Session = sessionmaker(bind=engine)
         self.session = Session()
+        self.engine = engine
         self.table = table # An SQLalchemy table class
         self.columns = columns or parse_columns(table)
+        self.init_db()
+        
+    def init_db(self):
+
+        self.table.metadata.create_all(self.engine)
+        self.commit()
 
     def commit(self):
         self.session.commit()
@@ -70,6 +77,7 @@ class DBSource(Source):
     """
     def __init__(self, table, engine, query = None):
         Session = sessionmaker(bind=engine)
+        self.input_sources = {}
         self.session = Session()
         self.table = table
         self.columns_and_types = parse_columns_and_types(table)
@@ -128,6 +136,8 @@ def cast(value):
     """
     if type(value) is np.int64:
         value = int(value)
+    if type(value) is np.float64:
+        value = float(value)
     return value
 # Get Representation
 # Test row generation

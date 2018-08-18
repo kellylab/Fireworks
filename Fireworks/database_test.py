@@ -91,3 +91,6 @@ def test_DBSource():
     deedee = db.DBSource(tab, engine)
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
+    deedee.reset()
+    for row, i in zip(deedee, itertools.count()):
+        assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
