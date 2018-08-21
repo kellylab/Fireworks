@@ -67,6 +67,44 @@ class getitem_dummy(ds.Source):
     def __len__(self):
         return self.length
 
+class smart_dummy(ds.Source):
+    """
+    Implements all of the methods in the above dummies
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.length = 20
+        self.count = 0
+
+    def __getitem__(self, index):
+
+        index = index_to_list(index)
+
+        if index == []:
+            return None
+        elif max(index) < self.length and min(index) >= 0:
+            return Message({'values': np.array(index)})
+        else:
+            raise IndexError("Out of bounds for dummy source with length {0}.".format(self.length))
+
+    def reset(self):
+        self.count = 0
+        return self
+
+    def __next__(self):
+        self.count += 1
+        if self.count <= 20:
+            return Message({'values': np.array([self.count-1])})
+        else:
+            raise StopIteration# This will trigger StopIteration
+
+    def __len__(self):
+        return self.length
+
+    def __iter__(self):
+        return self.reset()
+
 def conforms_to_spec(datasource):
 
     assert hasattr(datasource, '__iter__')
@@ -270,3 +308,50 @@ def test_IndexMapperSource():
     assert len(flipped) == 12
     for i in range(12):
         assert (flipped[i]['values'] == 11-i).all()
+
+def test_PassThroughSource():
+
+    dumbo = smart_dummy()
+    pishpish = ds.PassThroughSource(inputs=dumbo)
+    assert pishpish.count == 0
+    assert Message(pishpish.__next__()) == Message({'values': [0]})
+    assert pishpish.count == 1
+    pishpish.reset()
+    assert pishpish.count == 0
+    assert Message(pishpish[12]) == Message({'values': [12]})
+    assert Message(pishpish[10:14]) == Message({'values': [10,11,12,13]})
+    for i, j in zip(pishpish.reset(), itertools.count()):
+        assert Message(i) == Message({'values': [j]})
+
+    assert Message(i) == Message({'values': [19]})
+
+def test_HookedPassThroughSource():
+
+    dumbo = smart_dummy()
+    class Hooker(ds.HookedPassThroughSource):
+
+        def _getitem_hook(self, message):
+
+            message['interception'] = ['aho' for _ in range(len(message))]
+            message.df = message.df.reindex_axis(sorted(message.df.columns), axis=1)
+            return message
+
+        def _next_hook(self, message):
+
+            message['interception'] = ['yaro' for _ in range(len(message))]
+            message.df = message.df.reindex_axis(sorted(message.df.columns), axis=1)
+            return message
+
+    pishpish = Hooker(inputs=dumbo)
+    assert pishpish.count == 0
+    assert Message(pishpish.__next__()) == Message({'values': [0], 'interception': ['yaro']})
+    assert pishpish.count == 1
+    pishpish.reset()
+    assert pishpish.count == 0
+    assert Message(pishpish[12]) == Message({'values': [12], 'interception': ['aho']})
+    assert Message(pishpish[10:14]) == Message({'values': [10,11,12,13], 'interception': ['aho','aho','aho','aho']})
+    pishpish.reset()
+    for i, j in zip(pishpish, itertools.count()):
+        assert i == Message({'values': [j], 'interception': ['yaro']})
+
+    assert i == Message({'values': [19], 'interception': ['yaro']})
