@@ -67,39 +67,6 @@ class Source(ABC):
 
     def check_inputs(self): pass
 
-    # def __getattr__(self, *args, **kwargs):
-    #
-    #     if len(args) > 1:
-    #         positional_args = args[1:]
-    #     else:
-    #         positional_args = []
-    #
-    #     return self.recursive_call(args[0], *positional_args, **kwargs)
-
-
-# class DataSource(Source):
-#     """ Class for representing a data source. It formats and reads data, and is able to convert batches into tensors. """
-#
-#     name = 'DataSource'
-#
-#     # @abstractmethod
-#     def to_tensor(self, batch: Message, embedding_function: dict = None):
-#         """
-#         Converts a batch (stored as dictionary) to a dictionary of tensors. embedding_function is a dict that specifies optional
-#         functions that construct embeddings and are called on the element of the given key.
-#         """
-#         # TODO: If no embedding_function is provided, or if a key maps to None, attempt to automatically convert the batch to tensors.
-#         pass
-#
-#     # def __next__(self):
-#     #     return {key: next(souce) for key, source in self.inputs.values()}
-#     #
-#     # def __getitem__(self, index):
-#     #     return {key: _input.__getitem__(index) for key, _input in self.inputs.values()}
-#
-#     def __iter__(self):
-#         return self
-
 class BioSeqSource(Source):
     """ Class for representing biosequence data. """
 
@@ -115,22 +82,6 @@ class BioSeqSource(Source):
     def reset(self):
         self.seq = SeqIO.parse(self.path, self.filetype, **self.kwargs)
         return self
-
-    # def to_tensor(self, batch: Message, embedding_function: dict):
-    #
-    #     metadata = {
-    #     'rawsequences': batch['sequences'],
-    #     'names': batch['names'],
-    #     'ids': batch['ids'],
-    #     'descriptions': batch['descriptions'],
-    #     'dbxrefs': batch['dbxrefs'],
-    #         }
-    #
-    #     tensor_dict = {
-    #     'sequences': embedding_function['sequences'](batch['sequences']),
-    #     }
-    #
-    #     return Message(tensor_dict, metadata)
 
     def __next__(self):
 
