@@ -14,6 +14,7 @@ class TableSource(PassThroughSource):
     """
     def __init__(self, table, engine, columns = None, inputs = None, **kwargs):
         super().__init__(inputs=inputs, **kwargs)
+
         Session = sessionmaker(bind=engine)
         self.session = Session()
         self.engine = engine
@@ -45,7 +46,9 @@ class TableSource(PassThroughSource):
         if entities is None:
             entities = self.table
 
-        return self.session.query(entities, *args, **kwargs)
+        # return self.session.query(entities, *args, **kwargs)
+        query = self.session.query(entities, *args, **kwargs)
+        return DBSource(self.table, self.engine, query)
 
     def upsert(self, batch): pass
 
