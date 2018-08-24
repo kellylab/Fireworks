@@ -72,7 +72,24 @@ def test_Experiment():
         assert type(row) is Message
     assert row == Message({'superpower': ['eating'], 'name':['bumbo'], 'age':[4], 'id':[3]})
 
+    # Test file opening and saving
+    path = xmen.open('ironman', string_only=True)
+    assert path == os.path.join(xmen.save_path, 'ironman')
+    with xmen.open('ironman', 'w') as ironman:
+        ironman.write("Hey guys it's me tony the tiger.")
+    # try:
+    #     path = xmen.open('ironman', string_only=True)
+    #     assert False
+    # except IOError: # It should detect that this file already exists
+    #     assert True
+
+    with xmen.open('ironman') as ironman:
+        assert ironman.read() == "Hey guys it's me tony the tiger."
+
     # Clean up
     all_xmen = [x for x in dirs if x.startswith('xmen')]
     for man in all_xmen:
         rmtree(man)
+
+def test_load_experiment():
+    pass 

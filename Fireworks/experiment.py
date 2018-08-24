@@ -67,19 +67,28 @@ def load_experiment(experiment_path):
     """
     Returns an experiment object corresponding to the database in the given path.
     """
-    pass
+    experiment_name = experiment_path.split('/')[-1]
+    db_path = os.path.join(experiment_path.split('/')[:-1])
+    return Experiment(experiment_name, db_path, load=True)
 
 class Experiment:
     # NOTE: For now, we assume that the underlying database is sqlite on local disk
-    def __init__(self, experiment_name, db_path, description=None):
-        self.listeners = {}
-        self.db_path = db_path
+
+    def __init__(self, experiment_name, db_path, description=None, load=False):
+
         self.name = experiment_name
+        self.db_path = db_path
         self.description = description or ''
-        self.timestamp = datetime.datetime.now()
-        self.create_dir()
-        self.init_metadata()
-        self.engines = {}
+        self.timestamp = datetime.datetime.now() # QUESTION: Should this be updated on each load?
+        if load:
+            self.load_experiment()
+            self.init_metadata() # This should be idempotent, so it's fine to redo it
+        else:
+            self.create_dir()
+            self.init_metadata()
+            self.engines = {}
+
+        self.filenames = os.listdir(self.save_path)
         # Create/open save directory
         # if not os.path.exists(save_dir):
         #     try:
@@ -87,6 +96,17 @@ class Experiment:
         #     except Error as e:
         #         print("Could not create save directory {save_dir}. Please check permissions and try again: {error}".format(save_dir=save_dir, error=e))
         # self.save_dir = save_dir
+
+    def load_experiment(self, path=None, experiment_name=None):
+        """
+        Loads parameters associated with this experiment from a directory.
+        """
+        path = path or self.db_path
+        experiment_name = experiment_name or self.experiment_name
+        self.save_path = os.path.join(path, experiment_name)
+        if not experiment_name in os.listdir(path):
+            raise ValueError("Directory {exp_dir} was not found in {path}".format(exp_dir=experiment_name, path=path))
+        assert False
 
     def create_dir(self):
         """
@@ -133,6 +153,22 @@ class Experiment:
         Session = sessionmaker(bind=engine)
         session = Session()
         return session
+
+    def open(self, filename, *args, string_only=False):
+        """
+        Returns a handle to a file with the given filename inside this experiment's directory.
+        If string_only is true, then this instead returns a string with the path to create the file.
+        If the a file with 'filename' is already present in the directory, this will raise an error.
+        """
+        self.filenames = os.listdir(self.save_path) # Refresh list of filenames
+        # if filename in self.filenames:
+        #     raise IOError("A file named {filename} already exists in this experiments directory ({directory})".format(filename=filename, directory=self.save_path))
+        path = os.path.join(self.save_path, filename)
+        if string_only:
+            return path
+        else:
+            return open(path, *args)
+        self.filenames = os.listdir(self.save_path) # Refresh list of filenames
 
 def filter_columns(message, columns = None):
     """
