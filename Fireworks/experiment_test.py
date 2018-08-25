@@ -92,4 +92,29 @@ def test_Experiment():
         rmtree(man)
 
 def test_load_experiment():
-    pass 
+    dirs = os.listdir()
+    all_avengers = [x for x in dirs if x.startswith('avenger')]
+    for man in all_avengers:
+        rmtree(man)
+    dirs = os.listdir()
+    all_avengers = [x for x in dirs if x.startswith('avenger')]
+    assert len(all_avengers) == 0
+    avenger = exp.Experiment('avenger', os.getcwd(), description='ok')
+    ironman = avenger.create_engine('ironman')
+    saver = dummy_table(ironman)
+    saver.insert(Message({
+        'superpower': ['flying', 'walking', 'eating'],
+        'name': ['flyman', 'walkergirl', 'bumbo'],
+        'age': [2,3,4],
+        }))
+    saver.commit()
+    marvel = exp.load_experiment(os.path.join(avenger.db_path,avenger.save_path))
+    saver = dummy_table(ironman)
+    rows = saver.query()
+    for row in rows:
+        assert type(row) is Message
+    assert row == Message({'superpower': ['eating'], 'name':['bumbo'], 'age':[4], 'id':[3]})
+    assert marvel.name == avenger.name
+    assert marvel.iteration == avenger.iteration
+    assert marvel.description == avenger.description
+    assert marvel.timestamp == avenger.timestamp
