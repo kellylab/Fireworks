@@ -5,6 +5,8 @@ class Factory:
     """
     Base class for parallel hyperparameter optimization in pytorch using queues.
     """
+    # NOTE: This is currently not parallelized yet
+
     def __init__(self, trainer, metrics_dict, generator, eval_dataloader):
 
         self.trainer = trainer

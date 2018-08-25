@@ -73,9 +73,10 @@ def test_TableSource():
     ts.commit()
     # Check if it worked
     for row, i in zip(ts.query(), itertools.count()):
-        assert row.name == 'johnny'
+        assert type(row) is Message
+        assert row['name'][0] == 'johnny'
         # assert int.from_bytes(row.values, byteorder='little') == i+2 # Have to convert integers back from little endian
-        assert row.values == i+2
+        assert row['values'][0] == i+2
 
 def test_DBSource():
     dummy = dummy_source()

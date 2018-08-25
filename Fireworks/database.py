@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from Fireworks import Message
 from Fireworks.datasource import Source, PassThroughSource
 import numpy as np
+import pandas as pd
 
 Base = declarative_base()
 
@@ -13,13 +14,14 @@ class TableSource(PassThroughSource):
     """
     def __init__(self, table, engine, columns = None, inputs = None, **kwargs):
         super().__init__(inputs=inputs, **kwargs)
+
         Session = sessionmaker(bind=engine)
         self.session = Session()
         self.engine = engine
         self.table = table # An SQLalchemy table class
         self.columns = columns or parse_columns(table)
         self.init_db()
-        
+
     def init_db(self):
 
         self.table.metadata.create_all(self.engine)
@@ -44,7 +46,9 @@ class TableSource(PassThroughSource):
         if entities is None:
             entities = self.table
 
-        return self.session.query(entities, *args, **kwargs)
+        # return self.session.query(entities, *args, **kwargs)
+        query = self.session.query(entities, *args, **kwargs)
+        return DBSource(self.table, self.engine, query)
 
     def upsert(self, batch): pass
 
@@ -134,10 +138,15 @@ def cast(value):
     """
     Converts values to basic types (ie. np.int64 to int)
     """
+    if type(value) is pd.Series:
+        value = value[0]
     if type(value) is np.int64:
         value = int(value)
     if type(value) is np.float64:
         value = float(value)
+    if type(value) is pd.Timestamp:
+        value = value.to_pydatetime()
+
     return value
 # Get Representation
 # Test row generation
