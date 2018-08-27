@@ -28,6 +28,7 @@ def load_experiment(experiment_path): # TODO: clean up attribute assignments for
 class Experiment:
     # NOTE: For now, we assume that the underlying database is sqlite on local disk
     # QUESTION: Should we implement an __eq__ method for experiments?
+    # TODO: Expand to support nonlocal databases
 
     def __init__(self, experiment_name, db_path, description=None, load=False):
 
@@ -47,7 +48,7 @@ class Experiment:
             self.create_dir()
             self.init_metadata()
 
-        self.filenames = os.listdir(self.save_path)
+        self.filenames = os.listdir(os.path.join(self.db_path,self.save_path)) # Refresh list of filenames
         # Create/open save directory
         # if not os.path.exists(save_dir):
         #     try:
@@ -76,7 +77,7 @@ class Experiment:
         self.iteration = len(previous_experiments)
         os.makedirs(os.path.join(self.db_path, "{name}_{iteration}".format(name=self.name, iteration=self.iteration))) # TODO: Upgrade to 3.6 and use f-strings
         self.save_path = "{name}_{iteration}".format(name=self.name, iteration=self.iteration)
-        self.engine = create_engine("sqlite:///{save_path}".format(save_path=os.path.join(self.save_path,'metadata.sqlite')))
+        self.engine = create_engine("sqlite:///{save_path}".format(save_path=os.path.join(self.db_path,self.save_path,'metadata.sqlite')))
 
     def load_metadata(self):
         self.metadata = db.TableSource(metadata_table, self.engine, columns=['name', 'iteration', 'description', 'timestamp'])
@@ -90,6 +91,7 @@ class Experiment:
         self.timestamp = metadata.timestamp
 
     def init_metadata(self):
+
         self.metadata = db.TableSource(metadata_table, self.engine, columns=['name', 'iteration', 'description', 'timestamp'])
         self.metadata.insert(Message({'name': [self.name], 'iteration': [self.iteration], 'description': [self.description], 'timestamp': [self.timestamp]}))
         self.metadata.commit()
@@ -122,15 +124,15 @@ class Experiment:
         If string_only is true, then this instead returns a string with the path to create the file.
         If the a file with 'filename' is already present in the directory, this will raise an error.
         """
-        self.filenames = os.listdir(self.save_path) # Refresh list of filenames
+        self.filenames = os.listdir(os.path.join(self.db_path,self.save_path)) # Refresh list of filenames
         # if filename in self.filenames:
         #     raise IOError("A file named {filename} already exists in this experiments directory ({directory})".format(filename=filename, directory=self.save_path))
-        path = os.path.join(self.save_path, filename)
+        path = os.path.join(self.db_path,self.save_path, filename)
         if string_only:
             return path
         else:
             return open(path, *args)
-        self.filenames = os.listdir(self.save_path) # Refresh list of filenames
+        self.filenames = os.listdir(os.path.join(self.db_path,self.save_path)) # Refresh list of filenames
 
 def filter_columns(message, columns = None):
     """

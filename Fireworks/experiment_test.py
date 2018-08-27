@@ -74,7 +74,7 @@ def test_Experiment():
 
     # Test file opening and saving
     path = xmen.open('ironman', string_only=True)
-    assert path == os.path.join(xmen.save_path, 'ironman')
+    assert path == os.path.join(xmen.db_path, xmen.save_path, 'ironman')
     with xmen.open('ironman', 'w') as ironman:
         ironman.write("Hey guys it's me tony the tiger.")
     # try:
@@ -90,6 +90,15 @@ def test_Experiment():
     all_xmen = [x for x in dirs if x.startswith('xmen')]
     for man in all_xmen:
         rmtree(man)
+
+def test_paths():
+    """
+    Tests that relative and absolute paths work with Experiment constructor
+    """
+    xmen = exp.Experiment('xmen', 'data')
+    xbois = exp.Experiment('xbois',os.path.join(os.getcwd(),'data'))
+    for folder in os.listdir('data'):
+        rmtree(os.path.join('data',folder))
 
 def test_load_experiment():
     dirs = os.listdir()
