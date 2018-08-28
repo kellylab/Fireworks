@@ -1,5 +1,10 @@
 import abc
+import Fireworks
 from Fireworks.exceptions import EndHyperparameterOptimization
+from Fireworks.database import create_table, TableSource
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Column
+from sqlalchemy_utils import JSONType as JSON
 
 class Factory:
     """
@@ -7,7 +12,7 @@ class Factory:
     """
     # NOTE: This is currently not parallelized yet
 
-    def __init__(self, trainer, metrics_dict, generator, eval_dataloader):
+    def __init__(self, trainer, metrics_dict, generator, eval_dataloader, *args, **kwargs):
 
         self.trainer = trainer
         self.metrics_dict = metrics_dict
@@ -59,3 +64,39 @@ class LocalMemoryFactory(Factory):
     def write(self, params, metrics_dict):
         self.params.append(params)
         self.metrics.append(metrics_dict)
+
+# Table for storing hyperparameter data in SQLFactory
+columns = [
+    Column('parameters', JSON),
+    Column('metrics', JSON),
+]
+
+factory_table = create_table('hyperparmeters', columns)
+
+class SQLFactory(Factory):
+    """
+    Factory that stores parameters in SQLalchemy database.
+    """
+
+    def __init__(self,*args, engine, **kwargs):
+        self.engine = engine
+        self.database = TableSource(factory_table, self.engine, columns=['parameters', 'metrics'])
+        super().__init__(*args,**kwargs)
+
+    def get_connection(self):
+        self.params = []
+        self.metrics = []
+        factory_table.metadata.create_all(self.engine)
+        # Session = sessionmaker(bind=self.engine)
+        # self.session = Session()
+
+    def write(self, params, metrics_dict):
+        assert False
+        self.database.insert(Fireworks.Message({'params':[params], 'metrics_dict': [metrics_dict]}))
+        self.database.commit()
+        assert False
+
+    def read(self):
+
+        return self.params, self.metrics        
+        # return self.database.query()

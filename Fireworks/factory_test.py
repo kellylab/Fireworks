@@ -1,5 +1,6 @@
 from Fireworks import factory
 from Fireworks.exceptions import EndHyperparameterOptimization
+from sqlalchemy import create_engine
 
 class DummyEvaluator:
 
@@ -46,3 +47,15 @@ def test_LocalMemoryFactory():
 
     memfactory = factory.LocalMemoryFactory(trainer, metrics_dict, generator, dataloader)
     memfactory.run()
+
+def test_SQLFactory():
+
+    trainer = dummy_trainer()
+    metrics_dict = {'metric': DummyMetric()}
+    generator = dummy_generator()
+    dataloader = dummy_dataloader()
+
+    engine = create_engine('sqlite:///:memory:')
+    sequel = factory.SQLFactory(trainer, metrics_dict, generator, generator, dataloader, engine=engine)
+    sequel.run()
+    assert False

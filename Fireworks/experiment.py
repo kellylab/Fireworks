@@ -103,7 +103,7 @@ class Experiment:
         """
         if name in self.engines:
             raise ValueError("Engine with name {name} already exists in this experiment.".format(name=name))
-        self.engines[name] = create_engine("sqlite:///{filename}".format(filename=os.path.join(self.save_path, name+'.sqlite')))
+        self.engines[name] = create_engine("sqlite:///{filename}".format(filename=os.path.join(self.db_path,self.save_path, name+'.sqlite')))
         return self.engines[name]
 
     def get_session(self, name):
