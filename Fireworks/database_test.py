@@ -58,16 +58,42 @@ def test_parse_columns():
 
     tab = dummy_table('joseph')
     colnames = db.parse_columns(tab)
+    for c in colnames:
+        assert type(c) is str
+    assert set(['values', 'name']) == set(colnames)
+    colnames = db.parse_columns(tab, ignore_id=False)
+    for c in colnames:
+        assert type(c) is str
+
     assert set(['values', 'id', 'name']) == set(colnames)
 
-def test_TableSource():
+def test_TableSource_explicit():
+    """ Colnames are explicitly labeled here. """
 
     dummy = dummy_source()
     tab = dummy_table('jojo')
     engine = create_engine('sqlite:///:memory:', echo=True)
 
     tab.metadata.create_all(engine)
-    ts = db.TableSource(tab, engine, ['name', 'values'], inputs=dummy)
+    ts = db.TableSource(tab, engine, ['values', 'name'], inputs=dummy)
+    batch = ts[2:10]
+    ts.insert(batch)
+    ts.commit()
+    # Check if it worked
+    for row, i in zip(ts.query(), itertools.count()):
+        assert type(row) is Message
+        assert row['name'][0] == 'johnny'
+        # assert int.from_bytes(row.values, byteorder='little') == i+2 # Have to convert integers back from little endian
+        assert row['values'][0] == i+2
+
+def test_TableSource_implicit():
+    """ Colnames are implicitly identified here. """
+
+    dummy = dummy_source()
+    tab = dummy_table('josuke')
+    engine = create_engine('sqlite:///:memory:', echo=True)
+
+    ts = db.TableSource(tab, engine, inputs=dummy)
     batch = ts[2:10]
     ts.insert(batch)
     ts.commit()

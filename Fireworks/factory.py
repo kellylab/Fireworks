@@ -66,37 +66,48 @@ class LocalMemoryFactory(Factory):
         self.metrics.append(metrics_dict)
 
 # Table for storing hyperparameter data in SQLFactory
-columns = [
-    Column('parameters', JSON),
-    Column('metrics', JSON),
-]
-
-factory_table = create_table('hyperparmeters', columns)
+# columns = [
+#     Column('parameters', JSON),
+#     Column('metrics', JSON),
+# ]
+#
+# factory_table = create_table('hyperparmeters', columns)
 
 class SQLFactory(Factory):
     """
     Factory that stores parameters in SQLalchemy database.
     """
 
-    def __init__(self,*args, engine, **kwargs):
+    def __init__(self,*args, params_table, metrics_table, engine, **kwargs):
         self.engine = engine
-        self.database = TableSource(factory_table, self.engine, columns=['parameters', 'metrics'])
+        # self.database = TableSource(factory_table, self.engine, columns=['parameters', 'metrics'])
+        self.params_source = TableSource(params_table, self.engine)
+        self.metrics_source = TableSource(metrics_table, self.engine)
+
         super().__init__(*args,**kwargs)
 
     def get_connection(self):
-        self.params = []
-        self.metrics = []
-        factory_table.metadata.create_all(self.engine)
+
+        # TODO: Ensure id consistency accross these tables using foreign key constraints. This should implicitly
+        # hold true without such constraints however, because these tables are updated in sync.
+        metrics_table.metadata.create_all(self.engine)
+        params_table.metadata.create_all(self.engine)
+        self.id = 0
         # Session = sessionmaker(bind=self.engine)
         # self.session = Session()
 
-    def write(self, params, metrics_dict):
-        assert False
-        self.database.insert(Fireworks.Message({'params':[params], 'metrics_dict': [metrics_dict]}))
-        self.database.commit()
+    def write(self, params, metrics):
+
+        # self.database.insert(Fireworks.Message({'params':[params], 'metrics_dict': [metrics_dict]}))
+        if len(params) != len(metrics):
+            raise ValueError("Parameters and Metrics messages must be equal length.")
+        self.params_source.insert(params)
+        self.metrics_source.insert(metrics)
+        self.params_source.commit()
+        self.metrics_source.commit()
         assert False
 
     def read(self):
 
-        return self.params, self.metrics        
+        return self.params, self.metrics
         # return self.database.query()

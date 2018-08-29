@@ -55,6 +55,7 @@ class TableSource(PassThroughSource):
     def make_row(self, row):
 
         kwargs = {key: cast(row[key][0]) for key in self.columns}
+
         return self.table(**kwargs)
 
 def create_table(name, columns, primary_key = None):
@@ -84,7 +85,7 @@ class DBSource(Source):
         self.input_sources = {}
         self.session = Session()
         self.table = table
-        self.columns_and_types = parse_columns_and_types(table)
+        self.columns_and_types = parse_columns_and_types(table, ignore_id=False)
 
     def __iter__(self):
 
@@ -103,17 +104,22 @@ class DBSource(Source):
 
         return to_message(self.iterator.__next__(), columns_and_types=self.columns_and_types)
 
-def parse_columns(table):
+def parse_columns(table, ignore_id=True):
     """
     Returns column names in a table object
     """
-    return [c.key for c in table.__table__.columns]
 
-def parse_columns_and_types(table):
+    #[c.key for c in table.__table__.columns]
+    return list(parse_columns_and_types(table, ignore_id).keys())
+
+def parse_columns_and_types(table, ignore_id = True):
     """
     Returns column names and types in a table object as a dict
     """
-    return {c.key: c.type for c in table.__table__.columns}
+    columns_and_types = {str(c.key): c.type for c in table.__table__.columns}
+    if ignore_id:
+        del columns_and_types['id']
+    return columns_and_types
 
 def convert(value, sqltype):
 
