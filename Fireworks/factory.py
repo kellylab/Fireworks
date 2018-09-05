@@ -78,11 +78,13 @@ class SQLFactory(Factory):
     Factory that stores parameters in SQLalchemy database.
     """
 
-    def __init__(self,*args, params_table, metrics_table, engine, **kwargs):
+    def __init__(self,*args, params_table, metrics_tables, engine, **kwargs):
         self.engine = engine
         # self.database = TableSource(factory_table, self.engine, columns=['parameters', 'metrics'])
-        self.params_source = TableSource(params_table, self.engine)
-        self.metrics_source = TableSource(metrics_table, self.engine)
+        self.metrics_tables = metrics_tables
+        self.params_table = params_table
+        self.params_source = TableSource(self.params_table, self.engine)
+        self.metrics_sources = {key: TableSource(value, self.engine) for key, value in self.metrics_tables.items()}
 
         super().__init__(*args,**kwargs)
 
@@ -90,8 +92,9 @@ class SQLFactory(Factory):
 
         # TODO: Ensure id consistency accross these tables using foreign key constraints. This should implicitly
         # hold true without such constraints however, because these tables are updated in sync.
-        metrics_table.metadata.create_all(self.engine)
-        params_table.metadata.create_all(self.engine)
+        for table in self.metrics_tables.values():
+            table.metadata.create_all(self.engine)
+        self.params_table.metadata.create_all(self.engine)
         self.id = 0
         # Session = sessionmaker(bind=self.engine)
         # self.session = Session()
@@ -101,13 +104,14 @@ class SQLFactory(Factory):
         # self.database.insert(Fireworks.Message({'params':[params], 'metrics_dict': [metrics_dict]}))
         if len(params) != len(metrics):
             raise ValueError("Parameters and Metrics messages must be equal length.")
+
+        for key, metric in metrics.items():
+            self.metrics_sources[key].insert(metric)
+            self.metrics_sources[key].commit()
         self.params_source.insert(params)
-        self.metrics_source.insert(metrics)
         self.params_source.commit()
-        self.metrics_source.commit()
-        assert False
 
     def read(self):
 
-        return self.params, self.metrics
+        return self.params_source.query().all(), {key: source.query().all() for key, source in self.metrics_sources.items()}
         # return self.database.query()

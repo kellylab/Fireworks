@@ -1,6 +1,7 @@
-from Fireworks import factory
+from Fireworks import factory, Message
 from Fireworks.exceptions import EndHyperparameterOptimization
-from sqlalchemy import create_engine
+from Fireworks.database import create_table
+from sqlalchemy import create_engine, Column, Integer, String
 
 class DummyEvaluator:
 
@@ -22,7 +23,7 @@ class DummyMetric:
     def attach(self, engine, name): pass
 
     def compute(self):
-        return {'metric': 'hiiiii'}
+        return Message({'metric': ['hiiiii']})
 
 def dummy_generator():
 
@@ -30,7 +31,8 @@ def dummy_generator():
         if len(params) > 10:
             raise EndHyperparameterOptimization
         else:
-            return {}
+            i = len(params)
+            return Message({'parameters': [i]})
 
     return generator
 
@@ -54,8 +56,10 @@ def test_SQLFactory():
     metrics_dict = {'metric': DummyMetric()}
     generator = dummy_generator()
     dataloader = dummy_dataloader()
+    params_table = create_table('parameters', columns=[Column('parameters', Integer)])
+    metrics_table = {'metric': create_table('metrics', columns=[Column('metric', String)])}
 
     engine = create_engine('sqlite:///:memory:')
-    sequel = factory.SQLFactory(trainer, metrics_dict, generator, generator, dataloader, engine=engine)
+    sequel = factory.SQLFactory(trainer, metrics_dict, generator, generator, dataloader, params_table = params_table, metrics_tables = metrics_table, engine=engine)
     sequel.run()
-    assert False
+    assert False #TODO: finish writing tests 

@@ -86,6 +86,7 @@ class DBSource(Source):
         self.session = Session()
         self.table = table
         self.columns_and_types = parse_columns_and_types(table, ignore_id=False)
+        self.reset()
 
     def __iter__(self):
 
@@ -103,6 +104,10 @@ class DBSource(Source):
     def __next__(self):
 
         return to_message(self.iterator.__next__(), columns_and_types=self.columns_and_types)
+
+    def all(self): #TODO: Test dis ish #TODO: Implement the other query methods
+
+        return [to_message(x, columns_and_types=self.columns_and_types) for x in self.query.all()]
 
 def parse_columns(table, ignore_id=True):
     """
