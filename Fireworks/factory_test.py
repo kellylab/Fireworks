@@ -69,9 +69,10 @@ def test_SQLFactory():
     metrics_table = {'metric': create_table('metrics', columns=[Column('metric', String)])}
 
     engine = create_engine('sqlite:///:memory:')
-    sequel = factory.SQLFactory(trainer, metrics_dict, generator, generator, dataloader, params_table = params_table, metrics_tables = metrics_table, engine=engine)
+    sequel = factory.SQLFactory(trainer, metrics_dict, generator, dataloader, params_table = params_table, metrics_tables = metrics_table, engine=engine)
     sequel.run()
     params, metrics = sequel.read()
+
     assert type(params) is Message
     assert type(metrics) is dict
     assert set(metrics.keys()) == set(['metric'])

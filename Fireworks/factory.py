@@ -43,6 +43,7 @@ class Factory:
                 self.write(params, computed_metrics)
                 evaluator = None
             except EndHyperparameterOptimization:
+                self.after()
                 break
 
     @abc.abstractmethod
@@ -50,6 +51,8 @@ class Factory:
 
     @abc.abstractmethod
     def write(self, params, metrics_dict): pass
+
+    def after(self, *args, **kwargs): pass
 
 class LocalMemoryFactory(Factory):
     """
@@ -78,7 +81,7 @@ class LocalMemoryFactory(Factory):
 
 class SQLFactory(Factory):
     """
-    Factory that stores parameters in SQLalchemy database.
+    Factory that stores parameters in SQLalchemy database while caching them locally.
     """
 
     def __init__(self,*args, params_table, metrics_tables, engine, **kwargs):
@@ -99,6 +102,7 @@ class SQLFactory(Factory):
             table.metadata.create_all(self.engine)
         self.params_table.metadata.create_all(self.engine)
         self.id = 0
+        self.sync()
         # Session = sessionmaker(bind=self.engine)
         # self.session = Session()
 
@@ -109,12 +113,24 @@ class SQLFactory(Factory):
             raise ValueError("Parameters and Metrics messages must be equal length.")
 
         for key, metric in metrics.items():
+            self.metrics[key] = self.metrics[key].append(metric)
             self.metrics_sources[key].insert(metric)
             self.metrics_sources[key].commit()
+        self.params = self.params.append(params)
         self.params_source.insert(params)
         self.params_source.commit()
 
     def read(self):
 
+        return self.params, self.metrics
+
+    def read_db(self):
+
         return self.params_source.query().all(), {key: source.query().all() for key, source in self.metrics_sources.items()}
-        # return self.database.query()
+
+    def sync(self):
+        """ Syncs local copy of metrics and params with db. """
+        self.params, self.metrics = self.read_db()
+
+    def after(self):
+        self.sync()
