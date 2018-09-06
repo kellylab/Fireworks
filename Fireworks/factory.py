@@ -1,10 +1,12 @@
 import abc
 import Fireworks
+from Fireworks import Message
 from Fireworks.exceptions import EndHyperparameterOptimization
 from Fireworks.database import create_table, TableSource
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import Column
 from sqlalchemy_utils import JSONType as JSON
+from collections import defaultdict
 
 class Factory:
     """
@@ -55,15 +57,16 @@ class LocalMemoryFactory(Factory):
     """
 
     def get_connection(self):
-        self.params = []
-        self.metrics = []
+        self.params = Message()
+        self.metrics = defaultdict(Message)
 
     def read(self):
         return self.params, self.metrics
 
     def write(self, params, metrics_dict):
-        self.params.append(params)
-        self.metrics.append(metrics_dict)
+        self.params = self.params.append(params)
+        for key in metrics_dict:
+            self.metrics[key] = self.metrics[key].append(metrics_dict[key])
 
 # Table for storing hyperparameter data in SQLFactory
 # columns = [

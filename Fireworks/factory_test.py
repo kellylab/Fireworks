@@ -2,6 +2,7 @@ from Fireworks import factory, Message
 from Fireworks.exceptions import EndHyperparameterOptimization
 from Fireworks.database import create_table
 from sqlalchemy import create_engine, Column, Integer, String
+from collections import defaultdict
 
 class DummyEvaluator:
 
@@ -49,6 +50,14 @@ def test_LocalMemoryFactory():
 
     memfactory = factory.LocalMemoryFactory(trainer, metrics_dict, generator, dataloader)
     memfactory.run()
+    params, metrics = memfactory.read()
+    assert type(params) is Message
+    assert type(metrics) is defaultdict
+    assert set(metrics.keys()) == set(['metric'])
+    assert len(params) == 11
+    assert len(metrics['metric']) == 11
+    assert params[5] == Message({'parameters':[5]})
+    assert metrics['metric'][5] == Message({'metric': ['hiiiii']})
 
 def test_SQLFactory():
 
