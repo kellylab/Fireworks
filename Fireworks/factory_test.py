@@ -62,4 +62,13 @@ def test_SQLFactory():
     engine = create_engine('sqlite:///:memory:')
     sequel = factory.SQLFactory(trainer, metrics_dict, generator, generator, dataloader, params_table = params_table, metrics_tables = metrics_table, engine=engine)
     sequel.run()
-    assert False #TODO: finish writing tests 
+    params, metrics = sequel.read()
+    assert type(params) is Message
+    assert type(metrics) is dict
+    assert set(metrics.keys()) == set(['metric'])
+    assert len(params) == 11
+    assert len(metrics['metric']) == 11
+    assert params[5] == Message({'id':[6], 'parameters':[5]})
+    assert metrics['metric'][5] == Message({'id':[6],'metric': ['hiiiii']})
+    for mrow, prow in zip(metrics['metric'], params):
+        assert mrow['id'][0] == prow['id'][0]

@@ -1,7 +1,7 @@
 from sqlalchemy import Table, Column, Integer
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from Fireworks import Message
+from Fireworks import Message, cat
 from Fireworks.datasource import Source, PassThroughSource
 import numpy as np
 import pandas as pd
@@ -107,7 +107,7 @@ class DBSource(Source):
 
     def all(self): #TODO: Test dis ish #TODO: Implement the other query methods
 
-        return [to_message(x, columns_and_types=self.columns_and_types) for x in self.query.all()]
+        return cat([to_message(x, columns_and_types=self.columns_and_types) for x in self.query.all()])
 
 def parse_columns(table, ignore_id=True):
     """

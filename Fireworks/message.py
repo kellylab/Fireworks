@@ -758,6 +758,8 @@ def cat(list_of_args):
     Concatenates messages in list_of_args into one message.
     """
 
+    if list_of_args == []:
+        return Message()
     m = Message(list_of_args[0])
     if len(list_of_args) > 1:
         for arg in list_of_args[1:]:
