@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, Integer
+from sqlalchemy import Table, Column, Integer, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from Fireworks import Message, cat
@@ -84,8 +84,11 @@ class DBSource(Source):
         Session = sessionmaker(bind=engine)
         self.input_sources = {}
         self.session = Session()
-        self.table = table
-        self.columns_and_types = parse_columns_and_types(table, ignore_id=False)
+        if type(table) is str:
+            self.table = reflect_table(table, engine)
+        else:
+            self.table = table
+        self.columns_and_types = parse_columns_and_types(self.table, ignore_id=False)
         self.reset()
 
     def __iter__(self):
@@ -121,7 +124,12 @@ def parse_columns_and_types(table, ignore_id = True):
     """
     Returns column names and types in a table object as a dict
     """
-    columns_and_types = {str(c.key): c.type for c in table.__table__.columns}
+    if hasattr(table, '__table__'):
+        columns_and_types = {str(c.key): c.type for c in table.__table__.columns}
+    elif type(table) is Table:
+        columns_and_types = {str(c.key): c.type for c in table.columns}
+    else:
+        raise AttributeError("Could not extract column from table.")
     if ignore_id:
         del columns_and_types['id']
     return columns_and_types
@@ -164,3 +172,11 @@ def cast(value):
 # Test with SQLite backend
 # Test with CSV, Message, and Fasta
 # Create reader sources
+
+def reflect_table(table_name, engine):
+    """
+    Gets the table with the given name from the sqlalchemy engine.
+    """
+    meta = MetaData()
+    table = Table(table_name, meta, autoload=True, autoload_with=engine)
+    return table

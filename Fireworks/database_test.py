@@ -106,7 +106,7 @@ def test_TableSource_implicit():
 
 def test_DBSource():
     dummy = dummy_source()
-    tab = dummy_table('jotoaro')
+    tab = dummy_table('jotaro')
     engine = create_engine('sqlite:///jotaro.sqlite', echo=True)
     if os.path.exists('jotaro.sqlite'):
         os.remove('jotaro.sqlite')
@@ -121,3 +121,20 @@ def test_DBSource():
     deedee.reset()
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
+
+    # Test using reflections
+    ts = db.DBSource('jotaro', engine)
+    for row, i in zip(deedee, itertools.count()):
+        assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
+    deedee.reset()
+    for row, i in zip(deedee, itertools.count()):
+        assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
+
+def test_reflect_table():
+
+    tab = dummy_table('jolyne')
+    engine = create_engine('sqlite:///:jolyne.sqlite', echo=True)
+    tab.metadata.create_all(engine)
+    jolyne = db.reflect_table('jolyne', engine)
+    assert type(jolyne) is Table
+    assert jolyne.columns.keys() == tab.__table__.columns.keys()
