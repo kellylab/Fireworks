@@ -20,6 +20,23 @@ class Source(ABC):
     A source can take sources as inputs, and its outputs can be piped to other sources.
     All communication is done via Message objects.
     Method calls are deferred to input sources recursively until a source that implements the method is reached.
+
+    This is made possible with a recursive function call method. Any source can use this method to call a method on its inputs; this will recursively loop until reaching a source that implements the method and return those outputs (as a Message) or raise an error if there are none. For example, we can do something like this:
+
+    ::
+
+        reader = source_for_reading_from_some_dataset(...)
+        cache = CachingSource(input_sources = {'reader': reader}, type='LRU')
+        embedder = CreateEmbeddingsSource(input_sources = {'data': cache})
+        loader = CreateMinibatchesSource(input_sources = {'data': embedder})
+
+        loader.reset()
+        for batch in loader:
+        	# Code for training
+
+    Under the hood, the code for loader.__next__() can choose to recursively call a to_tensor() method which is implemented by embedder. Index queries and other magic methods can also be implemented recursively, and this enables a degree of commutativity when stacking sources together (changing the order of sources is often allowed because of the pass-through nature of recursive calls).
+    Note that in order for this to work well, there must be some consistency among method names. If a source expects ‘to_tensor’ to convert batches to tensor format, then an upstream source must have a method with that name, and this should remain consistent across projects to maintain reusability. Lastly, the format for specifying inputs to a source is a dictionary of Sources. The keys in this dictionary can provide information for the Source to use or be ignored completely.
+
     """
 
     name = 'base_source'

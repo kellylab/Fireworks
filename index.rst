@@ -4,12 +4,15 @@
    contain the root `toctree` directive.
 
 Welcome to Fireworks's documentation!
+
+donkeykong
 =====================================
 
 .. toctree::
    :maxdepth: 3
    :caption: Contents:
 
+   ok
 
 
 Indices and tables

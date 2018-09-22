@@ -25,9 +25,37 @@ class Message:
     any other type of array data. With this structure, you could put your training data in as a TensorMessage and any associated metadata as
     the df and lump all of that into a message. All of the existing df methods can be run on the metadata, and any pytorch operations can be
     performed on the tensor part.
+
     Messages support operations such as appending one message to another, joining two messages along keys, applying maps to the message's values,
     and equality checks.
+
     Additionally, messages behave as much as possible like dicts. In many scenarios, a dict will be able to substitute for a message and vice-versa.
+
+    ::
+
+        my_message = Message({
+        'embedded_sequences': torch.Tensor([...]),
+        'labels': torch.LongTensor([...]),
+        'raw_sequences': ['TCGA...',...,],
+        ...})
+
+    Now we can access elements of this Message:
+
+    ::
+
+        my_message[0]
+        my_message[2:10]
+        my_message['labels']
+        len(my_message)
+
+    We can also move tensors to the GPU and back:
+
+    ::
+
+        my_message.cpu()
+        my_message.cuda(device_num=1) # Defaults to 0 for device number
+        my_message.cuda(keys=['labels']) # Can specify only certain columns to move if desired
+
     """
 
     def __init__(self, *args, cache = None, length = None, **kwargs):
@@ -78,7 +106,10 @@ class Message:
             self.length = length
 
     def check_length(self):
-
+        """
+        Checks that lengths of the internal tensor_message and dataframe are the same and equalto self.len
+        If one of the two is empty (length 0) then, that is fine.
+        """
         if len(self.df) == 0:
             self.length = len(self.tensor_message)
         elif len(self.tensor_message) == 0:
@@ -96,7 +127,7 @@ class Message:
 
     def __eq__(self, other):
         """
-        Two messages are equal if they have the same keys, and for each key the elements are equal
+        Two messages are equal if they have the same keys, and for each key the elements are equal.
         """
         tensors_equal = (self.tensor_message == other.tensor_message)
         df_equal = (self.df.equals(other.df))
@@ -104,6 +135,11 @@ class Message:
         return tensors_equal and df_equal
 
     def __getitem__(self, index):
+        """
+
+        Args:
+            index: An integer, slice, or list of integer indices.
+        """
 
         t = type(index)
         if t is int:
@@ -134,6 +170,10 @@ class Message:
     def _getindex(self, index):
         """
         Returns a submessage based on requested index.
+
+        Args:
+            index: An integer, slice, or list of integer indices.
+
         """
         if len(self.tensor_message) == 0:
             return Message(self.df.iloc[index].reset_index(drop=True), length=slice_length(index))
@@ -143,7 +183,13 @@ class Message:
             return Message(self.tensor_message[index], self.df.iloc[index].reset_index(drop=True), length=slice_length(index))
 
     def __setitem__(self, index, value):
+        """
 
+        Args:
+            index: An integer, slice, or list of integer indices.
+            value: The value to set the index to. Must be an object that can be fed to the Message initializer and produce a message
+                with the same length as the index.
+        """
         t = type(index)
         if t is str:
             # Check if the update would require moving a column from df to tensor_message or vice-versa, in which case, delete the original
@@ -228,6 +274,10 @@ class Message:
         """
         Checks if index is a string (column name) or index (row, range of rows) and deletes the appropriate part of the message.
         If index is a list, it can be a list of either column names or indices.
+
+        Args:
+            index: An integer, slice, or list of integer indices.
+
         """
         t = type(index)
         if t is str: # Delete column
@@ -269,6 +319,10 @@ class Message:
     def _delindex(self, index):
         """
         Deletes the given index after it has been validated by __delitem__
+
+        Args:
+            index: An integer, slice, or list of integer indices.
+
         """
         if len(self.df):
             self.df.drop(self.df.index[index], inplace=True)
@@ -294,6 +348,14 @@ class Message:
         """
         return self.df.columns.append(pd.Index(self.tensor_message.keys()))
 
+    def keys(self):
+        """
+        Returns names of tensors in TensorMessage
+        Note: This is the same as self.columns
+        """
+
+        return self.columns
+
     @property
     def index(self):
         """
@@ -306,6 +368,10 @@ class Message:
         """
         Compines messages together.
         Should initialize other if not a message already.
+
+        Args:
+            other: The message to append to self. Must have the same keys as self so that in the resulting Message,
+                every column continues to have the same length as needed.
         """
 
         other = Message(other)
@@ -320,6 +386,20 @@ class Message:
     def merge(self, other):
         """
         Combines messages horizontally by producing a message with the keys/values of both.
+
+        Args:
+            other: The message to merge with self. Must have different keys and the same length as self to ensure length consistencies.
+                Alternatively, if either self or other have an empty TensorMessage or df, then they can be merged together safely as long
+                as the resulting Message has a consistent length.
+                For example:
+                ::
+                    message_a = Message({'a': [1,2,3]}) # This is essentially a DataFrame
+                    message_b = Message({'b': torch.Tensor([1,2,3])}) # This is essentially a TensorMessage
+                    message_c = Message_a.merge(message_b) # This works
+
+        Returns:
+            message: The concatenated Message containing columns from self and other.
+
         """
         other = Message(other)
         return Message({**self.tensor_message, **other.tensor_message}, {**self.df, **other.df})
@@ -329,6 +409,16 @@ class Message:
         Applies function mapping to message. If mapping is a dict, then maps will be applied to the correspondign keys as columns, leaving
         columns not present in mapping untouched.
         In otherwords, mapping would be a dict of column_name:functions specifying the mappings.
+
+        Args:
+
+            mapping: Can either be a dict mapping column names to functions that should be applied to those columns, or a single function.
+                In the latter case, the mapping function will be applied to every column.
+
+        Returns:
+
+            message: A Message with the column:value pairs produced by the mapping.
+
         """
         if type(mapping) is dict:
             return Message({key: mapping[key](self[key]) if key in mapping else self[key] for key in self.columns})
@@ -339,6 +429,14 @@ class Message:
         """
         Return tensors associated with message as a tensormessage.
         If keys are specified, returns tensors associated with those keys, performing conversions as needed.
+
+        Args:
+            keys: Keys to get. Default = None, in which case all tensors are returned as a TensorMessage.
+                If columns corresponding to requested keys are not tensors, they will be converted.
+
+        Returns:
+            tensors (TensorMessage): A TensorMessage containing the tensors requested.
+
         """
         if keys is None:
             return self.tensor_message
@@ -348,6 +446,14 @@ class Message:
     def dataframe(self, keys = None):
         """
         Returns message as a dataframe. If keys are specified, only returns those keys as a dataframe.
+
+        Args:
+            keys: Keys to get. Default = None, in which case all non-tensors are returned as a DataFrame.
+                If columns corresponding to requested keys are tensors, they will be converted (to np.arrays).
+
+        Returns:
+            df (pd.DataFrame): A DataFrame containing the columns requested.
+
         """
         if keys is None:
             return self.df
@@ -357,6 +463,20 @@ class Message:
     def permute(self, index):
         """
         Reorders elements of message based on index.
+
+        Args:
+            index: A valid index for the message.
+
+        Returns:
+            message: A new Message with the elements arranged according to the input index.
+                For example,
+                ::
+                message_a = Message({'a':[1,2,3]})
+                message_b = message_a.permute([2,1,0])
+                message_c = Message({'a': [3,2,1]})
+                message_b == message_c
+
+                The last statement will evaluate to True
         """
         df = self.df
         tensor_message = self.tensor_message
@@ -371,11 +491,29 @@ class Message:
         return Message(tensor_message, df)
 
     def cpu(self, keys = None):
-        """ Moves tensors to system memory. Can specify which ones to move by specifying keys. """
+        """
+        Moves tensors to system memory. Can specify which ones to move by specifying keys.
+
+        Args:
+            keys: Keys to move to system memory. Default = None, meaning all columns are moved.
+
+        Returns:
+            message (Message): Moved message
+        """
         self.tensor_message = self.tensor_message.cpu(keys)
 
     def cuda(self, device = 0, keys = None):
-        """ Moves tensors to gpu with given device number. Can specify which ones to move by specifying keys. """
+        """
+        Moves tensors to gpu with given device number. Can specify which ones to move by specifying keys.
+
+        Args:
+            device (int): CUDA device number to use. Default = 0.
+            keys: Keys to move to GPU. Default = None, meaning all columns are moved.
+
+        Returns:
+            message (Message): Moved message
+
+        """
         self.tensor_message = self.tensor_message.cuda(device, keys)
 
 class TensorMessage:

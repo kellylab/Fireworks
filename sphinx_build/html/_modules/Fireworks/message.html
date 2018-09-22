@@ -60,9 +60,37 @@
 <span class="sd">    any other type of array data. With this structure, you could put your training data in as a TensorMessage and any associated metadata as</span>
 <span class="sd">    the df and lump all of that into a message. All of the existing df methods can be run on the metadata, and any pytorch operations can be</span>
 <span class="sd">    performed on the tensor part.</span>
+
 <span class="sd">    Messages support operations such as appending one message to another, joining two messages along keys, applying maps to the message&#39;s values,</span>
 <span class="sd">    and equality checks.</span>
+
 <span class="sd">    Additionally, messages behave as much as possible like dicts. In many scenarios, a dict will be able to substitute for a message and vice-versa.</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        my_message = Message({</span>
+<span class="sd">        &#39;embedded_sequences&#39;: torch.Tensor([...]),</span>
+<span class="sd">        &#39;labels&#39;: torch.LongTensor([...]),</span>
+<span class="sd">        &#39;raw_sequences&#39;: [&#39;TCGA...&#39;,...,],</span>
+<span class="sd">        ...})</span>
+
+<span class="sd">    Now we can access elements of this Message:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        my_message[0]</span>
+<span class="sd">        my_message[2:10]</span>
+<span class="sd">        my_message[&#39;labels&#39;]</span>
+<span class="sd">        len(my_message)</span>
+
+<span class="sd">    We can also move tensors to the GPU and back:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        my_message.cpu()</span>
+<span class="sd">        my_message.cuda(device_num=1) # Defaults to 0 for device number</span>
+<span class="sd">        my_message.cuda(keys=[&#39;labels&#39;]) # Can specify only certain columns to move if desired</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">cache</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">length</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -113,7 +141,10 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="n">length</span>
 
 <div class="viewcode-block" id="Message.check_length"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.message.Message.check_length">[docs]</a>    <span class="k">def</span> <span class="nf">check_length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks that lengths of the internal tensor_message and dataframe are the same and equalto self.len</span>
+<span class="sd">        If one of the two is empty (length 0) then, that is fine.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -131,7 +162,7 @@
 
     <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Two messages are equal if they have the same keys, and for each key the elements are equal</span>
+<span class="sd">        Two messages are equal if they have the same keys, and for each key the elements are equal.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">tensors_equal</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">tensor_message</span><span class="p">)</span>
         <span class="n">df_equal</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">df</span><span class="p">))</span>
@@ -139,6 +170,11 @@
         <span class="k">return</span> <span class="n">tensors_equal</span> <span class="ow">and</span> <span class="n">df_equal</span>
 
     <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index: An integer, slice, or list of integer indices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">t</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
@@ -169,6 +205,10 @@
     <span class="k">def</span> <span class="nf">_getindex</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns a submessage based on requested index.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index: An integer, slice, or list of integer indices.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">Message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">length</span><span class="o">=</span><span class="n">slice_length</span><span class="p">(</span><span class="n">index</span><span class="p">))</span>
@@ -178,7 +218,13 @@
             <span class="k">return</span> <span class="n">Message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">length</span><span class="o">=</span><span class="n">slice_length</span><span class="p">(</span><span class="n">index</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="sd">        Args:</span>
+<span class="sd">            index: An integer, slice, or list of integer indices.</span>
+<span class="sd">            value: The value to set the index to. Must be an object that can be fed to the Message initializer and produce a message</span>
+<span class="sd">                with the same length as the index.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">t</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
             <span class="c1"># Check if the update would require moving a column from df to tensor_message or vice-versa, in which case, delete the original</span>
@@ -263,6 +309,10 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Checks if index is a string (column name) or index (row, range of rows) and deletes the appropriate part of the message.</span>
 <span class="sd">        If index is a list, it can be a list of either column names or indices.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index: An integer, slice, or list of integer indices.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">t</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span> <span class="c1"># Delete column</span>
@@ -304,6 +354,10 @@
     <span class="k">def</span> <span class="nf">_delindex</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Deletes the given index after it has been validated by __delitem__</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index: An integer, slice, or list of integer indices.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -329,6 +383,14 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
 
+<div class="viewcode-block" id="Message.keys"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.message.Message.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns names of tensors in TensorMessage</span>
+<span class="sd">        Note: This is the same as self.columns</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span></div>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -341,6 +403,10 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compines messages together.</span>
 <span class="sd">        Should initialize other if not a message already.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            other: The message to append to self. Must have the same keys as self so that in the resulting Message,</span>
+<span class="sd">                every column continues to have the same length as needed.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">other</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
@@ -355,6 +421,20 @@
 <div class="viewcode-block" id="Message.merge"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.message.Message.merge">[docs]</a>    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Combines messages horizontally by producing a message with the keys/values of both.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            other: The message to merge with self. Must have different keys and the same length as self to ensure length consistencies.</span>
+<span class="sd">                Alternatively, if either self or other have an empty TensorMessage or df, then they can be merged together safely as long</span>
+<span class="sd">                as the resulting Message has a consistent length.</span>
+<span class="sd">                For example:</span>
+<span class="sd">                ::</span>
+<span class="sd">                    message_a = Message({&#39;a&#39;: [1,2,3]}) # This is essentially a DataFrame</span>
+<span class="sd">                    message_b = Message({&#39;b&#39;: torch.Tensor([1,2,3])}) # This is essentially a TensorMessage</span>
+<span class="sd">                    message_c = Message_a.merge(message_b) # This works</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            message: The concatenated Message containing columns from self and other.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">other</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">Message</span><span class="p">({</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span><span class="p">,</span> <span class="o">**</span><span class="n">other</span><span class="o">.</span><span class="n">tensor_message</span><span class="p">},</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">,</span> <span class="o">**</span><span class="n">other</span><span class="o">.</span><span class="n">df</span><span class="p">})</span></div>
@@ -364,6 +444,16 @@
 <span class="sd">        Applies function mapping to message. If mapping is a dict, then maps will be applied to the correspondign keys as columns, leaving</span>
 <span class="sd">        columns not present in mapping untouched.</span>
 <span class="sd">        In otherwords, mapping would be a dict of column_name:functions specifying the mappings.</span>
+
+<span class="sd">        Args:</span>
+
+<span class="sd">            mapping: Can either be a dict mapping column names to functions that should be applied to those columns, or a single function.</span>
+<span class="sd">                In the latter case, the mapping function will be applied to every column.</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">            message: A Message with the column:value pairs produced by the mapping.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">Message</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">mapping</span><span class="p">[</span><span class="n">key</span><span class="p">](</span><span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">mapping</span> <span class="k">else</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">})</span>
@@ -374,6 +464,14 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return tensors associated with message as a tensormessage.</span>
 <span class="sd">        If keys are specified, returns tensors associated with those keys, performing conversions as needed.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            keys: Keys to get. Default = None, in which case all tensors are returned as a TensorMessage.</span>
+<span class="sd">                If columns corresponding to requested keys are not tensors, they will be converted.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tensors (TensorMessage): A TensorMessage containing the tensors requested.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">keys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span>
@@ -383,6 +481,14 @@
 <div class="viewcode-block" id="Message.dataframe"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.message.Message.dataframe">[docs]</a>    <span class="k">def</span> <span class="nf">dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns message as a dataframe. If keys are specified, only returns those keys as a dataframe.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            keys: Keys to get. Default = None, in which case all non-tensors are returned as a DataFrame.</span>
+<span class="sd">                If columns corresponding to requested keys are tensors, they will be converted (to np.arrays).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            df (pd.DataFrame): A DataFrame containing the columns requested.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">keys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span>
@@ -392,6 +498,20 @@
 <div class="viewcode-block" id="Message.permute"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.message.Message.permute">[docs]</a>    <span class="k">def</span> <span class="nf">permute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reorders elements of message based on index.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index: A valid index for the message.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            message: A new Message with the elements arranged according to the input index.</span>
+<span class="sd">                For example,</span>
+<span class="sd">                ::</span>
+<span class="sd">                message_a = Message({&#39;a&#39;:[1,2,3]})</span>
+<span class="sd">                message_b = message_a.permute([2,1,0])</span>
+<span class="sd">                message_c = Message({&#39;a&#39;: [3,2,1]})</span>
+<span class="sd">                message_b == message_c</span>
+
+<span class="sd">                The last statement will evaluate to True</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span>
         <span class="n">tensor_message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span>
@@ -406,11 +526,29 @@
         <span class="k">return</span> <span class="n">Message</span><span class="p">(</span><span class="n">tensor_message</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Message.cpu"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.message.Message.cpu">[docs]</a>    <span class="k">def</span> <span class="nf">cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Moves tensors to system memory. Can specify which ones to move by specifying keys. &quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Moves tensors to system memory. Can specify which ones to move by specifying keys.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            keys: Keys to move to system memory. Default = None, meaning all columns are moved.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            message (Message): Moved message</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span><span class="o">.</span><span class="n">cpu</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Message.cuda"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.message.Message.cuda">[docs]</a>    <span class="k">def</span> <span class="nf">cuda</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">keys</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Moves tensors to gpu with given device number. Can specify which ones to move by specifying keys. &quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Moves tensors to gpu with given device number. Can specify which ones to move by specifying keys.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            device (int): CUDA device number to use. Default = 0.</span>
+<span class="sd">            keys: Keys to move to GPU. Default = None, meaning all columns are moved.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            message (Message): Moved message</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span><span class="o">.</span><span class="n">cuda</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">keys</span><span class="p">)</span></div></div>
 
 <div class="viewcode-block" id="TensorMessage"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.message.TensorMessage">[docs]</a><span class="k">class</span> <span class="nc">TensorMessage</span><span class="p">:</span>
@@ -834,6 +972,10 @@
 
 
 <h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../ok.html">diddykong</a></li>
+</ul>
 
 <div class="relations">
 <h3>Related Topics</h3>
