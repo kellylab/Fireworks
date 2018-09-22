@@ -1,7 +1,7 @@
 import Fireworks
 import os
 import pandas as pd
-from Fireworks import datasource as ds
+from Fireworks import source as ds
 from Fireworks.message import Message
 from Fireworks.utils import index_to_list
 import numpy as np
@@ -105,14 +105,14 @@ class smart_dummy(ds.Source):
     def __iter__(self):
         return self.reset()
 
-def conforms_to_spec(datasource):
+def conforms_to_spec(source):
 
-    assert hasattr(datasource, '__iter__')
-    assert hasattr(datasource, '__next__')
+    assert hasattr(source, '__iter__')
+    assert hasattr(source, '__next__')
 
     return True
 
-def test_DataSource(): pass
+def test_source(): pass
 
 def test_Title2LabelSource():
 

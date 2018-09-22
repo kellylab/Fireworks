@@ -39,6 +39,18 @@ class Source(ABC):
         """
         Recursively calls method/attribute on input_sources until reaching an upstream source that implements the method and
         returns the response as a message (empty if response is None).
+        Recursive calls enable a stack of sources to behave as one entity; any method implemented by any component can be accessed
+        recursively.
+
+        Args:
+            attribute: The name of the attribute/method to call.
+            args: The arguments if this is a recursive method call.
+            ignore_first: If True, then ignore whether or not the target attribute is implemented by self. This can be useful if a source
+                implements a method and wants to use an upstream call of the same method as well.
+            kwargs: The kwargs is this is a recursive method call.
+
+        Returns:
+            Responses (dict): A dictionary mapping the name of each input source to the response that was returned.
         """
 
         if not ignore_first:
@@ -65,14 +77,23 @@ class Source(ABC):
             else:
                 return {key: response for key, respone in zip(self.input_sources.keys(), responses)}
 
-    def check_inputs(self): pass
-
 class BioSeqSource(Source):
-    """ Class for representing biosequence data. """
+    """
+    Class for representing biosequence data.
+    Specifically, this class can read biological data files (such as fasta) and iterate throug them as a Source.
+    This can serve as the first source in a pipeline for analyzing genomic data.
+    """
 
     name = 'BioSeqSource'
 
     def __init__(self, path, inputs = None, filetype = 'fasta', **kwargs):
+        """
+        Args:
+            path: Path on disk where file is located; will be supplied to the SeqIO.parse function.
+            inputs: Input sources. Default is None.
+            filetype: Type of file that will be supplied to the SeqIO.parse function. Default is 'fasta'
+            kwargs: Optional key word arguments that will be supplied to the SeqIO.parse function.
+        """
         self.path = path
         self.filetype = filetype
         self.kwargs = kwargs
@@ -80,11 +101,16 @@ class BioSeqSource(Source):
         self.input_sources = {}
 
     def reset(self):
+        """
+        Resets the iterator to the beginning of the file. Specifically, it calls SeqIO.parse again as if reinstantiating the object.
+        """
         self.seq = SeqIO.parse(self.path, self.filetype, **self.kwargs)
         return self
 
     def __next__(self):
-
+        """
+        Each iteration through a SeqIO object will produce a named tuple. This source converts that tuple to a Message and produces the result.
+        """
         gene = self.seq.__next__()
 
         try:
@@ -165,7 +191,9 @@ class LoopingSource(Source):
                 raise TypeError('Source {0} does not have __next__ and reset methods.'.format(name))
 
     def reset(self):
-
+        """
+        Calls reset on input sources and sets position to 0.
+        """
         for source in self.input_sources.values():
             source.reset()
         self.position = 0
@@ -207,6 +235,15 @@ class CachingSource(Source):
     calls will either access from the cache or trigger __getitem__ calls on the input and an update to the cache.
     """
     def __init__(self, *args, cache_size = 100, buffer_size = 0, cache_type = 'LRU', infinite = False, **kwargs):
+        """
+        Args:
+            args: Positional arguments for superclass initialization.
+            cache_size (int): Number of elements to hold in cache. Default = 100
+            buffer_size (int): Number of elements to clear once cache is full. This is useful if you expect frequent cache misses and
+                don't expect to reuse previous cached elements. Default = 0
+            cache_type (str): Type of cache. Choices are 'LRU' (least-recently-used) and 'LFU' (least-frequently-used). Default = 'LRU'
+            infinite (bool): If set to true, the cache will have no upper limit on size and will never clear itself.
+        """
         super().__init__(*args, **kwargs)
         self.check_inputs()
         self.length = None

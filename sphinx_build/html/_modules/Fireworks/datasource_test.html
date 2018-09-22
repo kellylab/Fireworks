@@ -1,0 +1,450 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Fireworks.datasource_test &#8212; Fireworks 0.2.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for Fireworks.datasource_test</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">Fireworks</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">Fireworks</span> <span class="k">import</span> <span class="n">datasource</span> <span class="k">as</span> <span class="n">ds</span>
+<span class="kn">from</span> <span class="nn">Fireworks.message</span> <span class="k">import</span> <span class="n">Message</span>
+<span class="kn">from</span> <span class="nn">Fireworks.utils</span> <span class="k">import</span> <span class="n">index_to_list</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+
+<span class="n">test_dir</span> <span class="o">=</span> <span class="n">Fireworks</span><span class="o">.</span><span class="n">test_dir</span>
+
+<div class="viewcode-block" id="one_way_dummy"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.one_way_dummy">[docs]</a><span class="k">class</span> <span class="nc">one_way_dummy</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">Source</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">&lt;=</span> <span class="mi">20</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">count</span><span class="o">-</span><span class="mi">1</span><span class="p">])}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">StopIteration</span><span class="c1"># This will trigger StopIteration</span>
+
+<div class="viewcode-block" id="one_way_dummy.reset"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.one_way_dummy.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span></div></div>
+
+<div class="viewcode-block" id="reset_dummy"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.reset_dummy">[docs]</a><span class="k">class</span> <span class="nc">reset_dummy</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">Source</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="reset_dummy.reset"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.reset_dummy.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span></div></div>
+
+<div class="viewcode-block" id="next_dummy"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.next_dummy">[docs]</a><span class="k">class</span> <span class="nc">next_dummy</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">Source</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">&lt;</span> <span class="mi">20</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">count</span><span class="p">])}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">StopIteration</span> <span class="c1"># This will trigger StopIteration</span></div>
+
+<div class="viewcode-block" id="getitem_dummy"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.getitem_dummy">[docs]</a><span class="k">class</span> <span class="nc">getitem_dummy</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">Source</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="mi">20</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+
+        <span class="n">index</span> <span class="o">=</span> <span class="n">index_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="p">[]:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="nb">max</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="ow">and</span> <span class="nb">min</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">index</span><span class="p">)}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;Out of bounds for dummy source with length </span><span class="si">{0}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span></div>
+
+<div class="viewcode-block" id="smart_dummy"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.smart_dummy">[docs]</a><span class="k">class</span> <span class="nc">smart_dummy</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">Source</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements all of the methods in the above dummies</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="mi">20</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+
+        <span class="n">index</span> <span class="o">=</span> <span class="n">index_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="p">[]:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="nb">max</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="ow">and</span> <span class="nb">min</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">index</span><span class="p">)})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;Out of bounds for dummy source with length </span><span class="si">{0}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">))</span>
+
+<div class="viewcode-block" id="smart_dummy.reset"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.smart_dummy.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">&lt;=</span> <span class="mi">20</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">count</span><span class="o">-</span><span class="mi">1</span><span class="p">])})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">StopIteration</span><span class="c1"># This will trigger StopIteration</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="conforms_to_spec"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.conforms_to_spec">[docs]</a><span class="k">def</span> <span class="nf">conforms_to_spec</span><span class="p">(</span><span class="n">datasource</span><span class="p">):</span>
+
+    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">datasource</span><span class="p">,</span> <span class="s1">&#39;__iter__&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">datasource</span><span class="p">,</span> <span class="s1">&#39;__next__&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="test_DataSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.test_DataSource">[docs]</a><span class="k">def</span> <span class="nf">test_DataSource</span><span class="p">():</span> <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="test_Title2LabelSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.test_Title2LabelSource">[docs]</a><span class="k">def</span> <span class="nf">test_Title2LabelSource</span><span class="p">():</span>
+
+    <span class="n">dumbo</span> <span class="o">=</span> <span class="n">one_way_dummy</span><span class="p">()</span>
+    <span class="n">rumbo</span> <span class="o">=</span> <span class="n">one_way_dummy</span><span class="p">()</span>
+    <span class="n">bumbo</span> <span class="o">=</span> <span class="n">reset_dummy</span><span class="p">()</span>
+    <span class="n">gumbo</span> <span class="o">=</span> <span class="n">next_dummy</span><span class="p">()</span>
+    <span class="n">jumbo</span> <span class="o">=</span> <span class="n">next_dummy</span><span class="p">()</span>
+
+    <span class="n">labeler</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">Title2LabelSource</span><span class="p">(</span><span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;yes&#39;</span><span class="p">:</span> <span class="n">dumbo</span><span class="p">})</span>
+    <span class="n">mislabeler</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">Title2LabelSource</span><span class="p">(</span><span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;yes&#39;</span><span class="p">:</span> <span class="n">rumbo</span><span class="p">},</span> <span class="n">labels_column</span><span class="o">=</span><span class="s1">&#39;barrels&#39;</span><span class="p">)</span>
+    <span class="n">donkeykong</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">Title2LabelSource</span><span class="p">(</span><span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;yes&#39;</span><span class="p">:</span><span class="n">gumbo</span><span class="p">})</span>
+    <span class="n">dixiekong</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">Title2LabelSource</span><span class="p">(</span><span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;yes&#39;</span><span class="p">:</span> <span class="n">jumbo</span><span class="p">},</span> <span class="n">labels_column</span><span class="o">=</span><span class="s1">&#39;bananas&#39;</span><span class="p">)</span>
+    <span class="n">labeler</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">labeler</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="n">mislabeler</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">mislabeler</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">def</span> <span class="nf">test_iteration</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="fm">__next__</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="s1">&#39;yes&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+    <span class="n">test_iteration</span><span class="p">(</span><span class="n">labeler</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">)</span>
+    <span class="n">test_iteration</span><span class="p">(</span><span class="n">mislabeler</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;barrels&#39;</span><span class="p">)</span>
+    <span class="n">test_iteration</span><span class="p">(</span><span class="n">donkeykong</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">)</span>
+    <span class="n">test_iteration</span><span class="p">(</span><span class="n">dixiekong</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="s1">&#39;bananas&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">labeler</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">10</span>
+    <span class="k">assert</span> <span class="n">mislabeler</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">10</span>
+    <span class="k">assert</span> <span class="n">donkeykong</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">12</span>
+    <span class="k">assert</span> <span class="n">dixiekong</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">14</span>
+
+    <span class="n">labeler</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">Title2LabelSource</span><span class="p">(</span><span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;yes&#39;</span><span class="p">:</span> <span class="n">bumbo</span><span class="p">})</span>
+    <span class="n">labeler</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">labeler</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">0</span></div>
+
+
+
+<div class="viewcode-block" id="test_BioSeqSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.test_BioSeqSource">[docs]</a><span class="k">def</span> <span class="nf">test_BioSeqSource</span><span class="p">():</span>
+
+    <span class="n">test_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">test_dir</span><span class="p">,</span> <span class="s1">&#39;sample_genes.fa&#39;</span><span class="p">)</span>
+    <span class="n">genes</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">BioSeqSource</span><span class="p">(</span><span class="n">test_file</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">conforms_to_spec</span><span class="p">(</span><span class="n">genes</span><span class="p">)</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">batch</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+    <span class="n">embedding_function</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;sequences&#39;</span><span class="p">:</span> <span class="n">f</span><span class="p">}</span>
+
+    <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">genes</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;sequences&#39;</span><span class="p">,</span> <span class="s1">&#39;ids&#39;</span><span class="p">,</span> <span class="s1">&#39;names&#39;</span><span class="p">,</span> <span class="s1">&#39;descriptions&#39;</span><span class="p">,</span> <span class="s1">&#39;dbxrefs&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">gene</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">gene</span><span class="p">)</span> <span class="ow">is</span> <span class="n">Message</span>
+        <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">gene</span><span class="o">.</span><span class="n">tensor_message</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">gene</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;ids&#39;</span><span class="p">,</span> <span class="s1">&#39;names&#39;</span><span class="p">,</span> <span class="s1">&#39;descriptions&#39;</span><span class="p">,</span> <span class="s1">&#39;dbxrefs&#39;</span><span class="p">,</span> <span class="s1">&#39;sequences&#39;</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">gene</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="c1"># Reset and do it again to confirm we can repeat the source</span>
+    <span class="n">genes</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">genes</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;sequences&#39;</span><span class="p">,</span> <span class="s1">&#39;ids&#39;</span><span class="p">,</span> <span class="s1">&#39;names&#39;</span><span class="p">,</span> <span class="s1">&#39;descriptions&#39;</span><span class="p">,</span> <span class="s1">&#39;dbxrefs&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">gene</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">gene</span><span class="p">)</span> <span class="ow">is</span> <span class="n">Message</span>
+        <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">gene</span><span class="o">.</span><span class="n">tensor_message</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">gene</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;ids&#39;</span><span class="p">,</span> <span class="s1">&#39;names&#39;</span><span class="p">,</span> <span class="s1">&#39;descriptions&#39;</span><span class="p">,</span> <span class="s1">&#39;dbxrefs&#39;</span><span class="p">,</span> <span class="s1">&#39;sequences&#39;</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">gene</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="test_LoopingSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.test_LoopingSource">[docs]</a><span class="k">def</span> <span class="nf">test_LoopingSource</span><span class="p">():</span>
+
+    <span class="c1"># Test type checking</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">dumbo</span> <span class="o">=</span> <span class="n">reset_dummy</span><span class="p">()</span>
+        <span class="n">poopy</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">LoopingSource</span><span class="p">(</span><span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;mumbo&#39;</span><span class="p">:</span> <span class="n">dumbo</span><span class="p">})</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="kc">False</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">dumbo</span> <span class="o">=</span> <span class="n">next_dummy</span><span class="p">()</span>
+        <span class="n">scooby</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">LoopingSource</span><span class="p">(</span><span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;jumbo&#39;</span><span class="p">:</span> <span class="n">dumbo</span><span class="p">})</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="kc">False</span>
+    <span class="n">dumbo</span> <span class="o">=</span> <span class="n">one_way_dummy</span><span class="p">()</span>
+    <span class="n">loopy</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">LoopingSource</span><span class="p">(</span><span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dumbo&#39;</span><span class="p">:</span> <span class="n">dumbo</span><span class="p">})</span>
+    <span class="n">loopy</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+    <span class="n">loopy</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+    <span class="n">numba1</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loopy</span><span class="p">)</span>
+    <span class="n">numba2</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loopy</span><span class="p">)</span> <span class="c1"># Call __len__ twice to ensure both compute_length and retrieval of length works</span>
+    <span class="k">assert</span> <span class="n">numba1</span> <span class="o">==</span> <span class="mi">20</span>
+    <span class="k">assert</span> <span class="n">numba2</span> <span class="o">==</span> <span class="mi">20</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">loopy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">x</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">]})</span>
+    <span class="n">loopy</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+    <span class="n">loopy</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">LoopingSource</span><span class="p">(</span><span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dumbo&#39;</span><span class="p">:</span> <span class="n">dumbo</span><span class="p">})</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">loopy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">x</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">]})</span> <span class="c1"># Check that the input sources were reset.</span>
+    <span class="k">assert</span> <span class="n">loopy</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span> <span class="c1"># Test if length is implicitly calculated whenever input sources run out.</span>
+        <span class="n">loopy</span><span class="p">[</span><span class="mi">21</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="kc">False</span>
+    <span class="k">assert</span> <span class="n">loopy</span><span class="o">.</span><span class="n">length</span> <span class="o">==</span> <span class="mi">20</span></div>
+
+<div class="viewcode-block" id="test_AggregatorSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.test_AggregatorSource">[docs]</a><span class="k">def</span> <span class="nf">test_AggregatorSource</span><span class="p">():</span>
+
+    <span class="n">dumbo</span> <span class="o">=</span> <span class="n">one_way_dummy</span><span class="p">()</span>
+    <span class="n">bumbo</span> <span class="o">=</span> <span class="n">one_way_dummy</span><span class="p">()</span>
+    <span class="n">gumbo</span> <span class="o">=</span> <span class="n">one_way_dummy</span><span class="p">()</span>
+
+    <span class="n">angry</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">RandomAggregatorSource</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;dumbo&#39;</span><span class="p">:</span> <span class="n">dumbo</span><span class="p">,</span> <span class="s1">&#39;bumbo&#39;</span><span class="p">:</span> <span class="n">bumbo</span><span class="p">,</span> <span class="s1">&#39;gumbo&#39;</span><span class="p">:</span> <span class="n">gumbo</span><span class="p">})</span>
+    <span class="n">angry</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">angry</span><span class="o">.</span><span class="n">available_inputs</span> <span class="o">==</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;dumbo&#39;</span><span class="p">,</span> <span class="s1">&#39;bumbo&#39;</span><span class="p">,</span> <span class="s1">&#39;gumbo&#39;</span><span class="p">])</span>
+    <span class="n">numbaz</span> <span class="o">=</span> <span class="n">Message</span><span class="p">()</span>
+
+    <span class="n">counter</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">l</span><span class="p">,</span><span class="n">i</span><span class="p">:</span> <span class="nb">sum</span><span class="p">([</span><span class="mi">1</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">l</span> <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="n">i</span><span class="p">])</span> <span class="c1"># Counts how often i appears in l</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">numbaz</span> <span class="o">=</span> <span class="n">numbaz</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">angry</span><span class="o">.</span><span class="fm">__next__</span><span class="p">())</span>
+        <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+            <span class="k">break</span>
+    <span class="k">assert</span> <span class="n">dumbo</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">21</span>
+    <span class="k">assert</span> <span class="n">bumbo</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">21</span>
+    <span class="k">assert</span> <span class="n">gumbo</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">21</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">numbaz</span><span class="p">)</span> <span class="o">==</span> <span class="mi">60</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span><span class="n">counter</span><span class="p">(</span><span class="n">numbaz</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">],</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">20</span><span class="p">)}</span>
+    <span class="k">for</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">counts</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">assert</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">3</span> <span class="c1"># Make sure each element showed up 3 times, corresponding to the 3 inputs</span>
+
+    <span class="n">mangry</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">ClockworkAggregatorSource</span><span class="p">(</span><span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dumbo&#39;</span><span class="p">:</span> <span class="n">dumbo</span><span class="p">,</span> <span class="s1">&#39;bumbo&#39;</span><span class="p">:</span> <span class="n">bumbo</span><span class="p">,</span> <span class="s1">&#39;gumbo&#39;</span><span class="p">:</span> <span class="n">gumbo</span><span class="p">})</span>
+    <span class="n">bumbaz</span> <span class="o">=</span> <span class="n">Message</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">nextone</span> <span class="ow">in</span> <span class="n">mangry</span><span class="p">:</span>
+        <span class="n">bumbaz</span> <span class="o">=</span> <span class="n">bumbaz</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nextone</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">dumbo</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">21</span>
+    <span class="k">assert</span> <span class="n">bumbo</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">21</span>
+    <span class="k">assert</span> <span class="n">gumbo</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">21</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">bumbaz</span><span class="p">)</span> <span class="o">==</span> <span class="mi">60</span>
+    <span class="k">for</span> <span class="n">x</span><span class="p">,</span><span class="n">i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">bumbaz</span><span class="p">,</span> <span class="n">itertools</span><span class="o">.</span><span class="n">count</span><span class="p">()):</span>
+        <span class="k">assert</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">i</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span><span class="n">counter</span><span class="p">(</span><span class="n">bumbaz</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">],</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">20</span><span class="p">)}</span>
+    <span class="k">for</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">counts</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">assert</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">3</span> <span class="c1"># Make sure each element showed up 3 times, corresponding to the 3 inputs</span></div>
+
+<div class="viewcode-block" id="test_CachingSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.test_CachingSource">[docs]</a><span class="k">def</span> <span class="nf">test_CachingSource</span><span class="p">():</span>
+
+    <span class="c1"># Test type checking</span>
+    <span class="n">dumbo</span> <span class="o">=</span> <span class="n">next_dummy</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cashmoney</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">CachingSource</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;dumbo&#39;</span><span class="p">:</span> <span class="n">dumbo</span><span class="p">})</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="kc">False</span>
+    <span class="n">dumbo</span> <span class="o">=</span> <span class="n">getitem_dummy</span><span class="p">()</span>
+    <span class="n">cashmoney</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">CachingSource</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;dumbo&#39;</span><span class="p">:</span> <span class="n">dumbo</span><span class="p">})</span>
+
+    <span class="c1"># Test __getitem__</span>
+    <span class="k">assert</span> <span class="n">cashmoney</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">cache</span> <span class="o">==</span> <span class="n">Message</span><span class="p">()</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">cashmoney</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">x</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:[</span><span class="mi">2</span><span class="p">]})</span>
+    <span class="k">assert</span> <span class="n">cashmoney</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">cache</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:[</span><span class="mi">2</span><span class="p">]})</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">cashmoney</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">]</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">cashmoney</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">x</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:[</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">]})</span>
+    <span class="k">assert</span> <span class="n">cashmoney</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">cache</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:[</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">]})</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">cashmoney</span><span class="p">[</span><span class="mi">5</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">x</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:[</span><span class="mi">5</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]})</span>
+    <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">cashmoney</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">pointers</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="nb">set</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">])</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">cashmoney</span><span class="p">[</span><span class="mi">8</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">x</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:[</span><span class="mi">8</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">2</span><span class="p">]})</span>
+    <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">cashmoney</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">pointers</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="nb">set</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">])</span>
+    <span class="c1"># Test explicit length calculation</span>
+    <span class="k">assert</span> <span class="n">cashmoney</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cashmoney</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">length</span> <span class="o">==</span> <span class="mi">20</span>
+    <span class="c1"># Test implicit length calculation</span>
+    <span class="n">cashmoney</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">CachingSource</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;dumbo&#39;</span><span class="p">:</span> <span class="n">dumbo</span><span class="p">})</span>
+    <span class="k">assert</span> <span class="n">cashmoney</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="n">cashmoney</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="n">cashmoney</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">cashmoney</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">==</span> <span class="mi">10</span>
+    <span class="n">cashmoney</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">cashmoney</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">==</span> <span class="mi">10</span>
+    <span class="n">cashmoney</span><span class="p">[</span><span class="mi">12</span><span class="p">,</span><span class="mi">15</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">cashmoney</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">==</span> <span class="mi">15</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cashmoney</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">length</span> <span class="o">==</span> <span class="mi">20</span></div>
+
+<div class="viewcode-block" id="test_IndexMapperSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.test_IndexMapperSource">[docs]</a><span class="k">def</span> <span class="nf">test_IndexMapperSource</span><span class="p">():</span>
+
+    <span class="n">getty</span> <span class="o">=</span> <span class="n">getitem_dummy</span><span class="p">()</span>
+    <span class="n">input_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">12</span><span class="p">)]</span>
+    <span class="n">output_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">12</span><span class="p">))]</span>
+
+    <span class="n">flipped</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">IndexMapperSource</span><span class="p">(</span><span class="n">input_indices</span><span class="p">,</span> <span class="n">output_indices</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;getty&#39;</span><span class="p">:</span><span class="n">getty</span><span class="p">})</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">flipped</span><span class="p">)</span> <span class="o">==</span> <span class="mi">12</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">12</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">flipped</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;values&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">11</span><span class="o">-</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="test_PassThroughSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.test_PassThroughSource">[docs]</a><span class="k">def</span> <span class="nf">test_PassThroughSource</span><span class="p">():</span>
+
+    <span class="n">dumbo</span> <span class="o">=</span> <span class="n">smart_dummy</span><span class="p">()</span>
+    <span class="n">pishpish</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">PassThroughSource</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">dumbo</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">pishpish</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">Message</span><span class="p">(</span><span class="n">pishpish</span><span class="o">.</span><span class="fm">__next__</span><span class="p">())</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">]})</span>
+    <span class="k">assert</span> <span class="n">pishpish</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="n">pishpish</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">pishpish</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">Message</span><span class="p">(</span><span class="n">pishpish</span><span class="p">[</span><span class="mi">12</span><span class="p">])</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">12</span><span class="p">]})</span>
+    <span class="k">assert</span> <span class="n">Message</span><span class="p">(</span><span class="n">pishpish</span><span class="p">[</span><span class="mi">10</span><span class="p">:</span><span class="mi">14</span><span class="p">])</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">13</span><span class="p">]})</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">pishpish</span><span class="o">.</span><span class="n">reset</span><span class="p">(),</span> <span class="n">itertools</span><span class="o">.</span><span class="n">count</span><span class="p">()):</span>
+        <span class="k">assert</span> <span class="n">Message</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">j</span><span class="p">]})</span>
+
+    <span class="k">assert</span> <span class="n">Message</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">19</span><span class="p">]})</span></div>
+
+<div class="viewcode-block" id="test_HookedPassThroughSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.datasource_test.test_HookedPassThroughSource">[docs]</a><span class="k">def</span> <span class="nf">test_HookedPassThroughSource</span><span class="p">():</span>
+
+    <span class="n">dumbo</span> <span class="o">=</span> <span class="n">smart_dummy</span><span class="p">()</span>
+    <span class="k">class</span> <span class="nc">Hooker</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">HookedPassThroughSource</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="nf">_getitem_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+
+            <span class="n">message</span><span class="p">[</span><span class="s1">&#39;interception&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;aho&#39;</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="p">))]</span>
+            <span class="n">message</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">reindex_axis</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">message</span>
+
+        <span class="k">def</span> <span class="nf">_next_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+
+            <span class="n">message</span><span class="p">[</span><span class="s1">&#39;interception&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;yaro&#39;</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="p">))]</span>
+            <span class="n">message</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">reindex_axis</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">message</span>
+
+    <span class="n">pishpish</span> <span class="o">=</span> <span class="n">Hooker</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">dumbo</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">pishpish</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">Message</span><span class="p">(</span><span class="n">pishpish</span><span class="o">.</span><span class="fm">__next__</span><span class="p">())</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;interception&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;yaro&#39;</span><span class="p">]})</span>
+    <span class="k">assert</span> <span class="n">pishpish</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="n">pishpish</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">pishpish</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">Message</span><span class="p">(</span><span class="n">pishpish</span><span class="p">[</span><span class="mi">12</span><span class="p">])</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">12</span><span class="p">],</span> <span class="s1">&#39;interception&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;aho&#39;</span><span class="p">]})</span>
+    <span class="k">assert</span> <span class="n">Message</span><span class="p">(</span><span class="n">pishpish</span><span class="p">[</span><span class="mi">10</span><span class="p">:</span><span class="mi">14</span><span class="p">])</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">13</span><span class="p">],</span> <span class="s1">&#39;interception&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;aho&#39;</span><span class="p">,</span><span class="s1">&#39;aho&#39;</span><span class="p">,</span><span class="s1">&#39;aho&#39;</span><span class="p">,</span><span class="s1">&#39;aho&#39;</span><span class="p">]})</span>
+    <span class="n">pishpish</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">pishpish</span><span class="p">,</span> <span class="n">itertools</span><span class="o">.</span><span class="n">count</span><span class="p">()):</span>
+        <span class="k">assert</span> <span class="n">i</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="s1">&#39;interception&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;yaro&#39;</span><span class="p">]})</span>
+
+    <span class="k">assert</span> <span class="n">i</span> <span class="o">==</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">19</span><span class="p">],</span> <span class="s1">&#39;interception&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;yaro&#39;</span><span class="p">]})</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Fireworks</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Saad Khan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

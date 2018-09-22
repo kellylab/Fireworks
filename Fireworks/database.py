@@ -2,7 +2,7 @@ from sqlalchemy import Table, Column, Integer, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from Fireworks import Message, cat
-from Fireworks.datasource import Source, PassThroughSource
+from Fireworks.source import Source, PassThroughSource
 import numpy as np
 import pandas as pd
 
@@ -63,7 +63,6 @@ def create_table(name, columns, primary_key = None):
     Creates a table given a dict of column names to data types. This is an easy
     way to quickly create a schema for a data pipeline.
     """
-
     if primary_key is None: # Create a default, autoincrementing primary key
         columns.insert(0, Column('id', Integer, primary_key=True, autoincrement=True)) # Prepend to columns list
 
@@ -156,6 +155,12 @@ def to_message(row, columns_and_types=None):
 def cast(value):
     """
     Converts values to basic types (ie. np.int64 to int)
+
+    Arguments:
+        value: The object to be cast.
+    Returns:
+        The cast object.
+
     """
     if type(value) is pd.Series:
         value = value[0]
