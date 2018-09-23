@@ -267,44 +267,6 @@ but index 0 and 1 do not more.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-Fireworks.cache_test">
-<span id="fireworks-cache-test-module"></span><h2>Fireworks.cache_test module<a class="headerlink" href="#module-Fireworks.cache_test" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="Fireworks.cache_test.test_pointer_adjustment">
-<code class="descclassname">Fireworks.cache_test.</code><code class="descname">test_pointer_adjustment</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/cache_test.html#test_pointer_adjustment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.cache_test.test_pointer_adjustment" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.cache_test.test_slice_to_list">
-<code class="descclassname">Fireworks.cache_test.</code><code class="descname">test_slice_to_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/cache_test.html#test_slice_to_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.cache_test.test_slice_to_list" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.cache_test.test_init_set">
-<code class="descclassname">Fireworks.cache_test.</code><code class="descname">test_init_set</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/cache_test.html#test_init_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.cache_test.test_init_set" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.cache_test.test_del">
-<code class="descclassname">Fireworks.cache_test.</code><code class="descname">test_del</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/cache_test.html#test_del"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.cache_test.test_del" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.cache_test.test_permute">
-<code class="descclassname">Fireworks.cache_test.</code><code class="descname">test_permute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/cache_test.html#test_permute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.cache_test.test_permute" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.cache_test.test_LRUCache">
-<code class="descclassname">Fireworks.cache_test.</code><code class="descname">test_LRUCache</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/cache_test.html#test_LRUCache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.cache_test.test_LRUCache" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.cache_test.test_LFUCache">
-<code class="descclassname">Fireworks.cache_test.</code><code class="descname">test_LFUCache</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/cache_test.html#test_LFUCache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.cache_test.test_LFUCache" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</div>
 <div class="section" id="module-Fireworks.database">
 <span id="fireworks-database-module"></span><h2>Fireworks.database module<a class="headerlink" href="#module-Fireworks.database" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
@@ -315,38 +277,92 @@ but index 0 and 1 do not more.</p>
 <dl class="method">
 <dt id="Fireworks.database.TableSource.init_db">
 <code class="descname">init_db</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource.init_db" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Initializes metadata for internal table. This ensures that the table exists in the database.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.database.TableSource.commit">
 <code class="descname">commit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource.commit" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Commits transactions to database.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.database.TableSource.rollback">
 <code class="descname">rollback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource.rollback" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Rollbacks transactions in current session that haven’t been committed yet.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.database.TableSource.insert">
 <code class="descname">insert</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource.insert" title="Permalink to this definition">¶</a></dt>
 <dd><p>Inserts the contents of batch message into the database using self.table object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>batch</strong> (<a class="reference internal" href="#Fireworks.message.Message" title="Fireworks.message.Message"><em>Message</em></a>) – A message to be inserted. The columns and types must be consistent with the database schema.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.database.TableSource.query">
 <code class="descname">query</code><span class="sig-paren">(</span><em>entities=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource.query" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Queries the database and generates a DBSource corresponding to the result.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>entities</strong> – </li>
+<li><strong>args</strong> – Optional positional arguments for the SQLalchemy query function</li>
+<li><strong>kwargs</strong> – Optional keyword arguments for the SQLalchemy query function</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A DBSource object that can iterate through the results of the query.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dbsource (<a class="reference internal" href="#Fireworks.database.DBSource" title="Fireworks.database.DBSource">DBSource</a>)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.database.TableSource.upsert">
 <code class="descname">upsert</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource.upsert" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Performs an upsert into the database. This is equivalent to performing an update + insert (ie. if value is not present, insert it,
+otherwise update the existing value.)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>batch</strong> (<a class="reference internal" href="#Fireworks.message.Message" title="Fireworks.message.Message"><em>Message</em></a>) – The message to upsert.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.database.TableSource.make_row">
 <code class="descname">make_row</code><span class="sig-paren">(</span><em>row</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource.make_row" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Converts a Message or dict mapping columns to values into a table object that can be inserted into an SQLalchemy database.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>row</strong> – row in Message or dict form to convert.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">row converted to table form.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">table</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -355,6 +371,26 @@ but index 0 and 1 do not more.</p>
 <code class="descclassname">Fireworks.database.</code><code class="descname">create_table</code><span class="sig-paren">(</span><em>name</em>, <em>columns</em>, <em>primary_key=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.create_table" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a table given a dict of column names to data types. This is an easy
 way to quickly create a schema for a data pipeline.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>columns</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dict mapping column names to SQLalchemy types.</li>
+<li><strong>primary_key</strong> – The column that should be the primary key of the table. If unspecified, a new auto-incrementing column called ‘id’
+will be added as the primary key. SQLalchemy requires that all tables have a primary key, and this ensures that every row
+is always uniquely identifiable.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A table class specifying the schema for the database table.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">simpletable (sqlalchemy.ext.declarative.api.DeclarativeMeta)</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="class">
@@ -365,12 +401,14 @@ way to quickly create a schema for a data pipeline.</p>
 <dl class="method">
 <dt id="Fireworks.database.DBSource.reset">
 <code class="descname">reset</code><span class="sig-paren">(</span><em>entities=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.DBSource.reset" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Resets DBSource by reperforming the query, so that it is now at the beginning of the query.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.database.DBSource.all">
 <code class="descname">all</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.DBSource.all" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the results of the query as a single Message object.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -378,23 +416,82 @@ way to quickly create a schema for a data pipeline.</p>
 <dt id="Fireworks.database.parse_columns">
 <code class="descclassname">Fireworks.database.</code><code class="descname">parse_columns</code><span class="sig-paren">(</span><em>table</em>, <em>ignore_id=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.parse_columns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns column names in a table object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>table</strong> (<em>sqlalchemy.ext.declarative.api.DeclarativeMeta</em>) – </li>
+<li><strong>ignore_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – If True, ignore the ‘id’ column, which is a default primary key
+added by the create_table function.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A list of columns names in the table.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">columns (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)">list</a>)</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.database.parse_columns_and_types">
 <code class="descclassname">Fireworks.database.</code><code class="descname">parse_columns_and_types</code><span class="sig-paren">(</span><em>table</em>, <em>ignore_id=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.parse_columns_and_types" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns column names and types in a table object as a dict</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>table</strong> (<em>sqlalchemy.ext.declarative.api.DeclarativeMeta</em>) – </li>
+<li><strong>ignore_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – If True, ignore the ‘id’ column, which is a default primary key
+added by the create_table function.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A dict mapping column names to their SQLalchemy type.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">columns_and_types (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a>)</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.database.convert">
 <code class="descclassname">Fireworks.database.</code><code class="descname">convert</code><span class="sig-paren">(</span><em>value</em>, <em>sqltype</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.convert" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Converts a given value to a value that SQLalchemy can read.</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.database.to_message">
 <code class="descclassname">Fireworks.database.</code><code class="descname">to_message</code><span class="sig-paren">(</span><em>row</em>, <em>columns_and_types=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.to_message" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Converts a database query result produced by SQLalchemy into a Message</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>row</strong> – A row from the query.</li>
+<li><strong>columns_and_types</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – If unspecified, this will be inferred. Otherwise, you can specify the columns
+to parse, for example, if you only want to extract some columns.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Message representation of input.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">message</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.database.cast">
@@ -416,58 +513,25 @@ way to quickly create a schema for a data pipeline.</p>
 <dt id="Fireworks.database.reflect_table">
 <code class="descclassname">Fireworks.database.</code><code class="descname">reflect_table</code><span class="sig-paren">(</span><em>table_name</em>, <em>engine</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.reflect_table" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the table with the given name from the sqlalchemy engine.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>table_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Name of the table to extract.</li>
+<li><strong>engine</strong> (<em>sqlalchemy.engine.base.Engine</em>) – Engine to extract from.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The extracted table, which can be now be used to read from the database.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">table (sqlalchemy.ext.declarative.api.DeclarativeMeta)</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
-
-</div>
-<div class="section" id="module-Fireworks.database_test">
-<span id="fireworks-database-test-module"></span><h2>Fireworks.database_test module<a class="headerlink" href="#module-Fireworks.database_test" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="Fireworks.database_test.dummy_source">
-<em class="property">class </em><code class="descclassname">Fireworks.database_test.</code><code class="descname">dummy_source</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database_test.html#dummy_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database_test.dummy_source" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
-</dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.database_test.dummy_table">
-<code class="descclassname">Fireworks.database_test.</code><code class="descname">dummy_table</code><span class="sig-paren">(</span><em>table_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database_test.html#dummy_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database_test.dummy_table" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.database_test.test_make_row">
-<code class="descclassname">Fireworks.database_test.</code><code class="descname">test_make_row</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database_test.html#test_make_row"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database_test.test_make_row" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.database_test.test_create_table">
-<code class="descclassname">Fireworks.database_test.</code><code class="descname">test_create_table</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database_test.html#test_create_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database_test.test_create_table" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.database_test.test_parse_columns">
-<code class="descclassname">Fireworks.database_test.</code><code class="descname">test_parse_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database_test.html#test_parse_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database_test.test_parse_columns" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.database_test.test_TableSource_explicit">
-<code class="descclassname">Fireworks.database_test.</code><code class="descname">test_TableSource_explicit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database_test.html#test_TableSource_explicit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database_test.test_TableSource_explicit" title="Permalink to this definition">¶</a></dt>
-<dd><p>Colnames are explicitly labeled here.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.database_test.test_TableSource_implicit">
-<code class="descclassname">Fireworks.database_test.</code><code class="descname">test_TableSource_implicit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database_test.html#test_TableSource_implicit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database_test.test_TableSource_implicit" title="Permalink to this definition">¶</a></dt>
-<dd><p>Colnames are implicitly identified here.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.database_test.test_DBSource">
-<code class="descclassname">Fireworks.database_test.</code><code class="descname">test_DBSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database_test.html#test_DBSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database_test.test_DBSource" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.database_test.test_reflect_table">
-<code class="descclassname">Fireworks.database_test.</code><code class="descname">test_reflect_table</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database_test.html#test_reflect_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database_test.test_reflect_table" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 </div>
 <div class="section" id="module-Fireworks.database_utils">
@@ -488,9 +552,6 @@ way to quickly create a schema for a data pipeline.</p>
 <dd></dd></dl>
 
 </div>
-<div class="section" id="module-Fireworks.database_utils_test">
-<span id="fireworks-database-utils-test-module"></span><h2>Fireworks.database_utils_test module<a class="headerlink" href="#module-Fireworks.database_utils_test" title="Permalink to this headline">¶</a></h2>
-</div>
 <div class="section" id="module-Fireworks.events">
 <span id="fireworks-events-module"></span><h2>Fireworks.events module<a class="headerlink" href="#module-Fireworks.events" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
@@ -506,7 +567,7 @@ way to quickly create a schema for a data pipeline.</p>
 <dt id="Fireworks.exceptions.EndHyperparameterOptimization">
 <em class="property">exception </em><code class="descclassname">Fireworks.exceptions.</code><code class="descname">EndHyperparameterOptimization</code><a class="reference internal" href="_modules/Fireworks/exceptions.html#EndHyperparameterOptimization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.exceptions.EndHyperparameterOptimization" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></p>
-<p>Exception raised to signal factory to stop looping.</p>
+<p>This exception can be raised to signal a factory to stop looping.</p>
 </dd></dl>
 
 </div>
@@ -663,30 +724,6 @@ If tensor columns are requested, they are converted to ndarray first.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-Fireworks.experiment_test">
-<span id="fireworks-experiment-test-module"></span><h2>Fireworks.experiment_test module<a class="headerlink" href="#module-Fireworks.experiment_test" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="Fireworks.experiment_test.dummy_table">
-<code class="descclassname">Fireworks.experiment_test.</code><code class="descname">dummy_table</code><span class="sig-paren">(</span><em>engine</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/experiment_test.html#dummy_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.experiment_test.dummy_table" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.experiment_test.test_Experiment">
-<code class="descclassname">Fireworks.experiment_test.</code><code class="descname">test_Experiment</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/experiment_test.html#test_Experiment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.experiment_test.test_Experiment" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.experiment_test.test_paths">
-<code class="descclassname">Fireworks.experiment_test.</code><code class="descname">test_paths</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/experiment_test.html#test_paths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.experiment_test.test_paths" title="Permalink to this definition">¶</a></dt>
-<dd><p>Tests that relative and absolute paths work with Experiment constructor</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.experiment_test.test_load_experiment">
-<code class="descclassname">Fireworks.experiment_test.</code><code class="descname">test_load_experiment</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/experiment_test.html#test_load_experiment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.experiment_test.test_load_experiment" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</div>
 <div class="section" id="module-Fireworks.factory">
 <span id="fireworks-factory-module"></span><h2>Fireworks.factory module<a class="headerlink" href="#module-Fireworks.factory" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
@@ -780,61 +817,6 @@ If tensor columns are requested, they are converted to ndarray first.</p>
 <dd></dd></dl>
 
 </dd></dl>
-
-</div>
-<div class="section" id="module-Fireworks.factory_test">
-<span id="fireworks-factory-test-module"></span><h2>Fireworks.factory_test module<a class="headerlink" href="#module-Fireworks.factory_test" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="Fireworks.factory_test.DummyEvaluator">
-<em class="property">class </em><code class="descclassname">Fireworks.factory_test.</code><code class="descname">DummyEvaluator</code><a class="reference internal" href="_modules/Fireworks/factory_test.html#DummyEvaluator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.factory_test.DummyEvaluator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<dl class="method">
-<dt id="Fireworks.factory_test.DummyEvaluator.run">
-<code class="descname">run</code><span class="sig-paren">(</span><em>dataloader</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/factory_test.html#DummyEvaluator.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.factory_test.DummyEvaluator.run" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.factory_test.dummy_trainer">
-<code class="descclassname">Fireworks.factory_test.</code><code class="descname">dummy_trainer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/factory_test.html#dummy_trainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.factory_test.dummy_trainer" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="Fireworks.factory_test.DummyMetric">
-<em class="property">class </em><code class="descclassname">Fireworks.factory_test.</code><code class="descname">DummyMetric</code><a class="reference internal" href="_modules/Fireworks/factory_test.html#DummyMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.factory_test.DummyMetric" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<dl class="method">
-<dt id="Fireworks.factory_test.DummyMetric.attach">
-<code class="descname">attach</code><span class="sig-paren">(</span><em>engine</em>, <em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/factory_test.html#DummyMetric.attach"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.factory_test.DummyMetric.attach" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="Fireworks.factory_test.DummyMetric.compute">
-<code class="descname">compute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/factory_test.html#DummyMetric.compute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.factory_test.DummyMetric.compute" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.factory_test.dummy_generator">
-<code class="descclassname">Fireworks.factory_test.</code><code class="descname">dummy_generator</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/factory_test.html#dummy_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.factory_test.dummy_generator" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.factory_test.dummy_dataloader">
-<code class="descclassname">Fireworks.factory_test.</code><code class="descname">dummy_dataloader</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/factory_test.html#dummy_dataloader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.factory_test.dummy_dataloader" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.factory_test.test_LocalMemoryFactory">
-<code class="descclassname">Fireworks.factory_test.</code><code class="descname">test_LocalMemoryFactory</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/factory_test.html#test_LocalMemoryFactory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.factory_test.test_LocalMemoryFactory" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.factory_test.test_SQLFactory">
-<code class="descclassname">Fireworks.factory_test.</code><code class="descname">test_SQLFactory</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/factory_test.html#test_SQLFactory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.factory_test.test_SQLFactory" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 </div>
 <div class="section" id="module-Fireworks.message">
@@ -1172,115 +1154,6 @@ containing the remaining pairs.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-Fireworks.message_test">
-<span id="fireworks-message-test-module"></span><h2>Fireworks.message_test module<a class="headerlink" href="#module-Fireworks.message_test" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="Fireworks.message_test.test_compute_length">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_compute_length</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_compute_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_compute_length" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_extract_tensors">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_extract_tensors</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_extract_tensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_extract_tensors" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_complement">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_complement</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_complement"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_complement" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_Message">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_Message</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_Message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_Message" title="Permalink to this definition">¶</a></dt>
-<dd><p>Test init, getitem, and len methods.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_getitem">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_getitem</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_getitem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_getitem" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_cache">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_cache</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_cache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_cache" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_tensors">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_tensors</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_tensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_tensors" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_df">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_df</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_df" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_cpu_gpu">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_cpu_gpu</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_cpu_gpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_cpu_gpu" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_append">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_append</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_append"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_append" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_join">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_join</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_join"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_join" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_Message_set_get">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_Message_set_get</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_Message_set_get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_Message_set_get" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_Message_del">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_Message_del</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_Message_del"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_Message_del" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_Message_iter">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_Message_iter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_Message_iter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_Message_iter" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_map">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_map</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_map" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_TensorMessage">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_TensorMessage</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_TensorMessage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_TensorMessage" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_TensorMessage_set_get_del">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_TensorMessage_set_get_del</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_TensorMessage_set_get_del"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_TensorMessage_set_get_del" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_TensorMessage_eq">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_TensorMessage_eq</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_TensorMessage_eq"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_TensorMessage_eq" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_cat">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_cat</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_cat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_cat" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_TensorMessage_permute">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_TensorMessage_permute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_TensorMessage_permute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_TensorMessage_permute" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.message_test.test_permute">
-<code class="descclassname">Fireworks.message_test.</code><code class="descname">test_permute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/message_test.html#test_permute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.message_test.test_permute" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</div>
 <div class="section" id="module-Fireworks.preprocessing">
 <span id="fireworks-preprocessing-module"></span><h2>Fireworks.preprocessing module<a class="headerlink" href="#module-Fireworks.preprocessing" title="Permalink to this headline">¶</a></h2>
 <dl class="attribute">
@@ -1302,14 +1175,6 @@ containing the remaining pairs.</p>
 <dl class="function">
 <dt id="Fireworks.preprocessing.apply_noise">
 <code class="descclassname">Fireworks.preprocessing.</code><code class="descname">apply_noise</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/preprocessing.html#apply_noise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.preprocessing.apply_noise" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</div>
-<div class="section" id="module-Fireworks.preprocessing_test">
-<span id="fireworks-preprocessing-test-module"></span><h2>Fireworks.preprocessing_test module<a class="headerlink" href="#module-Fireworks.preprocessing_test" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="Fireworks.preprocessing_test.test_one_hot">
-<code class="descclassname">Fireworks.preprocessing_test.</code><code class="descname">test_one_hot</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/preprocessing_test.html#test_one_hot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.preprocessing_test.test_one_hot" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -1626,105 +1491,6 @@ the source or calling __getitem__ will return different values.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-Fireworks.source_test">
-<span id="fireworks-source-test-module"></span><h2>Fireworks.source_test module<a class="headerlink" href="#module-Fireworks.source_test" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="Fireworks.source_test.one_way_dummy">
-<em class="property">class </em><code class="descclassname">Fireworks.source_test.</code><code class="descname">one_way_dummy</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#one_way_dummy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.one_way_dummy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
-<dl class="method">
-<dt id="Fireworks.source_test.one_way_dummy.reset">
-<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#one_way_dummy.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.one_way_dummy.reset" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="Fireworks.source_test.reset_dummy">
-<em class="property">class </em><code class="descclassname">Fireworks.source_test.</code><code class="descname">reset_dummy</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#reset_dummy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.reset_dummy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
-<dl class="method">
-<dt id="Fireworks.source_test.reset_dummy.reset">
-<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#reset_dummy.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.reset_dummy.reset" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="Fireworks.source_test.next_dummy">
-<em class="property">class </em><code class="descclassname">Fireworks.source_test.</code><code class="descname">next_dummy</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#next_dummy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.next_dummy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
-</dd></dl>
-
-<dl class="class">
-<dt id="Fireworks.source_test.getitem_dummy">
-<em class="property">class </em><code class="descclassname">Fireworks.source_test.</code><code class="descname">getitem_dummy</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#getitem_dummy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.getitem_dummy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
-</dd></dl>
-
-<dl class="class">
-<dt id="Fireworks.source_test.smart_dummy">
-<em class="property">class </em><code class="descclassname">Fireworks.source_test.</code><code class="descname">smart_dummy</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#smart_dummy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.smart_dummy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
-<p>Implements all of the methods in the above dummies</p>
-<dl class="method">
-<dt id="Fireworks.source_test.smart_dummy.reset">
-<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#smart_dummy.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.smart_dummy.reset" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.source_test.conforms_to_spec">
-<code class="descclassname">Fireworks.source_test.</code><code class="descname">conforms_to_spec</code><span class="sig-paren">(</span><em>source</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#conforms_to_spec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.conforms_to_spec" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.source_test.test_source">
-<code class="descclassname">Fireworks.source_test.</code><code class="descname">test_source</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#test_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.test_source" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.source_test.test_Title2LabelSource">
-<code class="descclassname">Fireworks.source_test.</code><code class="descname">test_Title2LabelSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#test_Title2LabelSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.test_Title2LabelSource" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.source_test.test_BioSeqSource">
-<code class="descclassname">Fireworks.source_test.</code><code class="descname">test_BioSeqSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#test_BioSeqSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.test_BioSeqSource" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.source_test.test_LoopingSource">
-<code class="descclassname">Fireworks.source_test.</code><code class="descname">test_LoopingSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#test_LoopingSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.test_LoopingSource" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.source_test.test_AggregatorSource">
-<code class="descclassname">Fireworks.source_test.</code><code class="descname">test_AggregatorSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#test_AggregatorSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.test_AggregatorSource" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.source_test.test_CachingSource">
-<code class="descclassname">Fireworks.source_test.</code><code class="descname">test_CachingSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#test_CachingSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.test_CachingSource" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.source_test.test_IndexMapperSource">
-<code class="descclassname">Fireworks.source_test.</code><code class="descname">test_IndexMapperSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#test_IndexMapperSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.test_IndexMapperSource" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.source_test.test_PassThroughSource">
-<code class="descclassname">Fireworks.source_test.</code><code class="descname">test_PassThroughSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#test_PassThroughSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.test_PassThroughSource" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.source_test.test_HookedPassThroughSource">
-<code class="descclassname">Fireworks.source_test.</code><code class="descname">test_HookedPassThroughSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source_test.html#test_HookedPassThroughSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source_test.test_HookedPassThroughSource" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</div>
 <div class="section" id="module-Fireworks.text">
 <span id="fireworks-text-module"></span><h2>Fireworks.text module<a class="headerlink" href="#module-Fireworks.text" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
@@ -1787,39 +1553,6 @@ Each index value corresponds to a one-hot vector.</p>
 <code class="descclassname">Fireworks.text.</code><code class="descname">too_big</code><span class="sig-paren">(</span><em>dataset</em>, <em>start</em>, <em>end</em>, <em>dim=300</em>, <em>cutoff=620000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/text.html#too_big"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.text.too_big" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates if a batch consisting of dataset[start:end] is too big based on cutoff.</p>
 </dd></dl>
-
-</div>
-<div class="section" id="module-Fireworks.text_test">
-<span id="fireworks-text-test-module"></span><h2>Fireworks.text_test module<a class="headerlink" href="#module-Fireworks.text_test" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="Fireworks.text_test.test_space_tokenizer">
-<code class="descclassname">Fireworks.text_test.</code><code class="descname">test_space_tokenizer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/text_test.html#test_space_tokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.text_test.test_space_tokenizer" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.text_test.test_character_tokenizer">
-<code class="descclassname">Fireworks.text_test.</code><code class="descname">test_character_tokenizer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/text_test.html#test_character_tokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.text_test.test_character_tokenizer" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.text_test.test_pad_sequence">
-<code class="descclassname">Fireworks.text_test.</code><code class="descname">test_pad_sequence</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/text_test.html#test_pad_sequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.text_test.test_pad_sequence" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.text_test.test_pad">
-<code class="descclassname">Fireworks.text_test.</code><code class="descname">test_pad</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/text_test.html#test_pad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.text_test.test_pad" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.text_test.test_apply_embeddings">
-<code class="descclassname">Fireworks.text_test.</code><code class="descname">test_apply_embeddings</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/text_test.html#test_apply_embeddings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.text_test.test_apply_embeddings" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.text_test.test_too_big">
-<code class="descclassname">Fireworks.text_test.</code><code class="descname">test_too_big</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/text_test.html#test_too_big"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.text_test.test_too_big" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 </div>
 <div class="section" id="module-Fireworks.utils">

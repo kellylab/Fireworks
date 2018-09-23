@@ -1,3 +1,4 @@
+import sqlalchemy
 from sqlalchemy import Table, Column, Integer, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -13,8 +14,8 @@ class TableSource(PassThroughSource):
     Represents an SQLalchemy Table while having the functionality of a Source.
     """
     def __init__(self, table, engine, columns = None, inputs = None, **kwargs):
-        super().__init__(inputs=inputs, **kwargs)
 
+        super().__init__(inputs=inputs, **kwargs)
         Session = sessionmaker(bind=engine)
         self.session = Session()
         self.engine = engine
@@ -23,26 +24,48 @@ class TableSource(PassThroughSource):
         self.init_db()
 
     def init_db(self):
-
+        """
+        Initializes metadata for internal table. This ensures that the table exists in the database.
+        """
         self.table.metadata.create_all(self.engine)
         self.commit()
 
     def commit(self):
+        """
+        Commits transactions to database.
+        """
         self.session.commit()
 
     def rollback(self):
+        """
+        Rollbacks transactions in current session that haven't been committed yet.
+        """
         self.session.rollback()
 
     def insert(self, batch):
         """
         Inserts the contents of batch message into the database using self.table object
+
+        Args:
+            batch (Message): A message to be inserted. The columns and types must be consistent with the database schema.
+
         """
 
         rows = [self.make_row(row) for row in batch]
         self.session.add_all(rows)
 
     def query(self, entities=None, *args, **kwargs):
+        """
+        Queries the database and generates a DBSource corresponding to the result.
 
+        Args:
+            entities:
+            args: Optional positional arguments for the SQLalchemy query function
+            kwargs: Optional keyword arguments for the SQLalchemy query function
+
+        Returns:
+            dbsource (DBSource): A DBSource object that can iterate through the results of the query.
+        """
         if entities is None:
             entities = self.table
 
@@ -50,10 +73,27 @@ class TableSource(PassThroughSource):
         query = self.session.query(entities, *args, **kwargs)
         return DBSource(self.table, self.engine, query)
 
-    def upsert(self, batch): pass
+    def upsert(self, batch):
+        """
+        Performs an upsert into the database. This is equivalent to performing an update + insert (ie. if value is not present, insert it,
+        otherwise update the existing value.)
 
+        Args:
+            batch (Message): The message to upsert.
+        """
+        pass
+
+    
     def make_row(self, row):
+        """
+        Converts a Message or dict mapping columns to values into a table object that can be inserted into an SQLalchemy database.
 
+        Args:
+            row: row in Message or dict form to convert.
+
+        Returns:
+            table: row converted to table form.
+        """
         kwargs = {key: cast(row[key][0]) for key in self.columns}
 
         return self.table(**kwargs)
@@ -62,8 +102,17 @@ def create_table(name, columns, primary_key = None):
     """
     Creates a table given a dict of column names to data types. This is an easy
     way to quickly create a schema for a data pipeline.
+
+    Args:
+        columns (dict): Dict mapping column names to SQLalchemy types.
+        primary_key: The column that should be the primary key of the table. If unspecified, a new auto-incrementing column called 'id'
+            will be added as the primary key. SQLalchemy requires that all tables have a primary key, and this ensures that every row
+            is always uniquely identifiable.
+
+    Returns:
+        simpletable (sqlalchemy.ext.declarative.api.DeclarativeMeta): A table class specifying the schema for the database table.
     """
-    if primary_key is None: # Create a default, autoincrementing primary key
+    if primary_key is None: # Create a default, autoincrementing primary key # NOTE: TODO: If a primary key is desired, we need to specify that
         columns.insert(0, Column('id', Integer, primary_key=True, autoincrement=True)) # Prepend to columns list
 
     class SimpleTable(Base):
@@ -80,6 +129,13 @@ class DBSource(Source):
     Source that can iterate through the output of a database query.
     """
     def __init__(self, table, engine, query = None):
+        """
+        Args:
+            table (sqlalchemy.ext.declarative.api.DeclarativeMeta): Table to perform query on. You can alternatively provide the name of the
+                table as a string, and the schema will be extracted from the engine.
+            engine (sqlalchemy.engine.base.Engine): Engine correspondign to the database to read from.
+            query: Can optionally provide an SQLalchemy Query object. If unspecified, the DBSource will perform a SELECT * query.
+        """
         Session = sessionmaker(bind=engine)
         self.input_sources = {}
         self.session = Session()
@@ -97,7 +153,9 @@ class DBSource(Source):
         return self
 
     def reset(self, entities=None, *args, **kwargs):
-
+        """
+        Resets DBSource by reperforming the query, so that it is now at the beginning of the query.
+        """
         if entities is None:
             entities = self.table
 
@@ -108,12 +166,22 @@ class DBSource(Source):
         return to_message(self.iterator.__next__(), columns_and_types=self.columns_and_types)
 
     def all(self): #TODO: Test dis ish #TODO: Implement the other query methods
-
+        """
+        Returns the results of the query as a single Message object.
+        """
         return cat([to_message(x, columns_and_types=self.columns_and_types) for x in self.query.all()])
 
 def parse_columns(table, ignore_id=True):
     """
     Returns column names in a table object
+
+    Args:
+        table (sqlalchemy.ext.declarative.api.DeclarativeMeta):
+        ignore_id (bool): If True, ignore the 'id' column, which is a default primary key
+            added by the create_table function.
+
+    Returns:
+        columns (list): A list of columns names in the table.
     """
 
     #[c.key for c in table.__table__.columns]
@@ -122,6 +190,14 @@ def parse_columns(table, ignore_id=True):
 def parse_columns_and_types(table, ignore_id = True):
     """
     Returns column names and types in a table object as a dict
+
+    Args:
+        table (sqlalchemy.ext.declarative.api.DeclarativeMeta):
+        ignore_id (bool): If True, ignore the 'id' column, which is a default primary key
+            added by the create_table function.
+
+    Returns:
+        columns_and_types (dict): A dict mapping column names to their SQLalchemy type.
     """
     if hasattr(table, '__table__'):
         columns_and_types = {str(c.key): c.type for c in table.__table__.columns}
@@ -133,8 +209,10 @@ def parse_columns_and_types(table, ignore_id = True):
         del columns_and_types['id']
     return columns_and_types
 
-def convert(value, sqltype):
-
+def convert(value, sqltype): # NOTE: This is deprecated
+    """
+    Converts a given value to a value that SQLalchemy can read.
+    """
     objtype = type(sqltype)
     if objtype is Integer:
         if type(value) is bytes:
@@ -144,7 +222,16 @@ def convert(value, sqltype):
     return value
 
 def to_message(row, columns_and_types=None):
+    """
+    Converts a database query result produced by SQLalchemy into a Message
 
+    Args:
+        row: A row from the query.
+        columns_and_types (dict): If unspecified, this will be inferred. Otherwise, you can specify the columns
+            to parse, for example, if you only want to extract some columns.
+    Returns:
+        message: Message representation of input.
+    """
     if columns_and_types is None:
         columns_and_types = parse_columns_and_types(row)
 
@@ -156,8 +243,9 @@ def cast(value):
     """
     Converts values to basic types (ie. np.int64 to int)
 
-    Arguments:
+    Args:
         value: The object to be cast.
+
     Returns:
         The cast object.
 
@@ -181,6 +269,13 @@ def cast(value):
 def reflect_table(table_name, engine):
     """
     Gets the table with the given name from the sqlalchemy engine.
+
+    Args:
+        table_name (str): Name of the table to extract.
+        engine (sqlalchemy.engine.base.Engine): Engine to extract from.
+
+    Returns:
+        table (sqlalchemy.ext.declarative.api.DeclarativeMeta): The extracted table, which can be now be used to read from the database.
     """
     meta = MetaData()
     table = Table(table_name, meta, autoload=True, autoload_with=engine)
