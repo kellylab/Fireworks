@@ -51,8 +51,17 @@ class TableSource(PassThroughSource):
 
         """
 
-        rows = [self.make_row(row) for row in batch]
-        self.session.add_all(rows)
+        rows = [self.make_row_dict(row) for row in batch]
+
+        # NOTE:     Bulk inserts implemented using this guide:
+        #           http://docs.sqlalchemy.org/en/latest/faq/performance.html#i-m-inserting-400-000-rows-with-the-orm-and-it-s-really-slow
+
+        # QUESTION: Should this be the standard insert method, or should this be configurable?
+        #           There are tradeoffs between doing bulk inserts and the default add method.
+        #           See here for more details: http://docs.sqlalchemy.org/en/latest/orm/persistence_techniques.html#bulk-operations
+        self.session.bulk_insert_mappings(self.table, rows)
+        # self.session.bulk_save_objects(rows)
+        # self.session.add_all(rows)
 
     def query(self, entities=None, *args, **kwargs):
         """
@@ -83,7 +92,7 @@ class TableSource(PassThroughSource):
         """
         pass
 
-    
+
     def make_row(self, row):
         """
         Converts a Message or dict mapping columns to values into a table object that can be inserted into an SQLalchemy database.
@@ -94,9 +103,26 @@ class TableSource(PassThroughSource):
         Returns:
             table: row converted to table form.
         """
+
         kwargs = {key: cast(row[key][0]) for key in self.columns}
 
         return self.table(**kwargs)
+
+    def make_row_dict(self, row):
+        """
+        Converts a 1-row Message into a dict of atomic (non-listlike) elements. This can be used for the bulk_insert_mappings method of
+        an SQLalchemy session, which skips table instantiation and takes dictionaries as arguments instead.
+
+        Args:
+            row: row in Message or dict form to convert.
+
+        Returns:
+            table: row converted to table form.
+        """
+
+        kwargs = {key: cast(row[key][0]) for key in self.columns}
+
+        return kwargs
 
 def create_table(name, columns, primary_key = None):
     """

@@ -47,6 +47,12 @@ def test_make_row():
     assert tom.name == 'ok'
     assert tom.values == 33
 
+    engine = create_engine('sqlite:///:memory:', echo=True)
+    source = db.TableSource(tab, engine)
+
+    message = Message({'name': ['a','b'], 'values': [1,2]})
+    row = source.make_row(message)
+
 def test_create_table():
 
     tab = dummy_table('munki')
