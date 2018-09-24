@@ -59,7 +59,12 @@ class TableSource(PassThroughSource):
         # QUESTION: Should this be the standard insert method, or should this be configurable?
         #           There are tradeoffs between doing bulk inserts and the default add method.
         #           See here for more details: http://docs.sqlalchemy.org/en/latest/orm/persistence_techniques.html#bulk-operations
-        self.session.bulk_insert_mappings(self.table, rows)
+
+        self.session.execute(
+            self.table.__table__.insert(), # NOTE: This requires self.table to have a __table__ attribute, which is not guaranteed.
+            rows
+        )
+        # self.session.bulk_insert_mappings(self.table, rows)
         # self.session.bulk_save_objects(rows)
         # self.session.add_all(rows)
 
