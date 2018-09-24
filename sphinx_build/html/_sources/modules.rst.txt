@@ -5,3 +5,4 @@ Fireworks
    :maxdepth: 4
 
    Fireworks
+   License

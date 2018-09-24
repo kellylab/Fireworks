@@ -5,15 +5,14 @@
 
 Welcome to Fireworks's documentation!
 
-donkeykong
+donkeykongfdsafeawfewafe
 =====================================
 
 .. toctree::
    :maxdepth: 3
-   :caption: Contents:
 
+   License
    ok
-
 
 Indices and tables
 ==================

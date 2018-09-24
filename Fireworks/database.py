@@ -45,13 +45,16 @@ class TableSource(PassThroughSource):
     def insert(self, batch):
         """
         Inserts the contents of batch message into the database using self.table object
+        NOTE: Only the dataframe components of a message will be inserted.
 
         Args:
             batch (Message): A message to be inserted. The columns and types must be consistent with the database schema.
 
         """
 
-        rows = [self.make_row_dict(row) for row in batch]
+        # TODO:     Enable inserting TensorMessages (QUESTION: how would this work?)
+        # rows = [self.make_row_dict(row) for row in batch]
+        rows = list(batch.df.T.to_dict().values())
 
         # NOTE:     Bulk inserts implemented using this guide:
         #           http://docs.sqlalchemy.org/en/latest/faq/performance.html#i-m-inserting-400-000-rows-with-the-orm-and-it-s-really-slow
@@ -60,8 +63,15 @@ class TableSource(PassThroughSource):
         #           There are tradeoffs between doing bulk inserts and the default add method.
         #           See here for more details: http://docs.sqlalchemy.org/en/latest/orm/persistence_techniques.html#bulk-operations
 
+        if hasattr(self.table, '__table__'):
+            table = self.table.__table__
+        elif type(self.table) is Table:
+            table = self.table
+        else:
+            raise ValueError("table must either be an SQLalchemy table or have an __table__ attribute that is.")
+
         self.session.execute(
-            self.table.__table__.insert(), # NOTE: This requires self.table to have a __table__ attribute, which is not guaranteed.
+            table.insert(), # NOTE: This requires self.table to have a __table__ attribute, which is not guaranteed.
             rows
         )
         # self.session.bulk_insert_mappings(self.table, rows)

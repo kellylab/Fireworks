@@ -33,7 +33,8 @@
           <div class="body" role="main">
             
   <h1>Source code for Fireworks.database</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Table</span><span class="p">,</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">MetaData</span>
+<span></span><span class="kn">import</span> <span class="nn">sqlalchemy</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Table</span><span class="p">,</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">MetaData</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.ext.declarative</span> <span class="k">import</span> <span class="n">declarative_base</span>
 <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">sessionmaker</span>
 <span class="kn">from</span> <span class="nn">Fireworks</span> <span class="k">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">cat</span>
@@ -48,8 +49,8 @@
 <span class="sd">    Represents an SQLalchemy Table while having the functionality of a Source.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">inputs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="n">Session</span> <span class="o">=</span> <span class="n">sessionmaker</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">Session</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
@@ -58,26 +59,48 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">init_db</span><span class="p">()</span>
 
 <div class="viewcode-block" id="TableSource.init_db"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.TableSource.init_db">[docs]</a>    <span class="k">def</span> <span class="nf">init_db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes metadata for internal table. This ensures that the table exists in the database.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">create_all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TableSource.commit"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.TableSource.commit">[docs]</a>    <span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Commits transactions to database.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TableSource.rollback"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.TableSource.rollback">[docs]</a>    <span class="k">def</span> <span class="nf">rollback</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Rollbacks transactions in current session that haven&#39;t been committed yet.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TableSource.insert"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.TableSource.insert">[docs]</a>    <span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Inserts the contents of batch message into the database using self.table object</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            batch (Message): A message to be inserted. The columns and types must be consistent with the database schema.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">make_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add_all</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TableSource.query"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.TableSource.query">[docs]</a>    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entities</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Queries the database and generates a DBSource corresponding to the result.</span>
 
+<span class="sd">        Args:</span>
+<span class="sd">            entities:</span>
+<span class="sd">            args: Optional positional arguments for the SQLalchemy query function</span>
+<span class="sd">            kwargs: Optional keyword arguments for the SQLalchemy query function</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dbsource (DBSource): A DBSource object that can iterate through the results of the query.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">entities</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">entities</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span>
 
@@ -85,10 +108,27 @@
         <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">entities</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">DBSource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="TableSource.upsert"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.TableSource.upsert">[docs]</a>    <span class="k">def</span> <span class="nf">upsert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span> <span class="k">pass</span></div>
+<div class="viewcode-block" id="TableSource.upsert"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.TableSource.upsert">[docs]</a>    <span class="k">def</span> <span class="nf">upsert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs an upsert into the database. This is equivalent to performing an update + insert (ie. if value is not present, insert it,</span>
+<span class="sd">        otherwise update the existing value.)</span>
 
+<span class="sd">        Args:</span>
+<span class="sd">            batch (Message): The message to upsert.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
 <div class="viewcode-block" id="TableSource.make_row"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.TableSource.make_row">[docs]</a>    <span class="k">def</span> <span class="nf">make_row</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Converts a Message or dict mapping columns to values into a table object that can be inserted into an SQLalchemy database.</span>
 
+<span class="sd">        Args:</span>
+<span class="sd">            row: row in Message or dict form to convert.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            table: row converted to table form.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">cast</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">}</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
@@ -97,8 +137,17 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a table given a dict of column names to data types. This is an easy</span>
 <span class="sd">    way to quickly create a schema for a data pipeline.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        columns (dict): Dict mapping column names to SQLalchemy types.</span>
+<span class="sd">        primary_key: The column that should be the primary key of the table. If unspecified, a new auto-incrementing column called &#39;id&#39;</span>
+<span class="sd">            will be added as the primary key. SQLalchemy requires that all tables have a primary key, and this ensures that every row</span>
+<span class="sd">            is always uniquely identifiable.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        simpletable (sqlalchemy.ext.declarative.api.DeclarativeMeta): A table class specifying the schema for the database table.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">primary_key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="c1"># Create a default, autoincrementing primary key</span>
+    <span class="k">if</span> <span class="n">primary_key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="c1"># Create a default, autoincrementing primary key # NOTE: TODO: If a primary key is desired, we need to specify that</span>
         <span class="n">columns</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">autoincrement</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span> <span class="c1"># Prepend to columns list</span>
 
     <span class="k">class</span> <span class="nc">SimpleTable</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
@@ -115,6 +164,13 @@
 <span class="sd">    Source that can iterate through the output of a database query.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">query</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            table (sqlalchemy.ext.declarative.api.DeclarativeMeta): Table to perform query on. You can alternatively provide the name of the</span>
+<span class="sd">                table as a string, and the schema will be extracted from the engine.</span>
+<span class="sd">            engine (sqlalchemy.engine.base.Engine): Engine correspondign to the database to read from.</span>
+<span class="sd">            query: Can optionally provide an SQLalchemy Query object. If unspecified, the DBSource will perform a SELECT * query.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">Session</span> <span class="o">=</span> <span class="n">sessionmaker</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">input_sources</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">Session</span><span class="p">()</span>
@@ -132,7 +188,9 @@
         <span class="k">return</span> <span class="bp">self</span>
 
 <div class="viewcode-block" id="DBSource.reset"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.DBSource.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entities</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resets DBSource by reperforming the query, so that it is now at the beginning of the query.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">entities</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">entities</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span>
 
@@ -143,12 +201,22 @@
         <span class="k">return</span> <span class="n">to_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="fm">__next__</span><span class="p">(),</span> <span class="n">columns_and_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">columns_and_types</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DBSource.all"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.DBSource.all">[docs]</a>    <span class="k">def</span> <span class="nf">all</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1">#TODO: Test dis ish #TODO: Implement the other query methods</span>
-
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the results of the query as a single Message object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">cat</span><span class="p">([</span><span class="n">to_message</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">columns_and_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">columns_and_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">()])</span></div></div>
 
 <div class="viewcode-block" id="parse_columns"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.parse_columns">[docs]</a><span class="k">def</span> <span class="nf">parse_columns</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">ignore_id</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns column names in a table object</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        table (sqlalchemy.ext.declarative.api.DeclarativeMeta):</span>
+<span class="sd">        ignore_id (bool): If True, ignore the &#39;id&#39; column, which is a default primary key</span>
+<span class="sd">            added by the create_table function.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        columns (list): A list of columns names in the table.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1">#[c.key for c in table.__table__.columns]</span>
@@ -157,6 +225,14 @@
 <div class="viewcode-block" id="parse_columns_and_types"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.parse_columns_and_types">[docs]</a><span class="k">def</span> <span class="nf">parse_columns_and_types</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">ignore_id</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns column names and types in a table object as a dict</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        table (sqlalchemy.ext.declarative.api.DeclarativeMeta):</span>
+<span class="sd">        ignore_id (bool): If True, ignore the &#39;id&#39; column, which is a default primary key</span>
+<span class="sd">            added by the create_table function.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        columns_and_types (dict): A dict mapping column names to their SQLalchemy type.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="s1">&#39;__table__&#39;</span><span class="p">):</span>
         <span class="n">columns_and_types</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">key</span><span class="p">):</span> <span class="n">c</span><span class="o">.</span><span class="n">type</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">__table__</span><span class="o">.</span><span class="n">columns</span><span class="p">}</span>
@@ -168,8 +244,10 @@
         <span class="k">del</span> <span class="n">columns_and_types</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">columns_and_types</span></div>
 
-<div class="viewcode-block" id="convert"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.convert">[docs]</a><span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">sqltype</span><span class="p">):</span>
-
+<div class="viewcode-block" id="convert"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.convert">[docs]</a><span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">sqltype</span><span class="p">):</span> <span class="c1"># NOTE: This is deprecated</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts a given value to a value that SQLalchemy can read.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">objtype</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">sqltype</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">objtype</span> <span class="ow">is</span> <span class="n">Integer</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bytes</span><span class="p">:</span>
@@ -179,7 +257,16 @@
     <span class="k">return</span> <span class="n">value</span></div>
 
 <div class="viewcode-block" id="to_message"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.to_message">[docs]</a><span class="k">def</span> <span class="nf">to_message</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">columns_and_types</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts a database query result produced by SQLalchemy into a Message</span>
 
+<span class="sd">    Args:</span>
+<span class="sd">        row: A row from the query.</span>
+<span class="sd">        columns_and_types (dict): If unspecified, this will be inferred. Otherwise, you can specify the columns</span>
+<span class="sd">            to parse, for example, if you only want to extract some columns.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        message: Message representation of input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">columns_and_types</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">columns_and_types</span> <span class="o">=</span> <span class="n">parse_columns_and_types</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
 
@@ -191,8 +278,9 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts values to basic types (ie. np.int64 to int)</span>
 
-<span class="sd">    Arguments:</span>
+<span class="sd">    Args:</span>
 <span class="sd">        value: The object to be cast.</span>
+
 <span class="sd">    Returns:</span>
 <span class="sd">        The cast object.</span>
 
@@ -216,6 +304,13 @@
 <div class="viewcode-block" id="reflect_table"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.reflect_table">[docs]</a><span class="k">def</span> <span class="nf">reflect_table</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Gets the table with the given name from the sqlalchemy engine.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        table_name (str): Name of the table to extract.</span>
+<span class="sd">        engine (sqlalchemy.engine.base.Engine): Engine to extract from.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        table (sqlalchemy.ext.declarative.api.DeclarativeMeta): The extracted table, which can be now be used to read from the database.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">meta</span> <span class="o">=</span> <span class="n">MetaData</span><span class="p">()</span>
     <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">meta</span><span class="p">,</span> <span class="n">autoload</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">autoload_with</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
@@ -238,6 +333,10 @@
 
 
 <h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../License.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ok.html">diddykong</a></li>
+</ul>
 
 <div class="relations">
 <h3>Related Topics</h3>

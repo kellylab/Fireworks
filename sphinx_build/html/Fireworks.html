@@ -271,30 +271,30 @@ but index 0 and 1 do not more.</p>
 <span id="fireworks-database-module"></span><h2>Fireworks.database module<a class="headerlink" href="#module-Fireworks.database" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="Fireworks.database.TableSource">
-<em class="property">class </em><code class="descclassname">Fireworks.database.</code><code class="descname">TableSource</code><span class="sig-paren">(</span><em>table</em>, <em>engine</em>, <em>columns=None</em>, <em>inputs=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">Fireworks.database.</code><code class="descname">TableSource</code><span class="sig-paren">(</span><em>table</em>, <em>engine</em>, <em>columns=None</em>, <em>inputs=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#TableSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.TableSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.source.PassThroughSource" title="Fireworks.source.PassThroughSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.PassThroughSource</span></code></a></p>
 <p>Represents an SQLalchemy Table while having the functionality of a Source.</p>
 <dl class="method">
 <dt id="Fireworks.database.TableSource.init_db">
-<code class="descname">init_db</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource.init_db" title="Permalink to this definition">¶</a></dt>
+<code class="descname">init_db</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#TableSource.init_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.TableSource.init_db" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initializes metadata for internal table. This ensures that the table exists in the database.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.database.TableSource.commit">
-<code class="descname">commit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource.commit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">commit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#TableSource.commit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.TableSource.commit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Commits transactions to database.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.database.TableSource.rollback">
-<code class="descname">rollback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource.rollback" title="Permalink to this definition">¶</a></dt>
+<code class="descname">rollback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#TableSource.rollback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.TableSource.rollback" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rollbacks transactions in current session that haven’t been committed yet.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.database.TableSource.insert">
-<code class="descname">insert</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource.insert" title="Permalink to this definition">¶</a></dt>
+<code class="descname">insert</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#TableSource.insert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.TableSource.insert" title="Permalink to this definition">¶</a></dt>
 <dd><p>Inserts the contents of batch message into the database using self.table object</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -308,7 +308,7 @@ but index 0 and 1 do not more.</p>
 
 <dl class="method">
 <dt id="Fireworks.database.TableSource.query">
-<code class="descname">query</code><span class="sig-paren">(</span><em>entities=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource.query" title="Permalink to this definition">¶</a></dt>
+<code class="descname">query</code><span class="sig-paren">(</span><em>entities=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#TableSource.query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.TableSource.query" title="Permalink to this definition">¶</a></dt>
 <dd><p>Queries the database and generates a DBSource corresponding to the result.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -333,7 +333,7 @@ but index 0 and 1 do not more.</p>
 
 <dl class="method">
 <dt id="Fireworks.database.TableSource.upsert">
-<code class="descname">upsert</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource.upsert" title="Permalink to this definition">¶</a></dt>
+<code class="descname">upsert</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#TableSource.upsert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.TableSource.upsert" title="Permalink to this definition">¶</a></dt>
 <dd><p>Performs an upsert into the database. This is equivalent to performing an update + insert (ie. if value is not present, insert it,
 otherwise update the existing value.)</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -348,7 +348,7 @@ otherwise update the existing value.)</p>
 
 <dl class="method">
 <dt id="Fireworks.database.TableSource.make_row">
-<code class="descname">make_row</code><span class="sig-paren">(</span><em>row</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.TableSource.make_row" title="Permalink to this definition">¶</a></dt>
+<code class="descname">make_row</code><span class="sig-paren">(</span><em>row</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#TableSource.make_row"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.TableSource.make_row" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a Message or dict mapping columns to values into a table object that can be inserted into an SQLalchemy database.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -368,7 +368,7 @@ otherwise update the existing value.)</p>
 
 <dl class="function">
 <dt id="Fireworks.database.create_table">
-<code class="descclassname">Fireworks.database.</code><code class="descname">create_table</code><span class="sig-paren">(</span><em>name</em>, <em>columns</em>, <em>primary_key=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.create_table" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">Fireworks.database.</code><code class="descname">create_table</code><span class="sig-paren">(</span><em>name</em>, <em>columns</em>, <em>primary_key=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#create_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.create_table" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a table given a dict of column names to data types. This is an easy
 way to quickly create a schema for a data pipeline.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -395,18 +395,18 @@ is always uniquely identifiable.</li>
 
 <dl class="class">
 <dt id="Fireworks.database.DBSource">
-<em class="property">class </em><code class="descclassname">Fireworks.database.</code><code class="descname">DBSource</code><span class="sig-paren">(</span><em>table</em>, <em>engine</em>, <em>query=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.DBSource" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">Fireworks.database.</code><code class="descname">DBSource</code><span class="sig-paren">(</span><em>table</em>, <em>engine</em>, <em>query=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#DBSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.DBSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
 <p>Source that can iterate through the output of a database query.</p>
 <dl class="method">
 <dt id="Fireworks.database.DBSource.reset">
-<code class="descname">reset</code><span class="sig-paren">(</span><em>entities=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.DBSource.reset" title="Permalink to this definition">¶</a></dt>
+<code class="descname">reset</code><span class="sig-paren">(</span><em>entities=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#DBSource.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.DBSource.reset" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resets DBSource by reperforming the query, so that it is now at the beginning of the query.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.database.DBSource.all">
-<code class="descname">all</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.DBSource.all" title="Permalink to this definition">¶</a></dt>
+<code class="descname">all</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#DBSource.all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.DBSource.all" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the results of the query as a single Message object.</p>
 </dd></dl>
 
@@ -414,7 +414,7 @@ is always uniquely identifiable.</li>
 
 <dl class="function">
 <dt id="Fireworks.database.parse_columns">
-<code class="descclassname">Fireworks.database.</code><code class="descname">parse_columns</code><span class="sig-paren">(</span><em>table</em>, <em>ignore_id=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.parse_columns" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">Fireworks.database.</code><code class="descname">parse_columns</code><span class="sig-paren">(</span><em>table</em>, <em>ignore_id=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#parse_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.parse_columns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns column names in a table object</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -439,7 +439,7 @@ added by the create_table function.</li>
 
 <dl class="function">
 <dt id="Fireworks.database.parse_columns_and_types">
-<code class="descclassname">Fireworks.database.</code><code class="descname">parse_columns_and_types</code><span class="sig-paren">(</span><em>table</em>, <em>ignore_id=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.parse_columns_and_types" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">Fireworks.database.</code><code class="descname">parse_columns_and_types</code><span class="sig-paren">(</span><em>table</em>, <em>ignore_id=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#parse_columns_and_types"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.parse_columns_and_types" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns column names and types in a table object as a dict</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -464,13 +464,13 @@ added by the create_table function.</li>
 
 <dl class="function">
 <dt id="Fireworks.database.convert">
-<code class="descclassname">Fireworks.database.</code><code class="descname">convert</code><span class="sig-paren">(</span><em>value</em>, <em>sqltype</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.convert" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">Fireworks.database.</code><code class="descname">convert</code><span class="sig-paren">(</span><em>value</em>, <em>sqltype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#convert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.convert" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a given value to a value that SQLalchemy can read.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.database.to_message">
-<code class="descclassname">Fireworks.database.</code><code class="descname">to_message</code><span class="sig-paren">(</span><em>row</em>, <em>columns_and_types=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.to_message" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">Fireworks.database.</code><code class="descname">to_message</code><span class="sig-paren">(</span><em>row</em>, <em>columns_and_types=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#to_message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.to_message" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a database query result produced by SQLalchemy into a Message</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -495,7 +495,7 @@ to parse, for example, if you only want to extract some columns.</li>
 
 <dl class="function">
 <dt id="Fireworks.database.cast">
-<code class="descclassname">Fireworks.database.</code><code class="descname">cast</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.cast" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">Fireworks.database.</code><code class="descname">cast</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#cast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.cast" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts values to basic types (ie. np.int64 to int)</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -511,7 +511,7 @@ to parse, for example, if you only want to extract some columns.</li>
 
 <dl class="function">
 <dt id="Fireworks.database.reflect_table">
-<code class="descclassname">Fireworks.database.</code><code class="descname">reflect_table</code><span class="sig-paren">(</span><em>table_name</em>, <em>engine</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.database.reflect_table" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">Fireworks.database.</code><code class="descname">reflect_table</code><span class="sig-paren">(</span><em>table_name</em>, <em>engine</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#reflect_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.reflect_table" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the table with the given name from the sqlalchemy engine.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1605,8 +1605,8 @@ For example, slice(0,4,2) has a length of two.</p>
 
 
 <h3>Navigation</h3>
-<p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="License.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ok.html">diddykong</a></li>
 </ul>
 

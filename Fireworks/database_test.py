@@ -51,8 +51,10 @@ def test_make_row():
     source = db.TableSource(tab, engine)
 
     message = Message({'name': ['a','b'], 'values': [1,2]})
-    row = source.make_row(message)
-
+    row = source.make_row(message[0])
+    assert row.name == 'a'
+    assert row.values == 1
+    
 def test_create_table():
 
     tab = dummy_table('munki')
