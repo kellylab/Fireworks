@@ -35,6 +35,7 @@ class Source(ABC):
         	# Code for training
 
     Under the hood, the code for loader.__next__() can choose to recursively call a to_tensor() method which is implemented by embedder. Index queries and other magic methods can also be implemented recursively, and this enables a degree of commutativity when stacking sources together (changing the order of sources is often allowed because of the pass-through nature of recursive calls).
+
     Note that in order for this to work well, there must be some consistency among method names. If a source expects ‘to_tensor’ to convert batches to tensor format, then an upstream source must have a method with that name, and this should remain consistent across projects to maintain reusability. Lastly, the format for specifying inputs to a source is a dictionary of Sources. The keys in this dictionary can provide information for the Source to use or be ignored completely.
 
     """

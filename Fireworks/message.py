@@ -30,6 +30,7 @@ class Message:
     and equality checks.
 
     Additionally, messages behave as much as possible like dicts. In many scenarios, a dict will be able to substitute for a message and vice-versa.
+    For example, for preparing batches to feed into an RNN to classify DNA sequences, one could create a Message like this:
 
     ::
 
@@ -38,6 +39,8 @@ class Message:
         'labels': torch.LongTensor([...]),
         'raw_sequences': ['TCGA...',...,],
         ...})
+
+    The Message constructor will parse this dictionary and store the labels and embedded sequences inside a TensorMessage and the raw_sequences and other metadata in the dataframe.
 
     Now we can access elements of this Message:
 
