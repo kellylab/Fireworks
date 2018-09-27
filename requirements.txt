@@ -5,6 +5,7 @@ biopython==1.71
 certifi==2018.4.16
 chardet==3.0.4
 click==6.7
+Deprecated==1.2.3
 enum34==1.1.6
 fancycompleter==0.8
 Flask==1.0.2
@@ -22,12 +23,14 @@ py==1.5.3
 Pygments==2.2.0
 pytest==3.6.0
 python-dateutil==2.7.3
+pytorch-ignite==0.1.0
 pytz==2018.4
 pyzmq==17.0.0
 requests==2.18.4
 scipy==1.1.0
 six==1.11.0
 SQLAlchemy==1.2.10
+SQLAlchemy-Utils==0.33.5
 torch==0.4.0
 torchfile==0.1.0
 tornado==5.0.2
@@ -37,3 +40,4 @@ visdom==0.1.8.4
 websocket-client==0.47.0
 Werkzeug==0.14.1
 wmctrl==0.3
+wrapt==1.10.11
