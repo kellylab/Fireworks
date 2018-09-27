@@ -121,6 +121,18 @@ def test_getitem():
     m = Message(tensors, vectors)
     assert m[0] == Message({'a': torch.Tensor([1]), 'b': torch.Tensor([4])}, {'c': np.array([7]), 'd': np.array([10])})
     assert m[[0,2]] == Message({'a': torch.Tensor([1,3]), 'b': torch.Tensor([4,6])}, {'c': np.array([7,9]), 'd': np.array([10,12])})
+    # Check that out of bounds index calls raise errors
+    try:
+        m[3]
+        assert False
+    except IndexError:
+        assert True
+
+    try:
+        m[3:5]
+        assert False
+    except IndexError:
+        assert True
 
 def test_cache(): pass
 
@@ -477,6 +489,17 @@ def test_TensorMessage_set_get_del():
     assert set(email.columns) == set(['a','b'])
     del email['a']
     assert set(email.columns) == set(['b'])
+    # Test that out of bounds requests raise errors
+    try:
+        email[3]
+        assert False
+    except IndexError:
+        assert True
+    try:
+        email[3:5]
+        assert False
+    except IndexError:
+        assert True
 
 def test_TensorMessage_eq():
 

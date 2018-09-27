@@ -49,11 +49,7 @@ def test_Experiment():
     assert xmen.engines == {}
     nginx = xmen.create_engine('wolverine')
     assert 'wolverine' in xmen.engines
-    try:
-        apache = xmen.create_engine('wolverine')
-        assert False
-    except ValueError:
-        assert True # It should throw an error if you try to have two engines of the same name
+
     wolverine = xmen.get_session('wolverine')
     xavier = xmen.get_session('xavier')
     assert 'xavier' in xmen.engines

@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import datetime
 from Fireworks import Message
 from Fireworks import database as db
+from deprecated import deprecated
 
 """
 This module contains classes and functions for saving and loading data collected during experiments.
@@ -113,7 +114,7 @@ class Experiment:
         self.metadata.insert(Message({'name': [self.name], 'iteration': [self.iteration], 'description': [self.description], 'timestamp': [self.timestamp]}))
         self.metadata.commit()
 
-    def create_engine(self, name):
+    def get_engine(self, name):
         """
         Creates an engine corresponding to a database with the given name. In particular, this creates a file called {name}.sqlite
         in this experiment's save directory, and makes an engine to connect to it.
@@ -124,10 +125,15 @@ class Experiment:
         Returns:
             engine: The new engine. You can also reach this engine now by calling self.engines[name]
         """
-        if name in self.engines:
-            raise ValueError("Engine with name {name} already exists in this experiment.".format(name=name))
         self.engines[name] = create_engine("sqlite:///{filename}".format(filename=os.path.join(self.db_path,self.save_path, name+'.sqlite')))
         return self.engines[name]
+
+    @deprecated(reason="This is an alias for get_engine and will be removed in the future.")
+    def create_engine(self, name):
+        """
+        Alias for get_engine. This will be removed in the future.
+        """
+        return self.get_engine(name)
 
     def get_session(self, name):
         """

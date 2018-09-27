@@ -151,8 +151,10 @@ class Message:
             index = slice(index,index+1)
             return self._getindex(index)
         elif t is slice:
-            # if max(index.start, index.stop) > self.length:
-            #     raise IndexError
+            start = index.start or 0
+            stop = index.stop or self.length
+            if max(start, stop) > self.length:
+                raise IndexError
             return self._getindex(index)
         elif t is list: # Must account for list of indices and list of strings
             if len(index) == 0:
@@ -574,10 +576,13 @@ class TensorMessage:
             else:
                 return TensorMessage({key: value[index] for key, value in self.tensor_dict.items()})
         elif t is slice:
-            # if max(index.stop, index.start) > self.length:
-            #     raise IndexError
-            # else:
-            return TensorMessage({key: value[index] for key, value in self.tensor_dict.items()})
+            start = index.start or 0
+            stop = index.stop or self.length
+            if max(start, stop) > self.length:
+                raise IndexError
+            else:
+                return TensorMessage({key: value[index] for key, value in self.tensor_dict.items()})
+
         elif t is list: # Check if list of column names or indices
             if len(index):
                 tt = type(index[0])
@@ -614,7 +619,7 @@ class TensorMessage:
         elif t is int or t is slice:
             value = TensorMessage(value)
             for key in self.tensor_dict:
-                self.tensor_dict[key][index] = value[key]
+                self.tensor_dict[key][index] = value[key] # BUG: Out of bound slice queries return an empty Message instead of raising an error.
         elif t is list:
             if len(index):
                 tt = type(index[0])

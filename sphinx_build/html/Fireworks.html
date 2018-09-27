@@ -103,7 +103,8 @@ the df and lump all of that into a message. All of the existing df methods can b
 performed on the tensor part.</p>
 <p>Messages support operations such as appending one message to another, joining two messages along keys, applying maps to the message’s values,
 and equality checks.</p>
-<p>Additionally, messages behave as much as possible like dicts. In many scenarios, a dict will be able to substitute for a message and vice-versa.</p>
+<p>Additionally, messages behave as much as possible like dicts. In many scenarios, a dict will be able to substitute for a message and vice-versa.
+For example, for preparing batches to feed into an RNN to classify DNA sequences, one could create a Message like this:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">my_message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">({</span>
 <span class="s1">&#39;embedded_sequences&#39;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="o">...</span><span class="p">]),</span>
 <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="o">...</span><span class="p">]),</span>
@@ -111,6 +112,7 @@ and equality checks.</p>
 <span class="o">...</span><span class="p">})</span>
 </pre></div>
 </div>
+<p>The Message constructor will parse this dictionary and store the labels and embedded sequences inside a TensorMessage and the raw_sequences and other metadata in the dataframe.</p>
 <p>Now we can access elements of this Message:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">my_message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">my_message</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
@@ -446,8 +448,8 @@ Method calls are deferred to input sources recursively until a source that imple
         <span class="c1"># Code for training</span>
 </pre></div>
 </div>
-<p>Under the hood, the code for loader.__next__() can choose to recursively call a to_tensor() method which is implemented by embedder. Index queries and other magic methods can also be implemented recursively, and this enables a degree of commutativity when stacking sources together (changing the order of sources is often allowed because of the pass-through nature of recursive calls).
-Note that in order for this to work well, there must be some consistency among method names. If a source expects ‘to_tensor’ to convert batches to tensor format, then an upstream source must have a method with that name, and this should remain consistent across projects to maintain reusability. Lastly, the format for specifying inputs to a source is a dictionary of Sources. The keys in this dictionary can provide information for the Source to use or be ignored completely.</p>
+<p>Under the hood, the code for loader.__next__() can choose to recursively call a to_tensor() method which is implemented by embedder. Index queries and other magic methods can also be implemented recursively, and this enables a degree of commutativity when stacking sources together (changing the order of sources is often allowed because of the pass-through nature of recursive calls).</p>
+<p>Note that in order for this to work well, there must be some consistency among method names. If a source expects ‘to_tensor’ to convert batches to tensor format, then an upstream source must have a method with that name, and this should remain consistent across projects to maintain reusability. Lastly, the format for specifying inputs to a source is a dictionary of Sources. The keys in this dictionary can provide information for the Source to use or be ignored completely.</p>
 <dl class="attribute">
 <dt id="Fireworks.source.Source.name">
 <code class="descname">name</code><em class="property"> = 'base_source'</em><a class="headerlink" href="#Fireworks.source.Source.name" title="Permalink to this definition">¶</a></dt>
@@ -509,8 +511,27 @@ This can serve as the first source in a pipeline for analyzing genomic data.</p>
 <dt id="Fireworks.source.LoopingSource">
 <em class="property">class </em><code class="descclassname">Fireworks.source.</code><code class="descname">LoopingSource</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#LoopingSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.LoopingSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
-<p>Given input sources that implement __next__ and reset (to be repeatable),
-will simulate __getitem__ by repeatedly looping through the iterator as needed.</p>
+<p>This source can take any iterator and make it appear to be indexable by iterating through the input
+as needed to reach any given index.</p>
+<p>The input source must implement __next__ and reset (to be repeatable),
+and this will simulate __getitem__ by repeatedly looping through the iterator as needed.</p>
+<p>For example, say we have a source that iterates through the lines of a FASTA file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fasta</span> <span class="o">=</span> <span class="n">BioSeqSource</span><span class="p">(</span><span class="s1">&#39;genes.fasta&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This source can only iterate through the file in one direciton. If we want to access arbitrary elements,
+we can do this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">clock</span> <span class="o">=</span> <span class="n">LoopingSource</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">fasta</span><span class="p">)</span>
+<span class="n">clock</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+<span class="n">clock</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+<span class="nb">len</span><span class="p">(</span><span class="n">clock</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>All of these actions are now possible. Note that this is in general an expensive process, because the source
+has to iterate one at a time to get to the index it needs. In practice, this source should pipe its output
+to a CachingSource that can store values in memory. This approach enables you to process datasets that don’t
+entirely fit in memory; you can stream in what you need and cache portions. From the perspective of the downstream
+sources, every element of the dataset is accessible as if it were in memory.</p>
 <dl class="attribute">
 <dt id="Fireworks.source.LoopingSource.name">
 <code class="descname">name</code><em class="property"> = 'LoopingSource'</em><a class="headerlink" href="#Fireworks.source.LoopingSource.name" title="Permalink to this definition">¶</a></dt>
@@ -531,14 +552,16 @@ will simulate __getitem__ by repeatedly looping through the iterator as needed.<
 <dl class="method">
 <dt id="Fireworks.source.LoopingSource.compute_length">
 <code class="descname">compute_length</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#LoopingSource.compute_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.LoopingSource.compute_length" title="Permalink to this definition">¶</a></dt>
-<dd><p>Step forward as far as the inputs will allow and compute lenght.
-Note: If the inputs are infinite, then this will go on forever.</p>
+<dd><p>Step forward as far as the inputs will allow and compute length.</p>
+<p>Length is also calculated implicitly as items are accessed.</p>
+<p>Note: If the inputs are infinite, then this will go on forever.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.source.LoopingSource.step_forward">
 <code class="descname">step_forward</code><span class="sig-paren">(</span><em>n</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#LoopingSource.step_forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.LoopingSource.step_forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Steps forward through inputs until position = n and then returns that value.</p>
+<p>This also updates the internal length variable if the iterator ends due to this method call.</p>
 </dd></dl>
 
 </dd></dl>
@@ -547,8 +570,29 @@ Note: If the inputs are infinite, then this will go on forever.</p>
 <dt id="Fireworks.source.CachingSource">
 <em class="property">class </em><code class="descclassname">Fireworks.source.</code><code class="descname">CachingSource</code><span class="sig-paren">(</span><em>*args</em>, <em>cache_size=100</em>, <em>buffer_size=0</em>, <em>cache_type='LRU'</em>, <em>infinite=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#CachingSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.CachingSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
-<p>Given input sources that implement __getitem__, will store all calls to __getitem__ into an internal cache and therafter __getitem__
-calls will either access from the cache or trigger __getitem__ calls on the input and an update to the cache.</p>
+<p>This source can be used to dynamically cache elements from upstream sources.
+Whenever data is requested by index, this source will intercept the request and add that message alongside
+the index to its internal cache.
+This can be useful for dealing with datasets that don’t fit in memory or are streamed in. You can cache portions
+of the dataset as you use them. By combining this with a LoopingSource, you can create the illusion of making
+the entire dataset available to downstream sources regardless of the type and size of the original data.</p>
+<p>More specifically, fiven input sources that implement __getitem__, will store all calls to __getitem__ into
+an internal cache and therafter __getitem__ calls will either access from the cache or trigger __getitem__ calls
+on the input and an update to the cache.</p>
+<p>For example,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fasta</span> <span class="o">=</span> <span class="n">BioSeqSource</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s1">&#39;genes.fasta&#39;</span><span class="p">)</span>
+<span class="n">clock</span> <span class="o">=</span> <span class="n">LoopingSource</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">fasta</span><span class="p">)</span>
+<span class="n">cache</span> <span class="o">=</span> <span class="n">CachingSource</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">clock</span><span class="p">,</span> <span class="n">cache_size</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span> <span class="c1"># cache_size is optional; default=100</span>
+</pre></div>
+</div>
+<p>Will set up a pipeline that reads lines from a FASTA file and acessess and caches elements as requests are made</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cache</span><span class="p">[</span><span class="mi">20</span><span class="p">:</span><span class="mi">40</span><span class="p">]</span> <span class="c1"># This will be cached</span>
+<span class="n">cache</span><span class="p">[</span><span class="mi">25</span><span class="p">:</span><span class="mi">30</span><span class="p">]</span> <span class="c1"># This will read from the cache</span>
+<span class="n">cache</span><span class="p">[</span><span class="mi">44</span><span class="p">]</span> <span class="c1"># This will update the cache</span>
+<span class="n">cache</span><span class="p">[</span><span class="mi">40</span><span class="p">:</span><span class="mi">140</span><span class="p">]</span> <span class="c1"># This will fill the cache, flushing out old elements</span>
+<span class="n">cache</span><span class="p">[</span><span class="mi">25</span><span class="p">:</span><span class="mi">30</span><span class="p">]</span> <span class="c1"># This will read from the dataset and update the cache again</span>
+</pre></div>
+</div>
 <dl class="method">
 <dt id="Fireworks.source.CachingSource.init_cache">
 <code class="descname">init_cache</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#CachingSource.init_cache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.CachingSource.init_cache" title="Permalink to this definition">¶</a></dt>
@@ -1000,7 +1044,8 @@ In addition to methods for standard relational database actions such as rollback
 <dl class="method">
 <dt id="Fireworks.database.TableSource.insert">
 <code class="descname">insert</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#TableSource.insert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.TableSource.insert" title="Permalink to this definition">¶</a></dt>
-<dd><p>Inserts the contents of batch message into the database using self.table object</p>
+<dd><p>Inserts the contents of batch message into the database using self.table object
+NOTE: Only the dataframe components of a message will be inserted.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1055,6 +1100,25 @@ otherwise update the existing value.)</p>
 <dt id="Fireworks.database.TableSource.make_row">
 <code class="descname">make_row</code><span class="sig-paren">(</span><em>row</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#TableSource.make_row"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.TableSource.make_row" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a Message or dict mapping columns to values into a table object that can be inserted into an SQLalchemy database.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>row</strong> – row in Message or dict form to convert.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">row converted to table form.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">table</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.database.TableSource.make_row_dict">
+<code class="descname">make_row_dict</code><span class="sig-paren">(</span><em>row</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/database.html#TableSource.make_row_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.database.TableSource.make_row_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a 1-row Message into a dict of atomic (non-listlike) elements. This can be used for the bulk_insert_mappings method of
+an SQLalchemy session, which skips table instantiation and takes dictionaries as arguments instead.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1633,12 +1697,6 @@ For example, slice(0,4,2) has a length of two.</p>
 <dt id="Fireworks.preprocessing.apply_noise">
 <code class="descclassname">Fireworks.preprocessing.</code><code class="descname">apply_noise</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/preprocessing.html#apply_noise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.preprocessing.apply_noise" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
-
-<span class="target" id="module-Fireworks.events"></span><dl class="function">
-<dt id="Fireworks.events.visdom_loss_handler">
-<code class="descclassname">Fireworks.events.</code><code class="descname">visdom_loss_handler</code><span class="sig-paren">(</span><em>modules_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/events.html#visdom_loss_handler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.events.visdom_loss_handler" title="Permalink to this definition">¶</a></dt>
-<dd><p>Attaches plots and metrics to trainer.</p>
-</dd></dl>
 
 <span class="target" id="module-Fireworks.exceptions"></span><dl class="exception">
 <dt id="Fireworks.exceptions.EndHyperparameterOptimization">

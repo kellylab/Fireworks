@@ -95,7 +95,99 @@ class Source(ABC):
             else:
                 return {key: response for key, respone in zip(self.input_sources.keys(), responses)}
 
-class BioSeqSource(Source):
+class PassThroughSource(Source):
+    """
+    This source passes through data access calls and methods to its (single) input source except for whatever is overridden by subclasses.
+    NOTE: Only the special methods explicitly defined here (getitem, len, delitem, setitem, next, iter) are passed through.
+    Non-special methods are passed through normally.
+    """
+
+    # TODO: Make every source passthrough.
+    name = 'Passthrough source'
+    def __init__(self, *args, labels_column = 'labels', **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.check_inputs()
+        for title, source in self.input_sources.items(): # There is only one
+            self.input_title = title
+            self.input_source = source
+
+    def check_inputs(self):
+        if len(self.input_sources) > 1:
+            raise ValueError("A pass-through source can only have one input source.")
+
+    def __getitem__(self, *args, **kwargs):
+        return self.input_source.__getitem__(*args, **kwargs)
+
+    def __setitem__(self, *args, **kwargs):
+        return self.input_source.__setitem__(*args, **kwargs)
+
+    def __delitem__(self, *args, **kwargs):
+        return self.input_source.__delitem__(*args, **kwargs)
+
+    def __len__(self, *args, **kwargs):
+        return self.input_source.__len__(*args, **kwargs)
+
+    def __next__(self, *args, **kwargs):
+        return self.input_source.__next__(*args, **kwargs)
+
+    def __iter__(self, *args, **kwargs):
+        return self.input_source.__iter__(*args, **kwargs)
+
+    def __getattr__(self, *args, **kwargs):
+        """
+        Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)
+        """
+        return self.recursive_call(*args, **kwargs) #self.input_source.__getattribute__(*args, **kwargs)
+
+class HookedPassThroughSource(PassThroughSource): # BUG NOTE: Methods that return self will break the passthrough at the moment
+    """
+    This source is the same as PassThroughSource, but it has hooks which can be implemented by subclasses to modify the behavior of
+    passed through calls.
+    """
+
+    name = 'Hooked-passthrough source'
+
+    def _getitem_hook(self, message): return message
+
+    # def _setitem_hook(self, *args, **kwargs): pass
+    #
+    # def _delitem_hook(self, *args, **kwargs): pass
+    #
+    # def _len_hook(self, *args, **kwargs): return args[0]
+
+    def _next_hook(self, message): return message
+
+    # def _iter_hook(self, *args, **kwargs): return args[0]
+
+    def __getitem__(self, *args, **kwargs):
+
+        return self._getitem_hook(self.input_source.__getitem__(*args, **kwargs)) #self.input_source.__getitem__(*args, **kwargs))
+
+    # def __setitem__(self, *args, **kwargs):
+    #     self._setitem_hook(self.input_source.__setitem__(*args, **kwargs))
+    #
+    # def __delitem__(self, *args, **kwargs):
+    #     self._delitem_hook(self.input_source.__delitem__(*args, **kwargs))
+    #
+    # def __len__(self, *args, **kwargs):
+    #     return self._len_hook(self.input_source.__len__(*args, **kwargs))
+
+    def __next__(self, *args, **kwargs):
+        return self._next_hook(self.input_source.__next__(*args, **kwargs))
+
+    def __iter__(self, *args, **kwargs):
+
+        self.input_source = self.input_source.__iter__(*args, **kwargs)
+        return self
+
+    # def __getattr__(self, *args, **kwargs):
+    #     """
+    #     Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)
+    #     """
+    #     return self.input_source.__getattribute__(*args, **kwargs)
+
+class BioSeqSource(PassThroughSource):
     """
     Class for representing biosequence data.
     Specifically, this class can read biological data files (such as fasta) and iterate throug them as a Source.
@@ -145,10 +237,34 @@ class BioSeqSource(Source):
     def __iter__(self):
         return self.reset()
 
-class LoopingSource(Source):
+class LoopingSource(PassThroughSource):
     """
-    Given input sources that implement __next__ and reset (to be repeatable),
-    will simulate __getitem__ by repeatedly looping through the iterator as needed.
+    This source can take any iterator and make it appear to be indexable by iterating through the input
+    as needed to reach any given index.
+
+    The input source must implement __next__ and reset (to be repeatable),
+    and this will simulate __getitem__ by repeatedly looping through the iterator as needed.
+
+    For example, say we have a source that iterates through the lines of a FASTA file:
+    ::
+
+        fasta = BioSeqSource('genes.fasta')
+
+    This source can only iterate through the file in one direciton. If we want to access arbitrary elements,
+    we can do this:
+    ::
+
+        clock = LoopingSource(inputs=fasta)
+        clock[10]
+        clock[2:6]
+        len(clock)
+
+    All of these actions are now possible. Note that this is in general an expensive process, because the source
+    has to iterate one at a time to get to the index it needs. In practice, this source should pipe its output
+    to a CachingSource that can store values in memory. This approach enables you to process datasets that don't
+    entirely fit in memory; you can stream in what you need and cache portions. From the perspective of the downstream
+    sources, every element of the dataset is accessible as if it were in memory.
+
     """
 
     name = 'LoopingSource'
@@ -182,6 +298,9 @@ class LoopingSource(Source):
         return below_values.append(above_values) # TODO: Resort this message so values are in the order requested by index
 
     def __len__(self):
+        """
+        Length is also calculated implicitly as items are accessed.
+        """
         if self.length is not None:
             return self.length
         else:
@@ -218,7 +337,10 @@ class LoopingSource(Source):
 
     def compute_length(self):
         """
-        Step forward as far as the inputs will allow and compute lenght.
+        Step forward as far as the inputs will allow and compute length.
+
+        Length is also calculated implicitly as items are accessed.
+
         Note: If the inputs are infinite, then this will go on forever.
         """
         while True:
@@ -231,6 +353,8 @@ class LoopingSource(Source):
     def step_forward(self, n):
         """
         Steps forward through inputs until position = n and then returns that value.
+
+        This also updates the internal length variable if the iterator ends due to this method call.
         """
         if self.length is not None and n > self.length:
             raise IndexError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
@@ -247,10 +371,37 @@ class LoopingSource(Source):
                 raise IndexError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
         return x
 
-class CachingSource(Source):
+class CachingSource(PassThroughSource):
     """
-    Given input sources that implement __getitem__, will store all calls to __getitem__ into an internal cache and therafter __getitem__
-    calls will either access from the cache or trigger __getitem__ calls on the input and an update to the cache.
+    This source can be used to dynamically cache elements from upstream sources.
+    Whenever data is requested by index, this source will intercept the request and add that message alongside
+    the index to its internal cache.
+    This can be useful for dealing with datasets that don't fit in memory or are streamed in. You can cache portions
+    of the dataset as you use them. By combining this with a LoopingSource, you can create the illusion of making
+    the entire dataset available to downstream sources regardless of the type and size of the original data.
+
+    More specifically, fiven input sources that implement __getitem__, will store all calls to __getitem__ into
+    an internal cache and therafter __getitem__ calls will either access from the cache or trigger __getitem__ calls
+    on the input and an update to the cache.
+
+    For example,
+
+    ::
+
+        fasta = BioSeqSource(path='genes.fasta')
+        clock = LoopingSource(inputs=fasta)
+        cache = CachingSource(inputs=clock, cache_size=100) # cache_size is optional; default=100
+
+    Will set up a pipeline that reads lines from a FASTA file and acessess and caches elements as requests are made
+
+    ::
+
+        cache[20:40] # This will be cached
+        cache[25:30] # This will read from the cache
+        cache[44] # This will update the cache
+        cache[40:140] # This will fill the cache, flushing out old elements
+        cache[25:30] # This will read from the dataset and update the cache again
+
     """
     def __init__(self, *args, cache_size = 100, buffer_size = 0, cache_type = 'LRU', infinite = False, **kwargs):
         """
@@ -355,101 +506,12 @@ class CachingSource(Source):
         else:
             raise ValueError("Source is labelled as having infinite length (ie. yields items indefinitely).")
 
-class PassThroughSource(Source):
-    """
-    This source passes through data access calls and methods to its (single) input source except for whatever is overridden by subclasses.
-    NOTE: Only the special methods explicitly defined here (getitem, len, delitem, setitem, next, iter) are passed through.
-    Non-special methods are passed through normally.
-    """
 
-    name = 'Passthrough source'
-    def __init__(self, *args, labels_column = 'labels', **kwargs):
-
-        super().__init__(*args, **kwargs)
-        self.check_inputs()
-        for title, source in self.input_sources.items(): # There is only one
-            self.input_title = title
-            self.input_source = source
-
-    def check_inputs(self):
-        if len(self.input_sources) > 1:
-            raise ValueError("A pass-through source can only have one input source.")
-
-    def __getitem__(self, *args, **kwargs):
-        return self.input_source.__getitem__(*args, **kwargs)
-
-    def __setitem__(self, *args, **kwargs):
-        return self.input_source.__setitem__(*args, **kwargs)
-
-    def __delitem__(self, *args, **kwargs):
-        return self.input_source.__delitem__(*args, **kwargs)
-
-    def __len__(self, *args, **kwargs):
-        return self.input_source.__len__(*args, **kwargs)
-
-    def __next__(self, *args, **kwargs):
-        return self.input_source.__next__(*args, **kwargs)
-
-    def __iter__(self, *args, **kwargs):
-        return self.input_source.__iter__(*args, **kwargs)
-
-    def __getattr__(self, *args, **kwargs):
-        """
-        Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)
-        """
-        return self.recursive_call(*args, **kwargs) #self.input_source.__getattribute__(*args, **kwargs)
-
-class HookedPassThroughSource(PassThroughSource): # BUG NOTE: Methods that return self will break the passthrough at the moment
-    """
-    This source is the same as PassThroughSource, but it has hooks which can be implemented by subclasses to modify the behavior of
-    passed through calls.
-    """
-
-    name = 'Hooked-passthrough source'
-
-    def _getitem_hook(self, message): return message
-
-    # def _setitem_hook(self, *args, **kwargs): pass
-    #
-    # def _delitem_hook(self, *args, **kwargs): pass
-    #
-    # def _len_hook(self, *args, **kwargs): return args[0]
-
-    def _next_hook(self, message): return message
-
-    # def _iter_hook(self, *args, **kwargs): return args[0]
-
-    def __getitem__(self, *args, **kwargs):
-
-        return self._getitem_hook(self.input_source.__getitem__(*args, **kwargs)) #self.input_source.__getitem__(*args, **kwargs))
-
-    # def __setitem__(self, *args, **kwargs):
-    #     self._setitem_hook(self.input_source.__setitem__(*args, **kwargs))
-    #
-    # def __delitem__(self, *args, **kwargs):
-    #     self._delitem_hook(self.input_source.__delitem__(*args, **kwargs))
-    #
-    # def __len__(self, *args, **kwargs):
-    #     return self._len_hook(self.input_source.__len__(*args, **kwargs))
-
-    def __next__(self, *args, **kwargs):
-        return self._next_hook(self.input_source.__next__(*args, **kwargs))
-
-    def __iter__(self, *args, **kwargs):
-
-        self.input_source = self.input_source.__iter__(*args, **kwargs)
-        return self
-
-    # def __getattr__(self, *args, **kwargs):
-    #     """
-    #     Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)
-    #     """
-    #     return self.input_source.__getattribute__(*args, **kwargs)
 
 class Title2LabelSource(Source):
     """
-    This source takes one source as input and inserts a column called 'label' to all outputs where the label is
-    the name of the input source.
+    This source takes one source as input and inserts a column called 'label' containing the name
+    of the input source to to all outputs.
     """
 
     def __init__(self, *args, labels_column = 'labels', **kwargs):
@@ -500,6 +562,7 @@ class Title2LabelSource(Source):
             output = Message(attribute)
         except:
             return attribute
+
         return self.insert_labels(output)
 
     def insert_labels(self, message):
@@ -612,7 +675,7 @@ class ClockworkAggregatorSource(AggregatorSource):
             if sample in self.available_inputs:
                 return sample
 
-class ShufflerSource(Source):
+class ShufflerSource(PassThroughSource):
     """
     Given input sources that implement __getitem__ and __len__, will shuffle the indices so that iterating through
     the source or calling __getitem__ will return different values.

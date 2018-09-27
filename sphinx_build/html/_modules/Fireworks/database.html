@@ -124,14 +124,38 @@
 <div class="viewcode-block" id="TableSource.insert"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.TableSource.insert">[docs]</a>    <span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Inserts the contents of batch message into the database using self.table object</span>
+<span class="sd">        NOTE: Only the dataframe components of a message will be inserted.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            batch (Message): A message to be inserted. The columns and types must be consistent with the database schema.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">make_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add_all</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span></div>
+        <span class="c1"># TODO:     Enable inserting TensorMessages (QUESTION: how would this work?)</span>
+        <span class="c1"># rows = [self.make_row_dict(row) for row in batch]</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+        <span class="c1"># NOTE:     Bulk inserts implemented using this guide:</span>
+        <span class="c1">#           http://docs.sqlalchemy.org/en/latest/faq/performance.html#i-m-inserting-400-000-rows-with-the-orm-and-it-s-really-slow</span>
+
+        <span class="c1"># QUESTION: Should this be the standard insert method, or should this be configurable?</span>
+        <span class="c1">#           There are tradeoffs between doing bulk inserts and the default add method.</span>
+        <span class="c1">#           See here for more details: http://docs.sqlalchemy.org/en/latest/orm/persistence_techniques.html#bulk-operations</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">,</span> <span class="s1">&#39;__table__&#39;</span><span class="p">):</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">__table__</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">)</span> <span class="ow">is</span> <span class="n">Table</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;table must either be an SQLalchemy table or have an __table__ attribute that is.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">insert</span><span class="p">(),</span> <span class="c1"># NOTE: This requires self.table to have a __table__ attribute, which is not guaranteed.</span>
+            <span class="n">rows</span>
+        <span class="p">)</span></div>
+        <span class="c1"># self.session.bulk_insert_mappings(self.table, rows)</span>
+        <span class="c1"># self.session.bulk_save_objects(rows)</span>
+        <span class="c1"># self.session.add_all(rows)</span>
 
 <div class="viewcode-block" id="TableSource.query"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.TableSource.query">[docs]</a>    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entities</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -162,7 +186,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span></div>
 
-    
+
 <div class="viewcode-block" id="TableSource.make_row"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.TableSource.make_row">[docs]</a>    <span class="k">def</span> <span class="nf">make_row</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Converts a Message or dict mapping columns to values into a table object that can be inserted into an SQLalchemy database.</span>
@@ -173,9 +197,26 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            table: row converted to table form.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">cast</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">}</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TableSource.make_row_dict"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.TableSource.make_row_dict">[docs]</a>    <span class="k">def</span> <span class="nf">make_row_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Converts a 1-row Message into a dict of atomic (non-listlike) elements. This can be used for the bulk_insert_mappings method of</span>
+<span class="sd">        an SQLalchemy session, which skips table instantiation and takes dictionaries as arguments instead.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            row: row in Message or dict form to convert.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            table: row converted to table form.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">cast</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">kwargs</span></div></div>
 
 <div class="viewcode-block" id="create_table"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.database.create_table">[docs]</a><span class="k">def</span> <span class="nf">create_table</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">primary_key</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>

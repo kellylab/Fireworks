@@ -114,6 +114,7 @@
 <span class="sd">        	# Code for training</span>
 
 <span class="sd">    Under the hood, the code for loader.__next__() can choose to recursively call a to_tensor() method which is implemented by embedder. Index queries and other magic methods can also be implemented recursively, and this enables a degree of commutativity when stacking sources together (changing the order of sources is often allowed because of the pass-through nature of recursive calls).</span>
+
 <span class="sd">    Note that in order for this to work well, there must be some consistency among method names. If a source expects ‘to_tensor’ to convert batches to tensor format, then an upstream source must have a method with that name, and this should remain consistent across projects to maintain reusability. Lastly, the format for specifying inputs to a source is a dictionary of Sources. The keys in this dictionary can provide information for the Source to use or be ignored completely.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -225,8 +226,32 @@
 
 <div class="viewcode-block" id="LoopingSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.LoopingSource">[docs]</a><span class="k">class</span> <span class="nc">LoopingSource</span><span class="p">(</span><span class="n">Source</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Given input sources that implement __next__ and reset (to be repeatable),</span>
-<span class="sd">    will simulate __getitem__ by repeatedly looping through the iterator as needed.</span>
+<span class="sd">    This source can take any iterator and make it appear to be indexable by iterating through the input</span>
+<span class="sd">    as needed to reach any given index.</span>
+
+<span class="sd">    The input source must implement __next__ and reset (to be repeatable),</span>
+<span class="sd">    and this will simulate __getitem__ by repeatedly looping through the iterator as needed.</span>
+
+<span class="sd">    For example, say we have a source that iterates through the lines of a FASTA file:</span>
+<span class="sd">    ::</span>
+
+<span class="sd">        fasta = BioSeqSource(&#39;genes.fasta&#39;)</span>
+
+<span class="sd">    This source can only iterate through the file in one direciton. If we want to access arbitrary elements,</span>
+<span class="sd">    we can do this:</span>
+<span class="sd">    ::</span>
+
+<span class="sd">        clock = LoopingSource(inputs=fasta)</span>
+<span class="sd">        clock[10]</span>
+<span class="sd">        clock[2:6]</span>
+<span class="sd">        len(clock)</span>
+
+<span class="sd">    All of these actions are now possible. Note that this is in general an expensive process, because the source</span>
+<span class="sd">    has to iterate one at a time to get to the index it needs. In practice, this source should pipe its output</span>
+<span class="sd">    to a CachingSource that can store values in memory. This approach enables you to process datasets that don&#39;t</span>
+<span class="sd">    entirely fit in memory; you can stream in what you need and cache portions. From the perspective of the downstream</span>
+<span class="sd">    sources, every element of the dataset is accessible as if it were in memory.</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;LoopingSource&#39;</span>
@@ -260,6 +285,9 @@
         <span class="k">return</span> <span class="n">below_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">above_values</span><span class="p">)</span> <span class="c1"># TODO: Resort this message so values are in the order requested by index</span>
 
     <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Length is also calculated implicitly as items are accessed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
         <span class="k">else</span><span class="p">:</span>
@@ -296,7 +324,10 @@
 
 <div class="viewcode-block" id="LoopingSource.compute_length"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.LoopingSource.compute_length">[docs]</a>    <span class="k">def</span> <span class="nf">compute_length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Step forward as far as the inputs will allow and compute lenght.</span>
+<span class="sd">        Step forward as far as the inputs will allow and compute length.</span>
+
+<span class="sd">        Length is also calculated implicitly as items are accessed.</span>
+
 <span class="sd">        Note: If the inputs are infinite, then this will go on forever.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
@@ -309,6 +340,8 @@
 <div class="viewcode-block" id="LoopingSource.step_forward"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.LoopingSource.step_forward">[docs]</a>    <span class="k">def</span> <span class="nf">step_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Steps forward through inputs until position = n and then returns that value.</span>
+
+<span class="sd">        This also updates the internal length variable if the iterator ends due to this method call.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;Requested index is out of bounds for inputs with length </span><span class="si">{0}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">))</span>
@@ -327,8 +360,36 @@
 
 <div class="viewcode-block" id="CachingSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.CachingSource">[docs]</a><span class="k">class</span> <span class="nc">CachingSource</span><span class="p">(</span><span class="n">Source</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Given input sources that implement __getitem__, will store all calls to __getitem__ into an internal cache and therafter __getitem__</span>
-<span class="sd">    calls will either access from the cache or trigger __getitem__ calls on the input and an update to the cache.</span>
+<span class="sd">    This source can be used to dynamically cache elements from upstream sources.</span>
+<span class="sd">    Whenever data is requested by index, this source will intercept the request and add that message alongside</span>
+<span class="sd">    the index to its internal cache.</span>
+<span class="sd">    This can be useful for dealing with datasets that don&#39;t fit in memory or are streamed in. You can cache portions</span>
+<span class="sd">    of the dataset as you use them. By combining this with a LoopingSource, you can create the illusion of making</span>
+<span class="sd">    the entire dataset available to downstream sources regardless of the type and size of the original data.</span>
+
+<span class="sd">    More specifically, fiven input sources that implement __getitem__, will store all calls to __getitem__ into</span>
+<span class="sd">    an internal cache and therafter __getitem__ calls will either access from the cache or trigger __getitem__ calls</span>
+<span class="sd">    on the input and an update to the cache.</span>
+
+<span class="sd">    For example,</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        fasta = BioSeqSource(path=&#39;genes.fasta&#39;)</span>
+<span class="sd">        clock = LoopingSource(inputs=fasta)</span>
+<span class="sd">        cache = CachingSource(inputs=clock, cache_size=100) # cache_size is optional; default=100</span>
+
+<span class="sd">    Will set up a pipeline that reads lines from a FASTA file and acessess and caches elements as requests are made</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        cache[20:40] # This will be cached</span>
+<span class="sd">        cache[25:30] # This will read from the cache</span>
+<span class="sd">        cache[44] # This will update the cache</span>
+<span class="sd">        cache[40:140] # This will fill the cache, flushing out old elements</span>
+<span class="sd">        cache[25:30] # This will read from the dataset and update the cache again</span>
+
+<span class="sd">        </span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">cache_size</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">buffer_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">cache_type</span> <span class="o">=</span> <span class="s1">&#39;LRU&#39;</span><span class="p">,</span> <span class="n">infinite</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -440,6 +501,7 @@
 <span class="sd">    Non-special methods are passed through normally.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="c1"># TODO: Make every source passthrough.</span>
     <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Passthrough source&#39;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">labels_column</span> <span class="o">=</span> <span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 
