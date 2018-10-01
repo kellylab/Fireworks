@@ -26,6 +26,12 @@ class one_way_dummy(ds.Source):
     def reset(self):
         self.count = 0
 
+class one_way_iter_dummy(one_way_dummy):
+
+    def __iter__(self):
+        self.reset()
+        return self
+
 class reset_dummy(ds.Source):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -252,6 +258,32 @@ def test_AggregatorSource():
     counts = {i:counter(bumbaz['count'],i) for i in range(20)}
     for count in counts.values():
         assert count == 3 # Make sure each element showed up 3 times, corresponding to the 3 inputs
+
+def test_RepeaterSource():
+
+    dumbo = one_way_iter_dummy()
+    robert = ds.RepeaterSource(inputs=dumbo)
+    numbaz = Message()
+    assert len(numbaz) == 0
+    for numba in robert:
+        numbaz = numbaz.append(numba)
+    assert len(numbaz) == robert.repetitions*20
+
+    dumbo = one_way_dummy()
+    robert = ds.RepeaterSource(inputs=dumbo)
+    numbaz = Message()
+    robert.reset()
+    i = 0
+    assert len(numbaz) == 0
+    while True:
+        try:
+            numbaz = numbaz.append(robert.__next__())
+            i+=1
+            if i > 1000: # If something goes horribly wrong, cancel test
+                assert False
+        except StopIteration:
+            break
+    assert len(numbaz) == robert.repetitions*20
 
 def test_CachingSource():
 

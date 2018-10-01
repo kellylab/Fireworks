@@ -675,6 +675,39 @@ class ClockworkAggregatorSource(AggregatorSource):
             if sample in self.available_inputs:
                 return sample
 
+class RepeaterSource(PassThroughSource):
+    """
+    Given an input Source that is iterable, enables repeat iteration.
+    """
+
+    def __init__(self,*args,repetitions=10,**kwargs):
+        super().__init__(*args,**kwargs)
+        if not type(repetitions) is int:
+            raise ValueError("Number of repetitions must be provided as an integer.")
+
+        self.repetitions = repetitions
+
+    def reset(self):
+        self.iteration = 0
+        self.recursive_call('reset',)()
+        return self
+
+    def __iter__(self):
+        self.reset()
+        return self
+
+    def __next__(self):
+
+        try:
+            return self.recursive_call('__next__')()
+        except StopIteration:
+            self.iteration += 1
+            if self.iteration >= self.repetitions:
+                raise StopIteration
+            else:
+                self.recursive_call('reset')()
+                return self.__next__()
+
 class ShufflerSource(PassThroughSource):
     """
     Given input sources that implement __getitem__ and __len__, will shuffle the indices so that iterating through
