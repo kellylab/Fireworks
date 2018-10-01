@@ -61,27 +61,29 @@ class Message:
 
     """
 
-    def __init__(self, *args, cache = None, length = None, **kwargs):
+    def __init__(self, *args, metadata = None, length = None, **kwargs):
         """
         Initializes a message
         If *args is empty --> empty message
         If *args is two args --> construct a message assuming arg0 is tensors and arg1 is dataframe
         Alternatively, tensors and dataframes can be specified with kwargs (tensors  = ... and df = ...)
         If *args has __getitem__ and keys() attributes --> construct a message from elements of dict, separating tensors from pd series
-        An optional cache class can be provided to specify a caching strategy.
         """
 
         """ Init must be idempotent, attempt to perform type conversions as necessary, and compute/check length. """
         if len(args) == 0:
             tensors = {}
             df = {}
+
         if 'tensors' in kwargs:
             tensors = kwargs['tensors']
         if 'df' in kwargs:
             df = kwargs['df']
+
         if len(args) == 2:
             tensors = args[0]
             df = args[1]
+
         if len(args) == 1:
             # Identify tensors and separate them out
             # The argument may be an existing Message/TensorMessage
@@ -89,9 +91,11 @@ class Message:
             if type(args[0]) is Message:
                 tensors = args[0].tensor_message
                 df = args[0].df
+
             elif args[0] is None:
                 tensors = {}
                 df = {}
+
             else:
                 tensors, df = extract_tensors(args[0])
 

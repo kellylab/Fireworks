@@ -83,6 +83,7 @@
 <span class="kn">import</span> <span class="nn">datetime</span>
 <span class="kn">from</span> <span class="nn">Fireworks</span> <span class="k">import</span> <span class="n">Message</span>
 <span class="kn">from</span> <span class="nn">Fireworks</span> <span class="k">import</span> <span class="n">database</span> <span class="k">as</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">deprecated</span> <span class="k">import</span> <span class="n">deprecated</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">This module contains classes and functions for saving and loading data collected during experiments.</span>
@@ -192,7 +193,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">Message</span><span class="p">({</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">],</span> <span class="s1">&#39;iteration&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">iteration</span><span class="p">],</span> <span class="s1">&#39;description&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">],</span> <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span><span class="p">]}))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="Experiment.create_engine"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.experiment.Experiment.create_engine">[docs]</a>    <span class="k">def</span> <span class="nf">create_engine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="Experiment.get_engine"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.experiment.Experiment.get_engine">[docs]</a>    <span class="k">def</span> <span class="nf">get_engine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Creates an engine corresponding to a database with the given name. In particular, this creates a file called {name}.sqlite</span>
 <span class="sd">        in this experiment&#39;s save directory, and makes an engine to connect to it.</span>
@@ -203,10 +204,15 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            engine: The new engine. You can also reach this engine now by calling self.engines[name]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engines</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Engine with name </span><span class="si">{name}</span><span class="s2"> already exists in this experiment.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">engines</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">create_engine</span><span class="p">(</span><span class="s2">&quot;sqlite:///</span><span class="si">{filename}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db_path</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">save_path</span><span class="p">,</span> <span class="n">name</span><span class="o">+</span><span class="s1">&#39;.sqlite&#39;</span><span class="p">)))</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engines</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Experiment.create_engine"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.experiment.Experiment.create_engine">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="n">reason</span><span class="o">=</span><span class="s2">&quot;This is an alias for get_engine and will be removed in the future.&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">create_engine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Alias for get_engine. This will be removed in the future.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_engine</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Experiment.get_session"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.experiment.Experiment.get_session">[docs]</a>    <span class="k">def</span> <span class="nf">get_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>

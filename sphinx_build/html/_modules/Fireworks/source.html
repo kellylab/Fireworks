@@ -174,7 +174,99 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">response</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">respone</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_sources</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">responses</span><span class="p">)}</span></div></div>
 
-<div class="viewcode-block" id="BioSeqSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.BioSeqSource">[docs]</a><span class="k">class</span> <span class="nc">BioSeqSource</span><span class="p">(</span><span class="n">Source</span><span class="p">):</span>
+<div class="viewcode-block" id="PassThroughSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.PassThroughSource">[docs]</a><span class="k">class</span> <span class="nc">PassThroughSource</span><span class="p">(</span><span class="n">Source</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This source passes through data access calls and methods to its (single) input source except for whatever is overridden by subclasses.</span>
+<span class="sd">    NOTE: Only the special methods explicitly defined here (getitem, len, delitem, setitem, next, iter) are passed through.</span>
+<span class="sd">    Non-special methods are passed through normally.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># TODO: Make every source passthrough.</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Passthrough source&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">labels_column</span> <span class="o">=</span> <span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_inputs</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">title</span><span class="p">,</span> <span class="n">source</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span> <span class="c1"># There is only one</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_title</span> <span class="o">=</span> <span class="n">title</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span> <span class="o">=</span> <span class="n">source</span>
+
+<div class="viewcode-block" id="PassThroughSource.check_inputs"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.PassThroughSource.check_inputs">[docs]</a>    <span class="k">def</span> <span class="nf">check_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_sources</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;A pass-through source can only have one input source.&quot;</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__delitem__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__len__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__next__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">recursive_call</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="c1">#self.input_source.__getattribute__(*args, **kwargs)</span></div>
+
+<div class="viewcode-block" id="HookedPassThroughSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.HookedPassThroughSource">[docs]</a><span class="k">class</span> <span class="nc">HookedPassThroughSource</span><span class="p">(</span><span class="n">PassThroughSource</span><span class="p">):</span> <span class="c1"># BUG NOTE: Methods that return self will break the passthrough at the moment</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This source is the same as PassThroughSource, but it has hooks which can be implemented by subclasses to modify the behavior of</span>
+<span class="sd">    passed through calls.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Hooked-passthrough source&#39;</span>
+
+    <span class="k">def</span> <span class="nf">_getitem_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span> <span class="k">return</span> <span class="n">message</span>
+
+    <span class="c1"># def _setitem_hook(self, *args, **kwargs): pass</span>
+    <span class="c1">#</span>
+    <span class="c1"># def _delitem_hook(self, *args, **kwargs): pass</span>
+    <span class="c1">#</span>
+    <span class="c1"># def _len_hook(self, *args, **kwargs): return args[0]</span>
+
+    <span class="k">def</span> <span class="nf">_next_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span> <span class="k">return</span> <span class="n">message</span>
+
+    <span class="c1"># def _iter_hook(self, *args, **kwargs): return args[0]</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getitem_hook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span> <span class="c1">#self.input_source.__getitem__(*args, **kwargs))</span>
+
+    <span class="c1"># def __setitem__(self, *args, **kwargs):</span>
+    <span class="c1">#     self._setitem_hook(self.input_source.__setitem__(*args, **kwargs))</span>
+    <span class="c1">#</span>
+    <span class="c1"># def __delitem__(self, *args, **kwargs):</span>
+    <span class="c1">#     self._delitem_hook(self.input_source.__delitem__(*args, **kwargs))</span>
+    <span class="c1">#</span>
+    <span class="c1"># def __len__(self, *args, **kwargs):</span>
+    <span class="c1">#     return self._len_hook(self.input_source.__len__(*args, **kwargs))</span>
+
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_hook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__next__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    <span class="c1"># def __getattr__(self, *args, **kwargs):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     return self.input_source.__getattribute__(*args, **kwargs)</span>
+
+<div class="viewcode-block" id="BioSeqSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.BioSeqSource">[docs]</a><span class="k">class</span> <span class="nc">BioSeqSource</span><span class="p">(</span><span class="n">PassThroughSource</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Class for representing biosequence data.</span>
 <span class="sd">    Specifically, this class can read biological data files (such as fasta) and iterate throug them as a Source.</span>
@@ -224,7 +316,7 @@
     <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="LoopingSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.LoopingSource">[docs]</a><span class="k">class</span> <span class="nc">LoopingSource</span><span class="p">(</span><span class="n">Source</span><span class="p">):</span>
+<div class="viewcode-block" id="LoopingSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.LoopingSource">[docs]</a><span class="k">class</span> <span class="nc">LoopingSource</span><span class="p">(</span><span class="n">PassThroughSource</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This source can take any iterator and make it appear to be indexable by iterating through the input</span>
 <span class="sd">    as needed to reach any given index.</span>
@@ -358,7 +450,7 @@
                 <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;Requested index is out of bounds for inputs with length </span><span class="si">{0}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">x</span></div></div>
 
-<div class="viewcode-block" id="CachingSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.CachingSource">[docs]</a><span class="k">class</span> <span class="nc">CachingSource</span><span class="p">(</span><span class="n">Source</span><span class="p">):</span>
+<div class="viewcode-block" id="CachingSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.CachingSource">[docs]</a><span class="k">class</span> <span class="nc">CachingSource</span><span class="p">(</span><span class="n">PassThroughSource</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This source can be used to dynamically cache elements from upstream sources.</span>
 <span class="sd">    Whenever data is requested by index, this source will intercept the request and add that message alongside</span>
@@ -389,7 +481,6 @@
 <span class="sd">        cache[40:140] # This will fill the cache, flushing out old elements</span>
 <span class="sd">        cache[25:30] # This will read from the dataset and update the cache again</span>
 
-<span class="sd">        </span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">cache_size</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">buffer_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">cache_type</span> <span class="o">=</span> <span class="s1">&#39;LRU&#39;</span><span class="p">,</span> <span class="n">infinite</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -494,102 +585,12 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Source is labelled as having infinite length (ie. yields items indefinitely).&quot;</span><span class="p">)</span></div></div>
 
-<div class="viewcode-block" id="PassThroughSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.PassThroughSource">[docs]</a><span class="k">class</span> <span class="nc">PassThroughSource</span><span class="p">(</span><span class="n">Source</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    This source passes through data access calls and methods to its (single) input source except for whatever is overridden by subclasses.</span>
-<span class="sd">    NOTE: Only the special methods explicitly defined here (getitem, len, delitem, setitem, next, iter) are passed through.</span>
-<span class="sd">    Non-special methods are passed through normally.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># TODO: Make every source passthrough.</span>
-    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Passthrough source&#39;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">labels_column</span> <span class="o">=</span> <span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">check_inputs</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">title</span><span class="p">,</span> <span class="n">source</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span> <span class="c1"># There is only one</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">input_title</span> <span class="o">=</span> <span class="n">title</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span> <span class="o">=</span> <span class="n">source</span>
-
-<div class="viewcode-block" id="PassThroughSource.check_inputs"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.PassThroughSource.check_inputs">[docs]</a>    <span class="k">def</span> <span class="nf">check_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_sources</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;A pass-through source can only have one input source.&quot;</span><span class="p">)</span></div>
-
-    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__delitem__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__len__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__next__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">recursive_call</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="c1">#self.input_source.__getattribute__(*args, **kwargs)</span></div>
-
-<div class="viewcode-block" id="HookedPassThroughSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.HookedPassThroughSource">[docs]</a><span class="k">class</span> <span class="nc">HookedPassThroughSource</span><span class="p">(</span><span class="n">PassThroughSource</span><span class="p">):</span> <span class="c1"># BUG NOTE: Methods that return self will break the passthrough at the moment</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    This source is the same as PassThroughSource, but it has hooks which can be implemented by subclasses to modify the behavior of</span>
-<span class="sd">    passed through calls.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Hooked-passthrough source&#39;</span>
-
-    <span class="k">def</span> <span class="nf">_getitem_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span> <span class="k">return</span> <span class="n">message</span>
-
-    <span class="c1"># def _setitem_hook(self, *args, **kwargs): pass</span>
-    <span class="c1">#</span>
-    <span class="c1"># def _delitem_hook(self, *args, **kwargs): pass</span>
-    <span class="c1">#</span>
-    <span class="c1"># def _len_hook(self, *args, **kwargs): return args[0]</span>
-
-    <span class="k">def</span> <span class="nf">_next_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span> <span class="k">return</span> <span class="n">message</span>
-
-    <span class="c1"># def _iter_hook(self, *args, **kwargs): return args[0]</span>
-
-    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getitem_hook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span> <span class="c1">#self.input_source.__getitem__(*args, **kwargs))</span>
-
-    <span class="c1"># def __setitem__(self, *args, **kwargs):</span>
-    <span class="c1">#     self._setitem_hook(self.input_source.__setitem__(*args, **kwargs))</span>
-    <span class="c1">#</span>
-    <span class="c1"># def __delitem__(self, *args, **kwargs):</span>
-    <span class="c1">#     self._delitem_hook(self.input_source.__delitem__(*args, **kwargs))</span>
-    <span class="c1">#</span>
-    <span class="c1"># def __len__(self, *args, **kwargs):</span>
-    <span class="c1">#     return self._len_hook(self.input_source.__len__(*args, **kwargs))</span>
-
-    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_hook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__next__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
-
-    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_source</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span></div>
-
-    <span class="c1"># def __getattr__(self, *args, **kwargs):</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     return self.input_source.__getattribute__(*args, **kwargs)</span>
 
 <div class="viewcode-block" id="Title2LabelSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.Title2LabelSource">[docs]</a><span class="k">class</span> <span class="nc">Title2LabelSource</span><span class="p">(</span><span class="n">Source</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    This source takes one source as input and inserts a column called &#39;label&#39; to all outputs where the label is</span>
-<span class="sd">    the name of the input source.</span>
+<span class="sd">    This source takes one source as input and inserts a column called &#39;label&#39; containing the name</span>
+<span class="sd">    of the input source to to all outputs.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">labels_column</span> <span class="o">=</span> <span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -640,6 +641,7 @@
             <span class="n">output</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">attribute</span><span class="p">)</span>
         <span class="k">except</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">attribute</span>
+
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">insert_labels</span><span class="p">(</span><span class="n">output</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Title2LabelSource.insert_labels"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.Title2LabelSource.insert_labels">[docs]</a>    <span class="k">def</span> <span class="nf">insert_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
@@ -752,7 +754,7 @@
             <span class="k">if</span> <span class="n">sample</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_inputs</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">sample</span></div></div>
 
-<div class="viewcode-block" id="ShufflerSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.ShufflerSource">[docs]</a><span class="k">class</span> <span class="nc">ShufflerSource</span><span class="p">(</span><span class="n">Source</span><span class="p">):</span>
+<div class="viewcode-block" id="ShufflerSource"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.source.ShufflerSource">[docs]</a><span class="k">class</span> <span class="nc">ShufflerSource</span><span class="p">(</span><span class="n">PassThroughSource</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Given input sources that implement __getitem__ and __len__, will shuffle the indices so that iterating through</span>
 <span class="sd">    the source or calling __getitem__ will return different values.</span>

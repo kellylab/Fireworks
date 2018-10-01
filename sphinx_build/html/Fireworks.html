@@ -488,9 +488,41 @@ implements a method and wants to use an upstream call of the same method as well
 </dd></dl>
 
 <dl class="class">
+<dt id="Fireworks.source.PassThroughSource">
+<em class="property">class </em><code class="descclassname">Fireworks.source.</code><code class="descname">PassThroughSource</code><span class="sig-paren">(</span><em>*args</em>, <em>labels_column='labels'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#PassThroughSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.PassThroughSource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
+<p>This source passes through data access calls and methods to its (single) input source except for whatever is overridden by subclasses.
+NOTE: Only the special methods explicitly defined here (getitem, len, delitem, setitem, next, iter) are passed through.
+Non-special methods are passed through normally.</p>
+<dl class="attribute">
+<dt id="Fireworks.source.PassThroughSource.name">
+<code class="descname">name</code><em class="property"> = 'Passthrough source'</em><a class="headerlink" href="#Fireworks.source.PassThroughSource.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.source.PassThroughSource.check_inputs">
+<code class="descname">check_inputs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#PassThroughSource.check_inputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.PassThroughSource.check_inputs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="Fireworks.source.HookedPassThroughSource">
+<em class="property">class </em><code class="descclassname">Fireworks.source.</code><code class="descname">HookedPassThroughSource</code><span class="sig-paren">(</span><em>*args</em>, <em>labels_column='labels'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#HookedPassThroughSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.HookedPassThroughSource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.PassThroughSource" title="Fireworks.source.PassThroughSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.PassThroughSource</span></code></a></p>
+<p>This source is the same as PassThroughSource, but it has hooks which can be implemented by subclasses to modify the behavior of
+passed through calls.</p>
+<dl class="attribute">
+<dt id="Fireworks.source.HookedPassThroughSource.name">
+<code class="descname">name</code><em class="property"> = 'Hooked-passthrough source'</em><a class="headerlink" href="#Fireworks.source.HookedPassThroughSource.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="Fireworks.source.BioSeqSource">
 <em class="property">class </em><code class="descclassname">Fireworks.source.</code><code class="descname">BioSeqSource</code><span class="sig-paren">(</span><em>path</em>, <em>inputs=None</em>, <em>filetype='fasta'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#BioSeqSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.BioSeqSource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.PassThroughSource" title="Fireworks.source.PassThroughSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.PassThroughSource</span></code></a></p>
 <p>Class for representing biosequence data.
 Specifically, this class can read biological data files (such as fasta) and iterate throug them as a Source.
 This can serve as the first source in a pipeline for analyzing genomic data.</p>
@@ -510,7 +542,7 @@ This can serve as the first source in a pipeline for analyzing genomic data.</p>
 <dl class="class">
 <dt id="Fireworks.source.LoopingSource">
 <em class="property">class </em><code class="descclassname">Fireworks.source.</code><code class="descname">LoopingSource</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#LoopingSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.LoopingSource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.PassThroughSource" title="Fireworks.source.PassThroughSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.PassThroughSource</span></code></a></p>
 <p>This source can take any iterator and make it appear to be indexable by iterating through the input
 as needed to reach any given index.</p>
 <p>The input source must implement __next__ and reset (to be repeatable),
@@ -569,7 +601,7 @@ sources, every element of the dataset is accessible as if it were in memory.</p>
 <dl class="class">
 <dt id="Fireworks.source.CachingSource">
 <em class="property">class </em><code class="descclassname">Fireworks.source.</code><code class="descname">CachingSource</code><span class="sig-paren">(</span><em>*args</em>, <em>cache_size=100</em>, <em>buffer_size=0</em>, <em>cache_type='LRU'</em>, <em>infinite=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#CachingSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.CachingSource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.PassThroughSource" title="Fireworks.source.PassThroughSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.PassThroughSource</span></code></a></p>
 <p>This source can be used to dynamically cache elements from upstream sources.
 Whenever data is requested by index, this source will intercept the request and add that message alongside
 the index to its internal cache.
@@ -615,43 +647,11 @@ Note: If the inputs are infinite, then this will go on forever.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="Fireworks.source.PassThroughSource">
-<em class="property">class </em><code class="descclassname">Fireworks.source.</code><code class="descname">PassThroughSource</code><span class="sig-paren">(</span><em>*args</em>, <em>labels_column='labels'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#PassThroughSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.PassThroughSource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
-<p>This source passes through data access calls and methods to its (single) input source except for whatever is overridden by subclasses.
-NOTE: Only the special methods explicitly defined here (getitem, len, delitem, setitem, next, iter) are passed through.
-Non-special methods are passed through normally.</p>
-<dl class="attribute">
-<dt id="Fireworks.source.PassThroughSource.name">
-<code class="descname">name</code><em class="property"> = 'Passthrough source'</em><a class="headerlink" href="#Fireworks.source.PassThroughSource.name" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="Fireworks.source.PassThroughSource.check_inputs">
-<code class="descname">check_inputs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#PassThroughSource.check_inputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.PassThroughSource.check_inputs" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="Fireworks.source.HookedPassThroughSource">
-<em class="property">class </em><code class="descclassname">Fireworks.source.</code><code class="descname">HookedPassThroughSource</code><span class="sig-paren">(</span><em>*args</em>, <em>labels_column='labels'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#HookedPassThroughSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.HookedPassThroughSource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.PassThroughSource" title="Fireworks.source.PassThroughSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.PassThroughSource</span></code></a></p>
-<p>This source is the same as PassThroughSource, but it has hooks which can be implemented by subclasses to modify the behavior of
-passed through calls.</p>
-<dl class="attribute">
-<dt id="Fireworks.source.HookedPassThroughSource.name">
-<code class="descname">name</code><em class="property"> = 'Hooked-passthrough source'</em><a class="headerlink" href="#Fireworks.source.HookedPassThroughSource.name" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
 <dt id="Fireworks.source.Title2LabelSource">
 <em class="property">class </em><code class="descclassname">Fireworks.source.</code><code class="descname">Title2LabelSource</code><span class="sig-paren">(</span><em>*args</em>, <em>labels_column='labels'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#Title2LabelSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.Title2LabelSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
-<p>This source takes one source as input and inserts a column called ‘label’ to all outputs where the label is
-the name of the input source.</p>
+<p>This source takes one source as input and inserts a column called ‘label’ containing the name
+of the input source to to all outputs.</p>
 <dl class="method">
 <dt id="Fireworks.source.Title2LabelSource.check_inputs">
 <code class="descname">check_inputs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#Title2LabelSource.check_inputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.Title2LabelSource.check_inputs" title="Permalink to this definition">¶</a></dt>
@@ -747,7 +747,7 @@ its input sources.</p>
 <dl class="class">
 <dt id="Fireworks.source.ShufflerSource">
 <em class="property">class </em><code class="descclassname">Fireworks.source.</code><code class="descname">ShufflerSource</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/source.html#ShufflerSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.source.ShufflerSource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.Source" title="Fireworks.source.Source"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.Source</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#Fireworks.source.PassThroughSource" title="Fireworks.source.PassThroughSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.source.PassThroughSource</span></code></a></p>
 <p>Given input sources that implement __getitem__ and __len__, will shuffle the indices so that iterating through
 the source or calling __getitem__ will return different values.</p>
 <dl class="method">
@@ -1380,8 +1380,8 @@ so calling this method multiple times does not produce side-effects.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Fireworks.experiment.Experiment.create_engine">
-<code class="descname">create_engine</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/experiment.html#Experiment.create_engine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.experiment.Experiment.create_engine" title="Permalink to this definition">¶</a></dt>
+<dt id="Fireworks.experiment.Experiment.get_engine">
+<code class="descname">get_engine</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/experiment.html#Experiment.get_engine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.experiment.Experiment.get_engine" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates an engine corresponding to a database with the given name. In particular, this creates a file called {name}.sqlite
 in this experiment’s save directory, and makes an engine to connect to it.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1396,6 +1396,12 @@ in this experiment’s save directory, and makes an engine to connect to it.</p>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.experiment.Experiment.create_engine">
+<code class="descname">create_engine</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/experiment.html#Experiment.create_engine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.experiment.Experiment.create_engine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for get_engine. This will be removed in the future.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1697,6 +1703,12 @@ For example, slice(0,4,2) has a length of two.</p>
 <dt id="Fireworks.preprocessing.apply_noise">
 <code class="descclassname">Fireworks.preprocessing.</code><code class="descname">apply_noise</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/preprocessing.html#apply_noise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.preprocessing.apply_noise" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<span class="target" id="module-Fireworks.events"></span><dl class="function">
+<dt id="Fireworks.events.visdom_loss_handler">
+<code class="descclassname">Fireworks.events.</code><code class="descname">visdom_loss_handler</code><span class="sig-paren">(</span><em>modules_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/events.html#visdom_loss_handler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.events.visdom_loss_handler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attaches plots and metrics to trainer.</p>
+</dd></dl>
 
 <span class="target" id="module-Fireworks.exceptions"></span><dl class="exception">
 <dt id="Fireworks.exceptions.EndHyperparameterOptimization">

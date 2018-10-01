@@ -230,8 +230,10 @@
             <span class="n">index</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">index</span><span class="p">,</span><span class="n">index</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getindex</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">t</span> <span class="ow">is</span> <span class="nb">slice</span><span class="p">:</span>
-            <span class="c1"># if max(index.start, index.stop) &gt; self.length:</span>
-            <span class="c1">#     raise IndexError</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">start</span> <span class="ow">or</span> <span class="mi">0</span>
+            <span class="n">stop</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">stop</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
+            <span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getindex</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">t</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span> <span class="c1"># Must account for list of indices and list of strings</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -653,10 +655,13 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">TensorMessage</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tensor_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
         <span class="k">elif</span> <span class="n">t</span> <span class="ow">is</span> <span class="nb">slice</span><span class="p">:</span>
-            <span class="c1"># if max(index.stop, index.start) &gt; self.length:</span>
-            <span class="c1">#     raise IndexError</span>
-            <span class="c1"># else:</span>
-            <span class="k">return</span> <span class="n">TensorMessage</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tensor_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">start</span> <span class="ow">or</span> <span class="mi">0</span>
+            <span class="n">stop</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">stop</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
+            <span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">TensorMessage</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tensor_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+
         <span class="k">elif</span> <span class="n">t</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span> <span class="c1"># Check if list of column names or indices</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
                 <span class="n">tt</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -693,7 +698,7 @@
         <span class="k">elif</span> <span class="n">t</span> <span class="ow">is</span> <span class="nb">int</span> <span class="ow">or</span> <span class="n">t</span> <span class="ow">is</span> <span class="nb">slice</span><span class="p">:</span>
             <span class="n">value</span> <span class="o">=</span> <span class="n">TensorMessage</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tensor_dict</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">tensor_dict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">tensor_dict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="c1"># BUG: Out of bound slice queries return an empty Message instead of raising an error.</span>
         <span class="k">elif</span> <span class="n">t</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
                 <span class="n">tt</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
