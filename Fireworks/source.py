@@ -761,3 +761,35 @@ class IndexMapperSource(Source):
 
     def __len__(self):
         return len(self.pointers)
+
+class BatchingSource(PassThroughSource):
+    """
+    Generates minibatches.
+    """
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args,**kwargs)
+        self.current_index = 0
+        self.batch_size = 5
+
+    def __iter__(self):
+
+        self.reset()
+        return self
+
+    def reset(self):
+
+        self.current_index = 0
+
+    def __next__(self):
+
+        if self.current_index + self.batch_size > len(self):
+            raise StopIteration
+
+        try:
+            batch = self[self.current_index:self.current_index+self.batch_size]
+            self.current_index += self.batch_size
+            return batch
+        except IndexError:
+            raise StopIteration
