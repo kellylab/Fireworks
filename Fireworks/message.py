@@ -324,6 +324,8 @@ class Message:
                         self._delindex(index)
         else:
             raise IndexError("{0} is not a column(s) or index in this message.".format(str(index)))
+        if len(self.tensor_message.keys()) == 0:
+            self.tensor_message.length = 0
 
     def _delindex(self, index):
         """
@@ -684,6 +686,9 @@ class TensorMessage:
                     self._dellist(index)
             else:
                 raise KeyError
+
+        if len(self.keys()) == 0: # If you've deleted the last column, the length is now 0 #TODO: Test this
+            self.length = 0
 
         # if isinstance(index, Hashable) and index in self.tensor_dict.keys():
         #     del self.tensor_dict[index]

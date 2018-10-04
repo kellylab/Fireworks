@@ -307,7 +307,17 @@ def test_Message_set_get():
     assert set(email.tensor_message.columns) == set(['b','c'])
     assert set(email.df.columns) == set(['a','d'])
     assert (email['c'] == new_c).all()
-
+    # Test column updates that end up clearing either self.df or self.tensor_message
+    email = Message(tensors, vectors)
+    df = email.dataframe(['a', 'b'])
+    assert len(email) == 3
+    assert len(email.tensor_message) == 3
+    assert len(email.df) == 3
+    email[['a','b']] = df
+    assert len(email) == 3
+    assert len(email.tensor_message) == 0
+    assert len(email.df) == 3
+    # TODO: Test the other way around
 
 def test_Message_del():
 
@@ -508,6 +518,14 @@ def test_TensorMessage_set_get_del():
         assert False
     except IndexError:
         assert True
+
+    # Test length adjustment if all columns are deleted
+    zohomail = TensorMessage({'a':a,'b':b})
+    assert len(zohomail) == 3
+    del zohomail['a']
+    assert len(zohomail) == 3
+    del zohomail['b']
+    assert len(zohomail) == 0
 
 def test_TensorMessage_eq():
 
