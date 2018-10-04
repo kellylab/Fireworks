@@ -469,6 +469,24 @@ class Message:
         else:
             return pd.DataFrame({key: np.array(self[key]) for key in keys})
 
+    def to_dataframe(self, keys = None):
+        """
+        Returns message with columns indicated by keys converted to DataFrame. If keys is None, all tensors are converted.
+
+        Args:
+            keys: Keys to get. Default = None, in which case all tensors are mapped to DataFrame.
+
+        Returns:
+            message: A Message in which the desired columns are DataFrames.
+        """
+        if keys is None:
+            keys = list(self.tensor_message.keys())
+
+        df = self.dataframe(keys=keys)
+        self[keys] = df
+
+        return self
+
     def permute(self, index):
         """
         Reorders elements of message based on index.

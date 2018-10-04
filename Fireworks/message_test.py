@@ -403,6 +403,14 @@ def test_Message_del():
     del m['c']
     assert set(m.columns) == set(['b','d'])
 
+def test_to_dataframe():
+
+    m = Message(tensors,vectors)
+    n = m.to_dataframe()
+    assert m == n
+    assert m.tensor_message == {}
+    for letter in ['a','b','c','d']:
+        assert letter in m.df
 
 def test_Message_iter():
 
