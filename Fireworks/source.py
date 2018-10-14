@@ -13,6 +13,7 @@ import random
 from bidict import bidict
 import torch
 import math
+import numpy as np
 
 class Source(ABC):
     """
@@ -642,6 +643,8 @@ class ShufflerSource(Source):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.check_inputs()
+        self.current_index = 0
+        self.shuffle_indices = np.array([i for i in range(len(self))])
 
     def check_inputs(self):
         """
@@ -653,15 +656,39 @@ class ShufflerSource(Source):
             if not(hasattr(source, '__len__')):
                 raise TypeError('Source {0} does not have __len__ method.'.format(name))
 
-    def __getitem__(self, index): pass
+    def __getitem__(self, index):
 
-    def shuffle(self, order = None): pass
+        new_index = self.shuffle_indices[index]
+        return self.recursive_call('__getitem__')(new_index.tolist())
+
+    def __next__(self):
+
+        if self.current_index >= len(self):
+            raise StopIteration
+
+        message = self[self.current_index]
+        self.current_index += 1
+        return message
+
+    def shuffle(self, order = None): # TODO: Add support for ordering
+
+        np.random.shuffle(self.shuffle_indices)
 
     def reset(self):
         """
         Triggers a shuffle on reset.
         """
-        pass
+        self.shuffle()
+        self.current_index = 0
+        try:
+            self.recursive_call('reset')()
+        except AttributeError:
+            pass
+        return self
+
+    def __iter__(self):
+        self.reset()
+        return self
 
 class IndexMapperSource(Source):
     """

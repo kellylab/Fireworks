@@ -218,6 +218,17 @@ def test_PassThroughSource():
 
     assert Message(i) == Message({'values': [19]})
 
+def test_ShufflingSource():
+
+    bobby = getitem_dummy()
+    shuffla = ds.ShufflerSource(inputs=bobby)
+    shuffla[2]
+    shuffled = False
+    for shu, i in zip(shuffla, itertools.count()):
+        if shu['values'][0] != i:
+            shuffled = True
+    assert shuffled
+
 def test_HookedPassThroughSource():
 
     dumbo = smart_dummy()
