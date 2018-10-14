@@ -4,112 +4,12 @@ import pandas as pd
 from Fireworks import source as ds
 from Fireworks.message import Message
 from Fireworks.utils import index_to_list
+from Fireworks.test_utils import *
 import numpy as np
 import math
 import itertools
 
 test_dir = Fireworks.test_dir
-
-class one_way_dummy(ds.Source):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.count = 0
-
-    def __next__(self):
-        self.count += 1
-        if self.count <= 20:
-            return {'count': np.array([self.count-1])}
-        else:
-            raise StopIteration# This will trigger StopIteration
-
-    def reset(self):
-        self.count = 0
-
-class one_way_iter_dummy(one_way_dummy):
-
-    def __iter__(self):
-        self.reset()
-        return self
-
-class reset_dummy(ds.Source):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.count = 0
-
-    def reset(self):
-        self.count = 0
-
-class next_dummy(ds.Source):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.count = 0
-
-    def __next__(self):
-        self.count += 1
-        if self.count < 20:
-            return {'count': np.array([self.count])}
-        else:
-            raise StopIteration # This will trigger StopIteration
-
-class getitem_dummy(ds.Source):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.length = 20
-
-    def __getitem__(self, index):
-
-        index = index_to_list(index)
-
-        if index == []:
-            return None
-        elif max(index) < self.length and min(index) >= 0:
-            return {'values': np.array(index)}
-        else:
-            raise IndexError("Out of bounds for dummy source with length {0}.".format(self.length))
-
-    def __len__(self):
-        return self.length
-
-class smart_dummy(ds.Source):
-    """
-    Implements all of the methods in the above dummies
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.length = 20
-        self.count = 0
-
-    def __getitem__(self, index):
-
-        index = index_to_list(index)
-
-        if index == []:
-            return None
-        elif max(index) < self.length and min(index) >= 0:
-            return Message({'values': np.array(index)})
-        else:
-            raise IndexError("Out of bounds for dummy source with length {0}.".format(self.length))
-
-    def reset(self):
-        self.count = 0
-        return self
-
-    def __next__(self):
-        self.count += 1
-        if self.count <= 20:
-            return Message({'values': np.array([self.count-1])})
-        else:
-            raise StopIteration# This will trigger StopIteration
-
-    def __len__(self):
-        return self.length
-
-    def __iter__(self):
-        return self.reset()
 
 def conforms_to_spec(source):
 
@@ -183,20 +83,20 @@ def test_BioSeqSource():
 def test_LoopingSource():
 
     # Test type checking
-    try:
-        dumbo = reset_dummy()
-        poopy = ds.LoopingSource(inputs = {'mumbo': dumbo})
-    except TypeError:
-        assert True
-    else:
-        assert False
-    try:
-        dumbo = next_dummy()
-        scooby = ds.LoopingSource(inputs = {'jumbo': dumbo})
-    except TypeError:
-        assert True
-    else:
-        assert False
+    # try:
+    #     dumbo = reset_dummy()
+    #     poopy = ds.LoopingSource(inputs = {'mumbo': dumbo})
+    # except TypeError:
+    #     assert True
+    # else:
+    #     assert False
+    # try:
+    #     dumbo = next_dummy()
+    #     scooby = ds.LoopingSource(inputs = {'jumbo': dumbo})
+    # except TypeError:
+    #     assert True
+    # else:
+    #     assert False
     dumbo = one_way_dummy()
     loopy = ds.LoopingSource(inputs = {'dumbo': dumbo})
     loopy[10]
@@ -219,45 +119,6 @@ def test_LoopingSource():
     else:
         assert False
     assert loopy.length == 20
-
-def test_AggregatorSource():
-
-    dumbo = one_way_dummy()
-    bumbo = one_way_dummy()
-    gumbo = one_way_dummy()
-
-    angry = ds.RandomAggregatorSource(inputs={'dumbo': dumbo, 'bumbo': bumbo, 'gumbo': gumbo})
-    angry.reset()
-    assert angry.available_inputs == set(['dumbo', 'bumbo', 'gumbo'])
-    numbaz = Message()
-
-    counter = lambda l,i: sum([1 for x in l if x == i]) # Counts how often i appears in l
-    while True:
-        try:
-            numbaz = numbaz.append(angry.__next__())
-        except StopIteration:
-            break
-    assert dumbo.count == 21
-    assert bumbo.count == 21
-    assert gumbo.count == 21
-    assert len(numbaz) == 60
-    counts = {i:counter(numbaz['count'],i) for i in range(20)}
-    for count in counts.values():
-        assert count == 3 # Make sure each element showed up 3 times, corresponding to the 3 inputs
-
-    mangry = ds.ClockworkAggregatorSource(inputs = {'dumbo': dumbo, 'bumbo': bumbo, 'gumbo': gumbo})
-    bumbaz = Message()
-    for nextone in mangry:
-        bumbaz = bumbaz.append(nextone)
-    assert dumbo.count == 21
-    assert bumbo.count == 21
-    assert gumbo.count == 21
-    assert len(bumbaz) == 60
-    for x,i in zip(bumbaz, itertools.count()):
-        assert x['count'][0] == math.floor(i/3)
-    counts = {i:counter(bumbaz['count'],i) for i in range(20)}
-    for count in counts.values():
-        assert count == 3 # Make sure each element showed up 3 times, corresponding to the 3 inputs
 
 def test_RepeaterSource():
 
@@ -289,12 +150,12 @@ def test_CachingSource():
 
     # Test type checking
     dumbo = next_dummy()
-    try:
-        cashmoney = ds.CachingSource(inputs={'dumbo': dumbo})
-    except TypeError:
-        assert True
-    else:
-        assert False
+    # try:
+    #     cashmoney = ds.CachingSource(inputs={'dumbo': dumbo})
+    # except TypeError:
+    #     assert True
+    # else:
+    #     assert False
     dumbo = getitem_dummy()
     cashmoney = ds.CachingSource(inputs={'dumbo': dumbo})
 
@@ -344,7 +205,7 @@ def test_IndexMapperSource():
 def test_PassThroughSource():
 
     dumbo = smart_dummy()
-    pishpish = ds.PassThroughSource(inputs=dumbo)
+    pishpish = ds.Source(inputs=dumbo)
     assert pishpish.count == 0
     assert Message(pishpish.__next__()) == Message({'values': [0]})
     assert pishpish.count == 1

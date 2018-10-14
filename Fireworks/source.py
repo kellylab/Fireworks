@@ -42,7 +42,7 @@ class Source(ABC):
 
     name = 'base_source'
 
-    def __init__(self, *args, inputs = None, **kwargs):
+    def __init__(self, *args, inputs=None, **kwargs):
 
         if type(inputs) is dict:
             self.input_sources = inputs
@@ -52,6 +52,38 @@ class Source(ABC):
             self.input_sources = {}
         else:
             raise TypeError("inputs must be a dict of sources or a single source")
+        self.check_inputs()
+        for title, source in self.input_sources.items(): # There is only one
+            self.input_title = title
+            self.input_source = source
+
+    def check_inputs(self):
+        if len(self.input_sources) > 1:
+            raise ValueError("A pass-through source can only have one input source.")
+
+    def __getitem__(self, *args, **kwargs):
+        return self.input_source.__getitem__(*args, **kwargs)
+
+    def __setitem__(self, *args, **kwargs):
+        return self.input_source.__setitem__(*args, **kwargs)
+
+    def __delitem__(self, *args, **kwargs):
+        return self.input_source.__delitem__(*args, **kwargs)
+
+    def __len__(self, *args, **kwargs):
+        return self.input_source.__len__(*args, **kwargs)
+
+    def __next__(self, *args, **kwargs):
+        return self.input_source.__next__(*args, **kwargs)
+
+    def __iter__(self, *args, **kwargs):
+        return self.input_source.__iter__(*args, **kwargs)
+
+    def __getattr__(self, *args, **kwargs):
+        """
+        Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)
+        """
+        return self.recursive_call(*args, **kwargs) #self.input_source.__getattribute__(*args, **kwargs)
 
     def recursive_call(self, attribute, *args, ignore_first = True, **kwargs):
         """
@@ -104,45 +136,10 @@ class PassThroughSource(Source):
 
     # TODO: Make every source passthrough.
     name = 'Passthrough source'
-    def __init__(self, *args, labels_column = 'labels', **kwargs):
 
-        super().__init__(*args, **kwargs)
-        self.check_inputs()
-        for title, source in self.input_sources.items(): # There is only one
-            self.input_title = title
-            self.input_source = source
-
-    def check_inputs(self):
-        if len(self.input_sources) > 1:
-            raise ValueError("A pass-through source can only have one input source.")
-
-    def __getitem__(self, *args, **kwargs):
-        return self.input_source.__getitem__(*args, **kwargs)
-
-    def __setitem__(self, *args, **kwargs):
-        return self.input_source.__setitem__(*args, **kwargs)
-
-    def __delitem__(self, *args, **kwargs):
-        return self.input_source.__delitem__(*args, **kwargs)
-
-    def __len__(self, *args, **kwargs):
-        return self.input_source.__len__(*args, **kwargs)
-
-    def __next__(self, *args, **kwargs):
-        return self.input_source.__next__(*args, **kwargs)
-
-    def __iter__(self, *args, **kwargs):
-        return self.input_source.__iter__(*args, **kwargs)
-
-    def __getattr__(self, *args, **kwargs):
-        """
-        Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)
-        """
-        return self.recursive_call(*args, **kwargs) #self.input_source.__getattribute__(*args, **kwargs)
-
-class HookedPassThroughSource(PassThroughSource): # BUG NOTE: Methods that return self will break the passthrough at the moment
+class HookedPassThroughSource(Source): # BUG NOTE: Methods that return self will break the passthrough at the moment
     """
-    This source is the same as PassThroughSource, but it has hooks which can be implemented by subclasses to modify the behavior of
+    This source has hooks which can be implemented by subclasses to modify the behavior of
     passed through calls.
     """
 
@@ -162,7 +159,7 @@ class HookedPassThroughSource(PassThroughSource): # BUG NOTE: Methods that retur
 
     def __getitem__(self, *args, **kwargs):
 
-        return self._getitem_hook(self.input_source.__getitem__(*args, **kwargs)) #self.input_source.__getitem__(*args, **kwargs))
+        return self._getitem_hook(Message(self.input_source.__getitem__(*args, **kwargs))) #self.input_source.__getitem__(*args, **kwargs))
 
     # def __setitem__(self, *args, **kwargs):
     #     self._setitem_hook(self.input_source.__setitem__(*args, **kwargs))
@@ -174,7 +171,7 @@ class HookedPassThroughSource(PassThroughSource): # BUG NOTE: Methods that retur
     #     return self._len_hook(self.input_source.__len__(*args, **kwargs))
 
     def __next__(self, *args, **kwargs):
-        return self._next_hook(self.input_source.__next__(*args, **kwargs))
+        return self._next_hook(Message(self.input_source.__next__(*args, **kwargs)))
 
     def __iter__(self, *args, **kwargs):
 
@@ -187,7 +184,7 @@ class HookedPassThroughSource(PassThroughSource): # BUG NOTE: Methods that retur
     #     """
     #     return self.input_source.__getattribute__(*args, **kwargs)
 
-class BioSeqSource(PassThroughSource):
+class BioSeqSource(Source):
     """
     Class for representing biosequence data.
     Specifically, this class can read biological data files (such as fasta) and iterate throug them as a Source.
@@ -237,7 +234,7 @@ class BioSeqSource(PassThroughSource):
     def __iter__(self):
         return self.reset()
 
-class LoopingSource(PassThroughSource):
+class LoopingSource(Source):
     """
     This source can take any iterator and make it appear to be indexable by iterating through the input
     as needed to reach any given index.
@@ -371,7 +368,7 @@ class LoopingSource(PassThroughSource):
                 raise IndexError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
         return x
 
-class CachingSource(PassThroughSource):
+class CachingSource(Source):
     """
     This source can be used to dynamically cache elements from upstream sources.
     Whenever data is requested by index, this source will intercept the request and add that message alongside
@@ -508,7 +505,7 @@ class CachingSource(PassThroughSource):
 
 
 
-class Title2LabelSource(Source):
+class Title2LabelSource(HookedPassThroughSource):
     """
     This source takes one source as input and inserts a column called 'label' containing the name
     of the input source to to all outputs.
@@ -527,15 +524,23 @@ class Title2LabelSource(Source):
             self.label = label
             self.input_source = source
 
-    def __getattr__(self, *args, **kwargs):
-        """
-        Pass through all methods of the input source while adding labels.
-        """
-        output = self.input_source.__getattribute__(*args, **kwargs)
-        if type(output) is types.MethodType: # Wrap the method in a converter
-            return self.method_wrapper(output)
-        else:
-            return self.attribute_wrapper(output)
+    def _get_item_hook(self, message):
+
+        return self.insert_labels(message)
+
+    def _next_hook(self, message):
+
+        return self.insert_labels(message)
+
+    # def __getattr__(self, *args, **kwargs):
+    #     """
+    #     Pass through all methods of the input source while adding labels.
+    #     """
+    #     output = self.input_source.__getattribute__(*args, **kwargs)
+    #     if type(output) is types.MethodType: # Wrap the method in a converter
+    #         return self.method_wrapper(output)
+    #     else:
+    #         return self.attribute_wrapper(output)
 
     def method_wrapper(self, function):
         """
@@ -550,6 +555,7 @@ class Title2LabelSource(Source):
                 output = Message(output)
             except:
                 return output
+
             return self.insert_labels(output)
 
         return new_function
@@ -572,7 +578,7 @@ class Title2LabelSource(Source):
 
         return message
 
-class LabelerSource(PassThroughSource):
+class LabelerSource(Source):
     """
     This source implements a to_tensor function that converts labels contained in messages to tensors based on an internal labels dict.
     """
@@ -595,87 +601,7 @@ class LabelerSource(PassThroughSource):
         except AttributeError:
             return batch
 
-class AggregatorSource(Source):
-    """
-    This source takes multiple sources implementing __next__ as input and implements a new __next__ method that samples
-    its input sources.
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.check_inputs()
-
-    def check_inputs(self):
-
-        for name, source in self.input_sources.items():
-            if not (hasattr(source, '__next__') and hasattr(source, 'reset')):
-                raise ValueError("Input sources must implement __next__ and reset.")
-
-    def __next__(self):
-        """
-        Call __next__ on one of the input sources based on sampling algorithm until all sources run out (can run indefinetely if one
-        or more inputs are infinite.)
-        """
-        # Choose which input to sample
-        sample = self.sample_inputs()
-        # Return value
-        try:
-            return self.input_sources[sample].__next__()
-        except StopIteration: # Remove sample from available_inputs list
-            self.available_inputs.remove(sample)
-            if not self.available_inputs: # Set of inputs is empty, because they have all finished iterating
-                raise StopIteration
-            else: # Recursively try again
-                return self.__next__()
-
-    def reset(self):
-        for name, source in self.input_sources.items():
-            source.reset()
-        self.available_inputs = set(self.input_sources.keys()) # Keep track of which sources have not yet run out.
-
-    def __iter__(self):
-        self.reset()
-        return self
-
-    @abstractmethod
-    def sample_inputs(self):
-        """
-        Returns the key associated with an input source that should be stepped through next.
-        """
-        pass
-
-class RandomAggregatorSource(AggregatorSource):
-    """
-    AggregatorSource that randomly chooses inputs to step through.
-    """
-    # TODO: Add support for weighted random sampling
-
-    def sample_inputs(self):
-        return random.sample(self.available_inputs, 1)[0]
-
-class ClockworkAggregatorSource(AggregatorSource):
-    """
-    AggregatorSource that iterates through input sources one at a time.
-    """
-    # TODO: Add support for weighted iteration and setting order (ie. spend two cycles on one input and one on another)
-
-    def reset(self):
-        super().reset()
-        self.cycle_dict = {i: name for i,name in zip(count(),self.available_inputs)}
-        self.current_cycle = 0
-
-    def sample_inputs(self):
-        """
-        Loops through inputs until finding one that is available.
-        """
-        # if not self.available_inputs:
-        #     raise StopIteration
-        while True:
-            sample = self.cycle_dict[self.current_cycle]
-            self.current_cycle = (self.current_cycle + 1) % len(self.cycle_dict)
-            if sample in self.available_inputs:
-                return sample
-
-class RepeaterSource(PassThroughSource):
+class RepeaterSource(Source):
     """
     Given an input Source that is iterable, enables repeat iteration.
     """
@@ -708,7 +634,7 @@ class RepeaterSource(PassThroughSource):
                 self.recursive_call('reset')()
                 return self.__next__()
 
-class ShufflerSource(PassThroughSource):
+class ShufflerSource(Source):
     """
     Given input sources that implement __getitem__ and __len__, will shuffle the indices so that iterating through
     the source or calling __getitem__ will return different values.
@@ -762,7 +688,7 @@ class IndexMapperSource(Source):
     def __len__(self):
         return len(self.pointers)
 
-class BatchingSource(PassThroughSource):
+class BatchingSource(Source):
     """
     Generates minibatches.
     """
