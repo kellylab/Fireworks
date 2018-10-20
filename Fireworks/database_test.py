@@ -18,7 +18,7 @@ class dummy_source(ds.Source):
             index = [i for i in index]
         if type(index) is slice:
             step = index.step or 1
-            index = [i for i in range(index.start,index.stop, step)]
+            index = [i for i in range(index.start, index.stop, step)]
 
         if index == []:
             return None
@@ -54,7 +54,7 @@ def test_make_row():
     row = source.make_row(message[0])
     assert row.name == 'a'
     assert row.values == 1
-    
+
 def test_create_table():
 
     tab = dummy_table('munki')
@@ -137,6 +137,28 @@ def test_DBSource():
     deedee.reset()
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
+
+def test_DBSource_query():
+
+    dummy = dummy_source()
+    tab = dummy_table('giorno')
+    engine = create_engine('sqlite:///:memory:', echo=True)
+    tab.metadata.create_all(engine)
+    ts = db.TableSource(tab, engine, ['name', 'values'], inputs=dummy)
+    batch = ts[0:20]
+    ts.insert(batch)
+    ts.commit()
+    result = ts.query().all()
+    result = ts.query('values').all()
+    assert set(result.columns) == set(['values'])
+    result = ts.query('values', 'name').all()
+    assert set(result.columns) == set(['name', 'values'])
+    result = ts.query('values').filter('values', 'between', 1,5).all()
+    assert (result['values'] == [1,2,3,4,5]).all()
+    assert set(result.columns) == set(['values'])
+    result = ts.query('values', 'name').filter('values', 'between', 1,5).all()
+    assert (result['values'] == [1,2,3,4,5]).all()
+    assert set(result.columns) == set(['name', 'values'])
 
 def test_reflect_table():
 

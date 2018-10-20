@@ -1,7 +1,7 @@
 import sqlalchemy
 from sqlalchemy import Table, Column, Integer, MetaData
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Query
 from Fireworks import Message, cat
 from Fireworks.source import Source, PassThroughSource
 import numpy as np
@@ -83,18 +83,22 @@ class TableSource(PassThroughSource):
         Queries the database and generates a DBSource corresponding to the result.
 
         Args:
-            entities:
+            entities: A list of column names
             args: Optional positional arguments for the SQLalchemy query function
             kwargs: Optional keyword arguments for the SQLalchemy query function
 
         Returns:
             dbsource (DBSource): A DBSource object that can iterate through the results of the query.
         """
-        if entities is None:
-            entities = self.table
-
+        if type(entities) is str:
+            entities = getattr(self.table, entities)
+        if type(entities) is list:
+            assert False
         # return self.session.query(entities, *args, **kwargs)
-        query = self.session.query(entities, *args, **kwargs)
+        if entities is None:
+            query = self.session.query(*args, **kwargs)
+        else:
+            query = self.session.query(entities, *args, **kwargs)
         return DBSource(self.table, self.engine, query)
 
     def upsert(self, batch):
@@ -184,7 +188,11 @@ class DBSource(Source):
             self.table = reflect_table(table, engine)
         else:
             self.table = table
-        self.columns_and_types = parse_columns_and_types(self.table, ignore_id=False)
+        self.query = query or self.session.query()
+        self.columns_and_types = parse_columns_and_types(self.query, ignore_id=False)
+        if self.columns_and_types == {}: # Remap empty query to SELECT *
+            self.columns_and_types = parse_columns_and_types(self.table, ignore_id=False)
+            self.query = self.session.query(self.table)
         self.reset()
 
     def __iter__(self):
@@ -197,14 +205,24 @@ class DBSource(Source):
         """
         Resets DBSource by reperforming the query, so that it is now at the beginning of the query.
         """
-        if entities is None:
-            entities = self.table
-
-        self.query = self.session.query(entities, *args, **kwargs)
+        # if entities is None: # TODO: Make this work properly
+        #     entities = self.table
+        #
+        # self.query = self.session.query(entities, *args, **kwargs)
+        pass
 
     def __next__(self):
 
         return to_message(self.iterator.__next__(), columns_and_types=self.columns_and_types)
+
+    def filter(self, column_name, predicate, *args, **kwargs):
+        """
+        Applies an sqlalchemy filter to query.
+        """
+        column = getattr(self.table, column_name)
+        predicate_function = getattr(column, predicate)
+        self.query = self.query.filter(predicate_function(*args, **kwargs))
+        return self
 
     def all(self): #TODO: Test dis ish #TODO: Implement the other query methods
         """
@@ -212,9 +230,9 @@ class DBSource(Source):
         """
         return cat([to_message(x, columns_and_types=self.columns_and_types) for x in self.query.all()])
 
-def parse_columns(table, ignore_id=True):
+def parse_columns(object, ignore_id=True):
     """
-    Returns column names in a table object
+    Returns the names of columns in a table or query object
 
     Args:
         table (sqlalchemy.ext.declarative.api.DeclarativeMeta):
@@ -222,28 +240,30 @@ def parse_columns(table, ignore_id=True):
             added by the create_table function.
 
     Returns:
-        columns (list): A list of columns names in the table.
+        columns (list): A list of columns names in the sqlalchemy object.
     """
 
     #[c.key for c in table.__table__.columns]
-    return list(parse_columns_and_types(table, ignore_id).keys())
+    return list(parse_columns_and_types(object, ignore_id).keys())
 
-def parse_columns_and_types(table, ignore_id = True):
+def parse_columns_and_types(object, ignore_id = True):
     """
-    Returns column names and types in a table object as a dict
+    Returns column names and types in a object or query object as a dict
 
     Args:
-        table (sqlalchemy.ext.declarative.api.DeclarativeMeta):
+        object: An SQLalchemy table or Query object
         ignore_id (bool): If True, ignore the 'id' column, which is a default primary key
             added by the create_table function.
 
     Returns:
         columns_and_types (dict): A dict mapping column names to their SQLalchemy type.
     """
-    if hasattr(table, '__table__'):
-        columns_and_types = {str(c.key): c.type for c in table.__table__.columns}
-    elif type(table) is Table:
-        columns_and_types = {str(c.key): c.type for c in table.columns}
+    if type(object) is Query:
+        columns_and_types = {col['name']: col['type'] for col in object.column_descriptions} #TODO: Test this
+    elif hasattr(object, '__table__'):
+        columns_and_types = {str(c.key): c.type for c in object.__table__.columns}
+    elif type(object) is Table:
+        columns_and_types = {str(c.key): c.type for c in object.columns}
     else:
         raise AttributeError("Could not extract column from table.")
     if ignore_id:
@@ -268,7 +288,8 @@ def to_message(row, columns_and_types=None):
 
     Args:
         row: A row from the query.
-        columns_and_types (dict): If unspecified, this will be inferred. Otherwise, you can specify the columns
+        columns_and_types (dict): If unspecified, this will be inferred. Otherwise,
+            you can specify the columns
             to parse, for example, if you only want to extract some columns.
     Returns:
         message: Message representation of input.
