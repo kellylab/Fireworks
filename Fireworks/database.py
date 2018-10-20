@@ -90,15 +90,16 @@ class TableSource(PassThroughSource):
         Returns:
             dbsource (DBSource): A DBSource object that can iterate through the results of the query.
         """
-        if type(entities) is str:
-            entities = getattr(self.table, entities)
-        if type(entities) is list:
-            assert False
-        # return self.session.query(entities, *args, **kwargs)
         if entities is None:
             query = self.session.query(*args, **kwargs)
-        else:
+        elif type(entities) is str:
+            entities = getattr(self.table, entities)
             query = self.session.query(entities, *args, **kwargs)
+        elif type(entities) is list:
+            entities = [getattr(self.table, entity) for entity in entities]
+            query = self.session.query(*entities, *args, **kwargs)
+        # return self.session.query(entities, *args, **kwargs)
+
         return DBSource(self.table, self.engine, query)
 
     def upsert(self, batch):
