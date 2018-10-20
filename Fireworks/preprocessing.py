@@ -1,7 +1,7 @@
 from functools import lru_cache
 import math
 import numpy as np
-from Fireworks import datasource as ds
+from Fireworks import source as ds
 
 @lru_cache(maxsize=32)
 def one_hot(index, max):

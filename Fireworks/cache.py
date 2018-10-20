@@ -15,12 +15,18 @@ class MessageCache(ABC):
     """
 
     def __init__(self, max_size):
+        """
+        Args:
+            max_size (int): The maximum size of this cache.
+        """
         self.max_size = max_size
         self.cache = Message()
         self.pointers = bidict()
 
     def __getitem__(self, index): # TODO: Optimize for range queries.
-
+        """
+        Translates the given index into the appropriate index for the internal message and returns those values.
+        """
         if type(index) is slice:
             index = slice_to_list(index)
 
@@ -51,6 +57,10 @@ class MessageCache(ABC):
         """
         Inserts message into cache along with the desired indices.
         This method should be called by __setitem__ as needed to perform the insertion.
+
+        Args:
+            index: The index to insert into. Can be an int, slice, or list of integer indices.
+            message: The Message to insert. Should have the same length as the provided idnex.
         """
         if type(index) is int:
             index = [index]
@@ -69,6 +79,11 @@ class MessageCache(ABC):
         """
         Adds new elements to cache and updates pointers.
         This method should be called by __setitem__ or insert as needed to perform insertions.
+
+        Args:
+            index: The index to insert into. Can be an int, slice, or list of integer indices.
+            message: The Message to insert. Should have the same length as the provided idnex.
+
         """
         start = len(self.cache)
         self.cache = self.cache.append(message)
@@ -80,6 +95,11 @@ class MessageCache(ABC):
         """
         Updates elements already in the message.
         This method should be called by __setitem__ or insert as needed to perform updates.
+
+        Args:
+            index: The index to insert into. Can be an int, slice, or list of integer indices.
+            message: The Message to insert. Should have the same length as the provided idnex.
+
         """
         if index:
             if type(index) is int:
@@ -92,6 +112,10 @@ class MessageCache(ABC):
         """
         Deletes elements in the message corresponding to index.
         This method should be called by __setitem__ or __delitem__ as needed.
+
+        Args:
+            index: The index to insert into. Can be an int, slice, or list of integer indices.
+
         """
         # Get the index in the internal cache corresponding to the virtual (argument) index
         if type(index) is slice:
@@ -125,6 +149,9 @@ class MessageCache(ABC):
         Rearranges elements of cache based on permutation.
         Permutation should be a list of indices. Can optionally specify target, which is the indices to apply the permutation to.
         By default, the entire index will be treated as the target.
+
+        Args:
+            permutation: A list of indices
         """
         if target is None:
             target = [self.pointers.inv[i] for i in range(len(self.cache))]
@@ -169,10 +196,20 @@ class UnlimitedCache(MessageCache):
     def __setitem__(self, index, message):
         """
         Simply inserts the message with the corresponding index without ever freeing memory.
+
+        Args:
+            index: The index to insert into. Can be an int, slice, or list of integer indices.
+            message: The Message to insert. Should have the same length as the provided idnex.
+
         """
         self.insert(index, message)
 
     def __delitem__(self, index):
+        """
+        Args:
+            index: The index to insert into. Can be an int, slice, or list of integer indices.
+
+        """
         self.delete(index)
 
 class BufferedCache(MessageCache):
@@ -187,7 +224,13 @@ class BufferedCache(MessageCache):
         self.buffer_size = buffer_size # Specifies how far above max_size the cache can go before having to delete elements
 
     def __setitem__(self, index, message):
+        """
 
+        Args:
+            index: The index to insert into. Can be an int, slice, or list of integer indices.
+            message: The Message to insert. Should have the same length as the provided idnex.
+
+        """
         index = index_to_list(index)
         if len(index) != len(message):
             raise ValueError("Message length does not match length of index for insertion.")
@@ -202,6 +245,12 @@ class BufferedCache(MessageCache):
         self.insert(index, message)
 
     def __delitem__(self, index):
+        """
+        Args:
+            index: The index to insert into. Can be an int, slice, or list of integer indices.
+            message: The Message to insert. Should have the same length as the provided idnex.
+
+        """
         self.delete(index)
 
     @abstractmethod

@@ -1,5 +1,8 @@
-from Fireworks import factory
+from Fireworks import factory, Message
 from Fireworks.exceptions import EndHyperparameterOptimization
+from Fireworks.database import create_table
+from sqlalchemy import create_engine, Column, Integer, String
+from collections import defaultdict
 
 class DummyEvaluator:
 
@@ -21,7 +24,7 @@ class DummyMetric:
     def attach(self, engine, name): pass
 
     def compute(self):
-        return {'metric': 'hiiiii'}
+        return Message({'metric': ['hiiiii']})
 
 def dummy_generator():
 
@@ -29,7 +32,8 @@ def dummy_generator():
         if len(params) > 10:
             raise EndHyperparameterOptimization
         else:
-            return {}
+            i = len(params)
+            return Message({'parameters': [i]})
 
     return generator
 
@@ -46,3 +50,35 @@ def test_LocalMemoryFactory():
 
     memfactory = factory.LocalMemoryFactory(trainer, metrics_dict, generator, dataloader)
     memfactory.run()
+    params, metrics = memfactory.read()
+    assert type(params) is Message
+    assert type(metrics) is defaultdict
+    assert set(metrics.keys()) == set(['metric'])
+    assert len(params) == 11
+    assert len(metrics['metric']) == 11
+    assert params[5] == Message({'parameters':[5]})
+    assert metrics['metric'][5] == Message({'metric': ['hiiiii']})
+
+def test_SQLFactory():
+
+    trainer = dummy_trainer()
+    metrics_dict = {'metric': DummyMetric()}
+    generator = dummy_generator()
+    dataloader = dummy_dataloader()
+    params_table = create_table('parameters', columns=[Column('parameters', Integer)])
+    metrics_table = {'metric': create_table('metrics', columns=[Column('metric', String)])}
+
+    engine = create_engine('sqlite:///:memory:')
+    sequel = factory.SQLFactory(trainer, metrics_dict, generator, dataloader, params_table = params_table, metrics_tables = metrics_table, engine=engine)
+    sequel.run()
+    params, metrics = sequel.read()
+
+    assert type(params) is Message
+    assert type(metrics) is dict
+    assert set(metrics.keys()) == set(['metric'])
+    assert len(params) == 11
+    assert len(metrics['metric']) == 11
+    assert params[5] == Message({'id':[6], 'parameters':[5]})
+    assert metrics['metric'][5] == Message({'id':[6],'metric': ['hiiiii']})
+    for mrow, prow in zip(metrics['metric'], params):
+        assert mrow['id'][0] == prow['id'][0]

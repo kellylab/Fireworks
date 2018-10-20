@@ -1,5 +1,5 @@
 class EndHyperparameterOptimization(RuntimeError):
     """
-    Exception raised to signal factory to stop looping.
+    This exception can be raised to signal a factory to stop looping.
     """
     pass
