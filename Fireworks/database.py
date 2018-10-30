@@ -216,6 +216,10 @@ class DBSource(Source):
 
         return to_message(self.iterator.__next__(), columns_and_types=self.columns_and_types)
 
+    def __len__(self):
+
+        return self.query.count()
+
     def filter(self, column_name, predicate, *args, **kwargs):
         """
         Applies an sqlalchemy filter to query.
