@@ -102,6 +102,14 @@ class TableSource(PassThroughSource):
 
         return DBSource(self.table, self.engine, query)
 
+    def delete(self, column_name, values):
+        to_delete = self.query().filter(column_name, 'in_', values)
+        to_delete.delete()
+
+    def update(self, filter_column, batch): # TODO: Support filters with multiple simultaneous columns
+        to_update = self.query().filter(filter_column, 'in_', batch[filter_column])
+        to_update.update(batch)
+
     def upsert(self, batch):
         """
         Performs an upsert into the database. This is equivalent to performing an update + insert (ie. if value is not present, insert it,
@@ -182,6 +190,7 @@ class DBSource(Source):
             engine (sqlalchemy.engine.base.Engine): Engine correspondign to the database to read from.
             query: Can optionally provide an SQLalchemy Query object. If unspecified, the DBSource will perform a SELECT * query.
         """
+        self.engine = engine
         Session = sessionmaker(bind=engine)
         self.input_sources = {}
         self.session = Session()
@@ -226,14 +235,33 @@ class DBSource(Source):
         """
         column = getattr(self.table, column_name)
         predicate_function = getattr(column, predicate)
-        self.query = self.query.filter(predicate_function(*args, **kwargs))
-        return self
+        query = self.query.filter(predicate_function(*args, **kwargs))
+
+        filtered = DBSource(self.table, self.engine, query)
+        filtered.columns_and_types = parse_columns_and_types(self.table, ignore_id=False) # TODO: Figure out how to properly extract column names from query
+        return filtered
 
     def all(self): #TODO: Test dis ish #TODO: Implement the other query methods
         """
         Returns the results of the query as a single Message object.
         """
         return cat([to_message(x, columns_and_types=self.columns_and_types) for x in self.query.all()])
+
+    def delete(self):
+        self.query.delete(synchronize_session=False)
+        self.session.commit()
+
+    def update(self, batch):
+        """
+        Updates the contents of this DBSource by replacing them with batch
+
+        Args:
+            batch: A Message
+        """
+        rows = list(batch.df.T.to_dict().values())
+        self.session.bulk_update_mappings(self.table, rows)
+        self.session.commit()
+
 
 def parse_columns(object, ignore_id=True):
     """
@@ -271,7 +299,7 @@ def parse_columns_and_types(object, ignore_id = True):
         columns_and_types = {str(c.key): c.type for c in object.columns}
     else:
         raise AttributeError("Could not extract column from table.")
-    if ignore_id:
+    if ignore_id and 'id' in columns_and_types:
         del columns_and_types['id']
     return columns_and_types
 
