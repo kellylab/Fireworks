@@ -94,6 +94,7 @@ def test_TableSource_explicit():
         assert row['name'][0] == 'johnny'
         # assert int.from_bytes(row.values, byteorder='little') == i+2 # Have to convert integers back from little endian
         assert row['values'][0] == i+2
+    assert i > 1
 
 def test_TableSource_implicit():
     """ Colnames are implicitly identified here. """
@@ -128,7 +129,7 @@ def test_TableSource_implicit():
     ts.update('id', new_batch)
     newer_batch = ts.query().all()
     assert newer_batch == new_batch
-    assert newer_batch != new_batch  
+    assert newer_batch != batch
 
 def test_DBSource():
     dummy = dummy_source()

@@ -92,15 +92,21 @@ class TableSource(PassThroughSource):
         """
         if entities is None:
             query = self.session.query(*args, **kwargs)
+            if query.column_descriptions == []:
+                columns_and_types = None
+            else:
+                columns_and_types = parse_columns_and_types(self.table)
+            # columns_and_types = None
         elif type(entities) is str:
             entities = getattr(self.table, entities)
             query = self.session.query(entities, *args, **kwargs)
+            columns_and_types = parse_columns_and_types(query)
         elif type(entities) is list:
             entities = [getattr(self.table, entity) for entity in entities]
             query = self.session.query(*entities, *args, **kwargs)
+            columns_and_types = parse_columns_and_types(query)
         # return self.session.query(entities, *args, **kwargs)
-
-        return DBSource(self.table, self.engine, query)
+        return DBSource(self.table, self.engine, query, columns_and_types = columns_and_types)
 
     def delete(self, column_name, values):
         to_delete = self.query().filter(column_name, 'in_', values)
@@ -182,7 +188,7 @@ class DBSource(Source):
     """
     Source that can iterate through the output of a database query.
     """
-    def __init__(self, table, engine, query = None):
+    def __init__(self, table, engine, query = None, columns_and_types= None):
         """
         Args:
             table (sqlalchemy.ext.declarative.api.DeclarativeMeta): Table to perform query on. You can alternatively provide the name of the
@@ -199,10 +205,13 @@ class DBSource(Source):
         else:
             self.table = table
         self.query = query or self.session.query()
-        self.columns_and_types = parse_columns_and_types(self.query, ignore_id=False)
-        if self.columns_and_types == {}: # Remap empty query to SELECT *
-            self.columns_and_types = parse_columns_and_types(self.table, ignore_id=False)
-            self.query = self.session.query(self.table)
+        if columns_and_types is None:
+            self.columns_and_types = parse_columns_and_types(self.query, ignore_id=False)
+            if self.columns_and_types == {}: # Remap empty query to SELECT *
+                self.columns_and_types = parse_columns_and_types(self.table, ignore_id=False)
+                self.query = self.session.query(self.table)
+        else:
+            self.columns_and_types = columns_and_types
         self.reset()
 
     def __iter__(self):
@@ -236,9 +245,7 @@ class DBSource(Source):
         column = getattr(self.table, column_name)
         predicate_function = getattr(column, predicate)
         query = self.query.filter(predicate_function(*args, **kwargs))
-
-        filtered = DBSource(self.table, self.engine, query)
-        filtered.columns_and_types = parse_columns_and_types(self.table, ignore_id=False) # TODO: Figure out how to properly extract column names from query
+        filtered = DBSource(self.table, self.engine, query, columns_and_types=self.columns_and_types)
         return filtered
 
     def all(self): #TODO: Test dis ish #TODO: Implement the other query methods
