@@ -19,6 +19,8 @@ class TableSource(PassThroughSource):
         Session = sessionmaker(bind=engine)
         self.session = Session()
         self.engine = engine
+        if type(table) is str:
+            table = reflect_table(table, engine)
         self.table = table # An SQLalchemy table class
         self.columns = columns or parse_columns(table)
         self.init_db()
@@ -90,16 +92,31 @@ class TableSource(PassThroughSource):
         Returns:
             dbsource (DBSource): A DBSource object that can iterate through the results of the query.
         """
-        if type(entities) is str:
-            entities = getattr(self.table, entities)
-        if type(entities) is list:
-            assert False
-        # return self.session.query(entities, *args, **kwargs)
         if entities is None:
             query = self.session.query(*args, **kwargs)
-        else:
+            if query.column_descriptions == []:
+                columns_and_types = None
+            else:
+                columns_and_types = parse_columns_and_types(self.table)
+            # columns_and_types = None
+        elif type(entities) is str:
+            entities = getattr(self.table, entities)
             query = self.session.query(entities, *args, **kwargs)
-        return DBSource(self.table, self.engine, query)
+            columns_and_types = parse_columns_and_types(query)
+        elif type(entities) is list:
+            entities = [getattr(self.table, entity) for entity in entities]
+            query = self.session.query(*entities, *args, **kwargs)
+            columns_and_types = parse_columns_and_types(query)
+        # return self.session.query(entities, *args, **kwargs)
+        return DBSource(self.table, self.engine, query, columns_and_types = columns_and_types)
+
+    def delete(self, column_name, values):
+        to_delete = self.query().filter(column_name, 'in_', values)
+        to_delete.delete()
+
+    def update(self, filter_column, batch): # TODO: Support filters with multiple simultaneous columns
+        to_update = self.query().filter(filter_column, 'in_', batch[filter_column])
+        to_update.update(batch)
 
     def upsert(self, batch):
         """
@@ -173,7 +190,7 @@ class DBSource(Source):
     """
     Source that can iterate through the output of a database query.
     """
-    def __init__(self, table, engine, query = None):
+    def __init__(self, table, engine, query = None, columns_and_types= None):
         """
         Args:
             table (sqlalchemy.ext.declarative.api.DeclarativeMeta): Table to perform query on. You can alternatively provide the name of the
@@ -181,6 +198,7 @@ class DBSource(Source):
             engine (sqlalchemy.engine.base.Engine): Engine correspondign to the database to read from.
             query: Can optionally provide an SQLalchemy Query object. If unspecified, the DBSource will perform a SELECT * query.
         """
+        self.engine = engine
         Session = sessionmaker(bind=engine)
         self.input_sources = {}
         self.session = Session()
@@ -189,10 +207,13 @@ class DBSource(Source):
         else:
             self.table = table
         self.query = query or self.session.query()
-        self.columns_and_types = parse_columns_and_types(self.query, ignore_id=False)
-        if self.columns_and_types == {}: # Remap empty query to SELECT *
-            self.columns_and_types = parse_columns_and_types(self.table, ignore_id=False)
-            self.query = self.session.query(self.table)
+        if columns_and_types is None:
+            self.columns_and_types = parse_columns_and_types(self.query, ignore_id=False)
+            if self.columns_and_types == {}: # Remap empty query to SELECT *
+                self.columns_and_types = parse_columns_and_types(self.table, ignore_id=False)
+                self.query = self.session.query(self.table)
+        else:
+            self.columns_and_types = columns_and_types
         self.reset()
 
     def __iter__(self):
@@ -215,20 +236,41 @@ class DBSource(Source):
 
         return to_message(self.iterator.__next__(), columns_and_types=self.columns_and_types)
 
+    def __len__(self):
+
+        return self.query.count()
+
     def filter(self, column_name, predicate, *args, **kwargs):
         """
         Applies an sqlalchemy filter to query.
         """
         column = getattr(self.table, column_name)
         predicate_function = getattr(column, predicate)
-        self.query = self.query.filter(predicate_function(*args, **kwargs))
-        return self
+        query = self.query.filter(predicate_function(*args, **kwargs))
+        filtered = DBSource(self.table, self.engine, query, columns_and_types=self.columns_and_types)
+        return filtered
 
     def all(self): #TODO: Test dis ish #TODO: Implement the other query methods
         """
         Returns the results of the query as a single Message object.
         """
         return cat([to_message(x, columns_and_types=self.columns_and_types) for x in self.query.all()])
+
+    def delete(self):
+        self.query.delete(synchronize_session=False)
+        self.session.commit()
+
+    def update(self, batch):
+        """
+        Updates the contents of this DBSource by replacing them with batch
+
+        Args:
+            batch: A Message
+        """
+        rows = list(batch.df.T.to_dict().values())
+        self.session.bulk_update_mappings(self.table, rows)
+        self.session.commit()
+
 
 def parse_columns(object, ignore_id=True):
     """
@@ -266,7 +308,7 @@ def parse_columns_and_types(object, ignore_id = True):
         columns_and_types = {str(c.key): c.type for c in object.columns}
     else:
         raise AttributeError("Could not extract column from table.")
-    if ignore_id:
+    if ignore_id and 'id' in columns_and_types:
         del columns_and_types['id']
     return columns_and_types
 

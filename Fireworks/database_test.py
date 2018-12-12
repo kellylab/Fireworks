@@ -5,6 +5,7 @@ from Fireworks import source as ds
 import os
 import numpy as np
 import itertools
+import copy
 
 class dummy_source(ds.Source):
 
@@ -93,6 +94,7 @@ def test_TableSource_explicit():
         assert row['name'][0] == 'johnny'
         # assert int.from_bytes(row.values, byteorder='little') == i+2 # Have to convert integers back from little endian
         assert row['values'][0] == i+2
+    assert i > 1
 
 def test_TableSource_implicit():
     """ Colnames are implicitly identified here. """
@@ -111,6 +113,23 @@ def test_TableSource_implicit():
         assert row['name'][0] == 'johnny'
         # assert int.from_bytes(row.values, byteorder='little') == i+2 # Have to convert integers back from little endian
         assert row['values'][0] == i+2
+
+    # Test deletes
+    cop = ts.query().filter('values','between',4,8).all()
+    assert len(cop) == 5
+    assert (ts.query().all()['values'] == [2,3,4,5,6,7,8,9]).all()
+    ts.delete('values', batch['values'][1:4])
+    assert (ts.query().all()['values'] == [2,6,7,8,9]).all()
+    assert 'id' in ts.query().all()
+
+    # Test updates
+    batch = ts.query().all()
+    new_batch = copy.deepcopy(batch)
+    new_batch['values'] = [10,11,12,13,14]
+    ts.update('id', new_batch)
+    newer_batch = ts.query().all()
+    assert newer_batch == new_batch
+    assert newer_batch != batch
 
 def test_DBSource():
     dummy = dummy_source()
