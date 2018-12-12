@@ -19,6 +19,8 @@ class TableSource(PassThroughSource):
         Session = sessionmaker(bind=engine)
         self.session = Session()
         self.engine = engine
+        if type(table) is str:
+            table = reflect_table(table, engine)
         self.table = table # An SQLalchemy table class
         self.columns = columns or parse_columns(table)
         self.init_db()
