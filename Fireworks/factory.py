@@ -2,7 +2,7 @@ import abc
 import Fireworks
 from Fireworks import Message
 from Fireworks.exceptions import EndHyperparameterOptimization
-from Fireworks.database import create_table, TableSource
+from Fireworks.database import create_table, TablePipe
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import Column
 from sqlalchemy_utils import JSONType as JSON
@@ -86,11 +86,11 @@ class SQLFactory(Factory):
 
     def __init__(self,*args, params_table, metrics_tables, engine, **kwargs):
         self.engine = engine
-        # self.database = TableSource(factory_table, self.engine, columns=['parameters', 'metrics'])
+        # self.database = TablePipe(factory_table, self.engine, columns=['parameters', 'metrics'])
         self.metrics_tables = metrics_tables
         self.params_table = params_table
-        self.params_source = TableSource(self.params_table, self.engine)
-        self.metrics_sources = {key: TableSource(value, self.engine) for key, value in self.metrics_tables.items()}
+        self.params_pipe = TablePipe(self.params_table, self.engine)
+        self.metrics_pipes = {key: TablePipe(value, self.engine) for key, value in self.metrics_tables.items()}
 
         super().__init__(*args,**kwargs)
 
@@ -114,11 +114,11 @@ class SQLFactory(Factory):
 
         for key, metric in metrics.items():
             self.metrics[key] = self.metrics[key].append(metric)
-            self.metrics_sources[key].insert(metric)
-            self.metrics_sources[key].commit()
+            self.metrics_pipes[key].insert(metric)
+            self.metrics_pipes[key].commit()
         self.params = self.params.append(params)
-        self.params_source.insert(params)
-        self.params_source.commit()
+        self.params_pipe.insert(params)
+        self.params_pipe.commit()
 
     def read(self):
 
@@ -126,7 +126,7 @@ class SQLFactory(Factory):
 
     def read_db(self):
 
-        return self.params_source.query().all(), {key: source.query().all() for key, source in self.metrics_sources.items()}
+        return self.params_pipe.query().all(), {key: pipe.query().all() for key, pipe in self.metrics_pipes.items()}
 
     def sync(self):
         """ Syncs local copy of metrics and params with db. """

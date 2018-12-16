@@ -95,7 +95,7 @@ class Experiment:
         """
         Loads metadata from experiment folder by reading the metadata table.
         """
-        self.metadata = db.TableSource(metadata_table, self.engine, columns=['name', 'iteration', 'description', 'timestamp'])
+        self.metadata = db.TablePipe(metadata_table, self.engine, columns=['name', 'iteration', 'description', 'timestamp'])
         # Session = sessionmaker(bind=self.engine)
         # session = Session()
         # assert False
@@ -110,7 +110,7 @@ class Experiment:
         Initializes metadata table. This is a necessary action whenever using an SQLalchemy table for the first time and is idempotent,
         so calling this method multiple times does not produce side-effects.
         """
-        self.metadata = db.TableSource(metadata_table, self.engine, columns=['name', 'iteration', 'description', 'timestamp'])
+        self.metadata = db.TablePipe(metadata_table, self.engine, columns=['name', 'iteration', 'description', 'timestamp'])
         self.metadata.insert(Message({'name': [self.name], 'iteration': [self.iteration], 'description': [self.description], 'timestamp': [self.timestamp]}))
         self.metadata.commit()
 

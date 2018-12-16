@@ -16,7 +16,7 @@ table = db.create_table('superpowers', columns=columns)
 
 def dummy_table(engine):
 
-    return db.TableSource(table, engine, columns=['superpower', 'name', 'age'])
+    return db.TablePipe(table, engine, columns=['superpower', 'name', 'age'])
 
 def test_Experiment():
 

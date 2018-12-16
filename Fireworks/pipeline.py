@@ -15,93 +15,93 @@ import torch
 import math
 import numpy as np
 
-class Source(ABC):
+class Pipe(ABC):
     """
     The core data structure in fireworks.
-    A source can take sources as inputs, and its outputs can be piped to other sources.
+    A Pipe can take Pipes as inputs, and its outputs can be streamed to other Pipes.
     All communication is done via Message objects.
-    Method calls are deferred to input sources recursively until a source that implements the method is reached.
+    Method calls are deferred to input Pipes recursively until a Pipe that implements the method is reached.
 
-    This is made possible with a recursive function call method. Any source can use this method to call a method on its inputs; this will recursively loop until reaching a source that implements the method and return those outputs (as a Message) or raise an error if there are none. For example, we can do something like this:
+    This is made possible with a recursive function call method. Any Pipe can use this method to call a method on its inputs; this will recursively loop until reaching a Pipe that implements the method and return those outputs (as a Message) or raise an error if there are none. For example, we can do something like this:
 
     ::
 
-        reader = source_for_reading_from_some_dataset(...)
-        cache = CachingSource(input_sources = {'reader': reader}, type='LRU')
-        embedder = CreateEmbeddingsSource(input_sources = {'data': cache})
-        loader = CreateMinibatchesSource(input_sources = {'data': embedder})
+        reader = pipe_for_reading_from_some_dataset(...)
+        cache = CachingPipe(input_pipes = {'reader': reader}, type='LRU')
+        embedder = CreateEmbeddingsPipe(input_pipes = {'data': cache})
+        loader = CreateMinibatchesPipe(input_pipes = {'data': embedder})
 
         loader.reset()
         for batch in loader:
         	# Code for training
 
-    Under the hood, the code for loader.__next__() can choose to recursively call a to_tensor() method which is implemented by embedder. Index queries and other magic methods can also be implemented recursively, and this enables a degree of commutativity when stacking sources together (changing the order of sources is often allowed because of the pass-through nature of recursive calls).
+    Under the hood, the code for loader.__next__() can choose to recursively call a to_tensor() method which is implemented by embedder. Index queries and other magic methods can also be implemented recursively, and this enables a degree of commutativity when stacking Pipes together (changing the order of Pipes is often allowed because of the pass-through nature of recursive calls).
 
-    Note that in order for this to work well, there must be some consistency among method names. If a source expects ‘to_tensor’ to convert batches to tensor format, then an upstream source must have a method with that name, and this should remain consistent across projects to maintain reusability. Lastly, the format for specifying inputs to a source is a dictionary of Sources. The keys in this dictionary can provide information for the Source to use or be ignored completely.
+    Note that in order for this to work well, there must be some consistency among method names. If a Pipe expects ‘to_tensor’ to convert batches to tensor format, then an upstream Pipe must have a method with that name, and this should remain consistent across projects to maintain reusability. Lastly, the format for specifying inputs to a Pipe is a dictionary of Pipes. The keys in this dictionary can provide information for the Pipe to use or be ignored completely.
 
     """
 
-    name = 'base_source'
+    name = 'base_pipe'
 
     def __init__(self, *args, inputs=None, **kwargs):
 
         if type(inputs) is dict:
-            self.input_sources = inputs
-        elif isinstance(inputs, Source): # Can give just one source as input without having to type out an entire dict
-            self.input_sources = {'data': inputs}
+            self.input_pipes = inputs
+        elif isinstance(inputs, Pipe): # Can give just one Pipe as input without having to type out an entire dict
+            self.input_pipes = {'data': inputs}
         elif inputs is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
-            self.input_sources = {}
+            self.input_pipes = {}
         else:
-            raise TypeError("inputs must be a dict of sources or a single source")
+            raise TypeError("inputs must be a dict of Pipes or a single Pipe")
         self.check_inputs()
-        for title, source in self.input_sources.items(): # There is only one
+        for title, pipe in self.input_pipes.items(): # There is only one
             self.input_title = title
-            self.input_source = source
+            self.input_pipe = pipe
 
     def check_inputs(self):
-        if len(self.input_sources) > 1:
-            raise ValueError("A pass-through source can only have one input source.")
+        if len(self.input_pipes) > 1:
+            raise ValueError("A pass-through Pipe can only have one input Pipe.")
 
     def __getitem__(self, *args, **kwargs):
-        return self.input_source.__getitem__(*args, **kwargs)
+        return self.input_pipe.__getitem__(*args, **kwargs)
 
     def __setitem__(self, *args, **kwargs):
-        return self.input_source.__setitem__(*args, **kwargs)
+        return self.input_pipe.__setitem__(*args, **kwargs)
 
     def __delitem__(self, *args, **kwargs):
-        return self.input_source.__delitem__(*args, **kwargs)
+        return self.input_pipe.__delitem__(*args, **kwargs)
 
     def __len__(self, *args, **kwargs):
-        return self.input_source.__len__(*args, **kwargs)
+        return self.input_pipe.__len__(*args, **kwargs)
 
     def __next__(self, *args, **kwargs):
-        return self.input_source.__next__(*args, **kwargs)
+        return self.input_pipe.__next__(*args, **kwargs)
 
     def __iter__(self, *args, **kwargs):
-        return self.input_source.__iter__(*args, **kwargs)
+        return self.input_pipe.__iter__(*args, **kwargs)
 
     def __getattr__(self, *args, **kwargs):
         """
-        Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)
+        Pass through all methods of the input Pipe while adding labels. This does not intercept special methods (__x__ methods)
         """
-        return self.recursive_call(*args, **kwargs) #self.input_source.__getattribute__(*args, **kwargs)
+        return self.recursive_call(*args, **kwargs) #self.input_pipe.__getattribute__(*args, **kwargs)
 
     def recursive_call(self, attribute, *args, ignore_first = True, **kwargs):
         """
-        Recursively calls method/attribute on input_sources until reaching an upstream source that implements the method and
+        Recursively calls method/attribute on input_pipes until reaching an upstream Pipe that implements the method and
         returns the response as a message (empty if response is None).
-        Recursive calls enable a stack of sources to behave as one entity; any method implemented by any component can be accessed
+        Recursive calls enable a stack of Pipes to behave as one entity; any method implemented by any component can be accessed
         recursively.
 
         Args:
             attribute: The name of the attribute/method to call.
             args: The arguments if this is a recursive method call.
-            ignore_first: If True, then ignore whether or not the target attribute is implemented by self. This can be useful if a source
+            ignore_first: If True, then ignore whether or not the target attribute is implemented by self. This can be useful if a Pipe
                 implements a method and wants to use an upstream call of the same method as well.
             kwargs: The kwargs is this is a recursive method call.
 
         Returns:
-            Responses (dict): A dictionary mapping the name of each input source to the response that was returned.
+            Responses (dict): A dictionary mapping the name of each input Pipe to the response that was returned.
         """
 
         if not ignore_first:
@@ -115,36 +115,36 @@ class Source(ABC):
                     except AttributeError:
                         return self.__getattr__(attribute)
 
-        if not self.input_sources:
-            raise AttributeError("Source {0} does not have method/attribute {1}.".format(self.name, str(attribute)))
+        if not self.input_pipes:
+            raise AttributeError("Pipe {0} does not have method/attribute {1}.".format(self.name, str(attribute)))
 
-        responses = [source.recursive_call(attribute, *args, ignore_first=False, **kwargs) for source in self.input_sources.values()]
+        responses = [pipe.recursive_call(attribute, *args, ignore_first=False, **kwargs) for pipe in self.input_pipes.values()]
 
         if responses:
-            if isinstance(responses[0], Source):
+            if isinstance(responses[0], Pipe):
                 return Fireworks.merge(responses)
             elif len(responses) == 1:
                 return responses[0]
             else:
-                return {key: response for key, respone in zip(self.input_sources.keys(), responses)}
+                return {key: response for key, respone in zip(self.input_pipes.keys(), responses)}
 
-class PassThroughSource(Source):
+class PassThroughPipe(Pipe):
     """
-    This source passes through data access calls and methods to its (single) input source except for whatever is overridden by subclasses.
+    This Pipe passes through data access calls and methods to its (single) input Pipe except for whatever is overridden by subclasses.
     NOTE: Only the special methods explicitly defined here (getitem, len, delitem, setitem, next, iter) are passed through.
     Non-special methods are passed through normally.
     """
 
-    # TODO: Make every source passthrough.
-    name = 'Passthrough source'
+    # TODO: Make every Pipe passthrough.
+    name = 'Passthrough Pipe'
 
-class HookedPassThroughSource(Source): # BUG NOTE: Methods that return self will break the passthrough at the moment
+class HookedPassThroughPipe(Pipe): # BUG NOTE: Methods that return self will break the passthrough at the moment
     """
-    This source has hooks which can be implemented by subclasses to modify the behavior of
+    This Pipe has hooks which can be implemented by subclasses to modify the behavior of
     passed through calls.
     """
 
-    name = 'Hooked-passthrough source'
+    name = 'Hooked-passthrough Pipe'
 
     def _getitem_hook(self, message): return message
 
@@ -160,45 +160,45 @@ class HookedPassThroughSource(Source): # BUG NOTE: Methods that return self will
 
     def __getitem__(self, *args, **kwargs):
 
-        return self._getitem_hook(Message(self.input_source.__getitem__(*args, **kwargs))) #self.input_source.__getitem__(*args, **kwargs))
+        return self._getitem_hook(Message(self.input_pipe.__getitem__(*args, **kwargs))) #self.input_pipe.__getitem__(*args, **kwargs))
 
     # def __setitem__(self, *args, **kwargs):
-    #     self._setitem_hook(self.input_source.__setitem__(*args, **kwargs))
+    #     self._setitem_hook(self.input_pipe.__setitem__(*args, **kwargs))
     #
     # def __delitem__(self, *args, **kwargs):
-    #     self._delitem_hook(self.input_source.__delitem__(*args, **kwargs))
+    #     self._delitem_hook(self.input_pipe.__delitem__(*args, **kwargs))
     #
     # def __len__(self, *args, **kwargs):
-    #     return self._len_hook(self.input_source.__len__(*args, **kwargs))
+    #     return self._len_hook(self.input_pipe.__len__(*args, **kwargs))
 
     def __next__(self, *args, **kwargs):
-        return self._next_hook(Message(self.input_source.__next__(*args, **kwargs)))
+        return self._next_hook(Message(self.input_pipe.__next__(*args, **kwargs)))
 
     def __iter__(self, *args, **kwargs):
 
-        self.input_source = self.input_source.__iter__(*args, **kwargs)
+        self.input_pipe = self.input_pipe.__iter__(*args, **kwargs)
         return self
 
     # def __getattr__(self, *args, **kwargs):
     #     """
-    #     Pass through all methods of the input source while adding labels. This does not intercept special methods (__x__ methods)
+    #     Pass through all methods of the input Pipe while adding labels. This does not intercept special methods (__x__ methods)
     #     """
-    #     return self.input_source.__getattribute__(*args, **kwargs)
+    #     return self.input_pipe.__getattribute__(*args, **kwargs)
 
-class BioSeqSource(Source):
+class BioSeqPipe(Pipe):
     """
     Class for representing biosequence data.
-    Specifically, this class can read biological data files (such as fasta) and iterate throug them as a Source.
-    This can serve as the first source in a pipeline for analyzing genomic data.
+    Specifically, this class can read biological data files (such as fasta) and iterate throug them as a Pipe.
+    This can serve as the first Pipe in a pipeline for analyzing genomic data.
     """
 
-    name = 'BioSeqSource'
+    name = 'BioSeqPipe'
 
     def __init__(self, path, inputs = None, filetype = 'fasta', **kwargs):
         """
         Args:
             path: Path on disk where file is located; will be supplied to the SeqIO.parse function.
-            inputs: Input sources. Default is None.
+            inputs: Input Pipes. Default is None.
             filetype: Type of file that will be supplied to the SeqIO.parse function. Default is 'fasta'
             kwargs: Optional key word arguments that will be supplied to the SeqIO.parse function.
         """
@@ -206,7 +206,7 @@ class BioSeqSource(Source):
         self.filetype = filetype
         self.kwargs = kwargs
         self.seq = SeqIO.parse(self.path, self.filetype, **self.kwargs)
-        self.input_sources = {}
+        self.input_pipes = {}
 
     def reset(self):
         """
@@ -217,7 +217,7 @@ class BioSeqSource(Source):
 
     def __next__(self):
         """
-        Each iteration through a SeqIO object will produce a named tuple. This source converts that tuple to a Message and produces the result.
+        Each iteration through a SeqIO object will produce a named tuple. This Pipe converts that tuple to a Message and produces the result.
         """
         gene = self.seq.__next__()
 
@@ -235,37 +235,37 @@ class BioSeqSource(Source):
     def __iter__(self):
         return self.reset()
 
-class LoopingSource(Source):
+class LoopingPipe(Pipe):
     """
-    This source can take any iterator and make it appear to be indexable by iterating through the input
+    This Pipe can take any iterator and make it appear to be indexable by iterating through the input
     as needed to reach any given index.
 
-    The input source must implement __next__ and reset (to be repeatable),
+    The input Pipe must implement __next__ and reset (to be repeatable),
     and this will simulate __getitem__ by repeatedly looping through the iterator as needed.
 
-    For example, say we have a source that iterates through the lines of a FASTA file:
+    For example, say we have a Pipe that iterates through the lines of a FASTA file:
     ::
 
-        fasta = BioSeqSource('genes.fasta')
+        fasta = BioSeqPipe('genes.fasta')
 
-    This source can only iterate through the file in one direciton. If we want to access arbitrary elements,
+    This Pipe can only iterate through the file in one direciton. If we want to access arbitrary elements,
     we can do this:
     ::
 
-        clock = LoopingSource(inputs=fasta)
+        clock = LoopingPipe(inputs=fasta)
         clock[10]
         clock[2:6]
         len(clock)
 
-    All of these actions are now possible. Note that this is in general an expensive process, because the source
-    has to iterate one at a time to get to the index it needs. In practice, this source should pipe its output
-    to a CachingSource that can store values in memory. This approach enables you to process datasets that don't
+    All of these actions are now possible. Note that this is in general an expensive process, because the Pipe
+    has to iterate one at a time to get to the index it needs. In practice, this Pipe should pipe its output
+    to a CachingPipe that can store values in memory. This approach enables you to process datasets that don't
     entirely fit in memory; you can stream in what you need and cache portions. From the perspective of the downstream
-    sources, every element of the dataset is accessible as if it were in memory.
+    Pipes, every element of the dataset is accessible as if it were in memory.
 
     """
 
-    name = 'LoopingSource'
+    name = 'LoopingPipe'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -305,7 +305,7 @@ class LoopingSource(Source):
             self.compute_length()
             return self.length
 
-    def __next__(self): # QUESTION: Should __next__ calls be supported for this source?
+    def __next__(self): # QUESTION: Should __next__ calls be supported for this Pipe?
         """
         Go forward one step. This can be used to loop over the inputs while automatically recording
         length once one cycle has been performed.
@@ -321,16 +321,16 @@ class LoopingSource(Source):
         """
         Checks inputs to determine if they implement __next__ and reset methods.
         """
-        for name, source in self.input_sources.items():
-            if not (hasattr(source, '__next__') and hasattr(source, 'reset')):
-                raise TypeError('Source {0} does not have __next__ and reset methods.'.format(name))
+        for name, pipe in self.input_pipes.items():
+            if not (hasattr(pipe, '__next__') and hasattr(pipe, 'reset')):
+                raise TypeError('Pipe {0} does not have __next__ and reset methods.'.format(name))
 
     def reset(self):
         """
-        Calls reset on input sources and sets position to 0.
+        Calls reset on input Pipes and sets position to 0.
         """
-        for source in self.input_sources.values():
-            source.reset()
+        for pipe in self.input_pipes.values():
+            pipe.reset()
         self.position = 0
 
     def compute_length(self):
@@ -361,24 +361,24 @@ class LoopingSource(Source):
         x = Message()
         for _ in range(n - self.position):
             try:
-                # x = x.append(Fireworks.merge([source.__next__() for source in self.input_sources.values()]))
-                x = Fireworks.merge([source.__next__() for source in self.input_sources.values()])
+                # x = x.append(Fireworks.merge([Pipe.__next__() for Pipe in self.input_pipes.values()]))
+                x = Fireworks.merge([pipe.__next__() for pipe in self.input_pipes.values()])
                 self.position += 1
             except StopIteration:
                 self.length = self.position
                 raise IndexError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
         return x
 
-class CachingSource(Source):
+class CachingPipe(Pipe):
     """
-    This source can be used to dynamically cache elements from upstream sources.
-    Whenever data is requested by index, this source will intercept the request and add that message alongside
+    This Pipe can be used to dynamically cache elements from upstream Pipes.
+    Whenever data is requested by index, this Pipe will intercept the request and add that message alongside
     the index to its internal cache.
     This can be useful for dealing with datasets that don't fit in memory or are streamed in. You can cache portions
-    of the dataset as you use them. By combining this with a LoopingSource, you can create the illusion of making
-    the entire dataset available to downstream sources regardless of the type and size of the original data.
+    of the dataset as you use them. By combining this with a LoopingPipe, you can create the illusion of making
+    the entire dataset available to downstream Pipes regardless of the type and size of the original data.
 
-    More specifically, fiven input sources that implement __getitem__, will store all calls to __getitem__ into
+    More specifically, fiven input Pipes that implement __getitem__, will store all calls to __getitem__ into
     an internal cache and therafter __getitem__ calls will either access from the cache or trigger __getitem__ calls
     on the input and an update to the cache.
 
@@ -386,9 +386,9 @@ class CachingSource(Source):
 
     ::
 
-        fasta = BioSeqSource(path='genes.fasta')
-        clock = LoopingSource(inputs=fasta)
-        cache = CachingSource(inputs=clock, cache_size=100) # cache_size is optional; default=100
+        fasta = BioSeqPipe(path='genes.fasta')
+        clock = LoopingPipe(inputs=fasta)
+        cache = CachingPipe(inputs=clock, cache_size=100) # cache_size is optional; default=100
 
     Will set up a pipeline that reads lines from a FASTA file and acessess and caches elements as requests are made
 
@@ -434,9 +434,9 @@ class CachingSource(Source):
         """
         Checks inputs to determine if they implement __getitem__.
         """
-        for name, source in self.input_sources.items():
-            if not (hasattr(source, '__getitem__')):
-                raise TypeError('Source {0} does not have __getitem__ method.'.format(name))
+        for name, pipe in self.input_pipes.items():
+            if not (hasattr(pipe, '__getitem__')):
+                raise TypeError('Pipe {0} does not have __getitem__ method.'.format(name))
 
     def __getitem__(self, index):
 
@@ -453,7 +453,7 @@ class CachingSource(Source):
         # Retrieve from cache existing elements
         in_cache_elements = self.cache[in_cache] # elements in cache corresponding to indices in cache
         # Update cache to have other elements
-        not_in_cache_elements = Fireworks.merge([source[not_in_cache] for source in self.input_sources.values()])
+        not_in_cache_elements = Fireworks.merge([pipe[not_in_cache] for pipe in self.input_pipes.values()])
         self.cache[not_in_cache] = not_in_cache_elements
         # Reorder and merge requested elements
         message = in_cache_elements.append(not_in_cache_elements)
@@ -476,13 +476,13 @@ class CachingSource(Source):
 
     def __len__(self):
         """
-        Length is computed implicitly and lazily. If any operation causes the source
+        Length is computed implicitly and lazily. If any operation causes the Pipe
         to reach the end of it's inputs, that position is stored as the length.
-        Alternatively, if this method is called before that happens, the source will attempt to
+        Alternatively, if this method is called before that happens, the Pipe will attempt to
         loop to the end and calculate the length.
         """
         if self.infinite:
-            raise ValueError("Source is labelled as having infinite length (ie. yields items indefinitely).")
+            raise ValueError("Pipe is labelled as having infinite length (ie. yields items indefinitely).")
         elif self.length is None:
             self.compute_length()
             return self.length
@@ -502,14 +502,14 @@ class CachingSource(Source):
                     self.length = 1 + self.lower_bound
                     break
         else:
-            raise ValueError("Source is labelled as having infinite length (ie. yields items indefinitely).")
+            raise ValueError("Pipe is labelled as having infinite length (ie. yields items indefinitely).")
 
 
 
-class Title2LabelSource(HookedPassThroughSource):
+class Title2LabelPipe(HookedPassThroughPipe):
     """
-    This source takes one source as input and inserts a column called 'label' containing the name
-    of the input source to to all outputs.
+    This Pipe takes one Pipe as input and inserts a column called 'label' containing the name
+    of the input Pipe to to all outputs.
     """
 
     def __init__(self, *args, labels_column = 'labels', **kwargs):
@@ -519,11 +519,11 @@ class Title2LabelSource(HookedPassThroughSource):
         self.check_inputs()
 
     def check_inputs(self):
-        if len(self.input_sources) > 1:
-            raise ValueError("A label source can only have one input source.")
-        for label, source in self.input_sources.items(): # There is only one
+        if len(self.input_pipes) > 1:
+            raise ValueError("A label Pipe can only have one input Pipe.")
+        for label, pipe in self.input_pipes.items(): # There is only one
             self.label = label
-            self.input_source = source
+            self.input_pipe = pipe
 
     def _get_item_hook(self, message):
 
@@ -535,9 +535,9 @@ class Title2LabelSource(HookedPassThroughSource):
 
     # def __getattr__(self, *args, **kwargs):
     #     """
-    #     Pass through all methods of the input source while adding labels.
+    #     Pass through all methods of the input pipe while adding labels.
     #     """
-    #     output = self.input_source.__getattribute__(*args, **kwargs)
+    #     output = self.input_pipe.__getattribute__(*args, **kwargs)
     #     if type(output) is types.MethodType: # Wrap the method in a converter
     #         return self.method_wrapper(output)
     #     else:
@@ -579,9 +579,9 @@ class Title2LabelSource(HookedPassThroughSource):
 
         return message
 
-class LabelerSource(Source):
+class LabelerPipe(Pipe):
     """
-    This source implements a to_tensor function that converts labels contained in messages to tensors based on an internal labels dict.
+    This Pipe implements a to_tensor function that converts labels contained in messages to tensors based on an internal labels dict.
     """
 
     def __init__(self, labels, *args, **kwargs):
@@ -596,15 +596,15 @@ class LabelerSource(Source):
         labels = [self.labels_dict[label] for label in labels]
         labels = torch.Tensor([one_hot(label,len(self.labels_dict)) for label in labels])
         batch['labels'] = labels
-        try: # Allow an upstream source to attempt to perform to_tensor if it can
+        try: # Allow an upstream Pipe to attempt to perform to_tensor if it can
             batch = self.recursive_call('to_tensor', batch)
             return batch
         except AttributeError:
             return batch
 
-class RepeaterSource(Source):
+class RepeaterPipe(Pipe):
     """
-    Given an input Source that is iterable, enables repeat iteration.
+    Given an input Pipe that is iterable, enables repeat iteration.
     """
 
     def __init__(self,*args,repetitions=10,**kwargs):
@@ -635,10 +635,10 @@ class RepeaterSource(Source):
                 self.recursive_call('reset')()
                 return self.__next__()
 
-class ShufflerSource(Source):
+class ShufflerPipe(Pipe):
     """
-    Given input sources that implement __getitem__ and __len__, will shuffle the indices so that iterating through
-    the source or calling __getitem__ will return different values.
+    Given input Pipes that implement __getitem__ and __len__, will shuffle the indices so that iterating through
+    the Pipe or calling __getitem__ will return different values.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -650,11 +650,11 @@ class ShufflerSource(Source):
         """
         Check inputs to see if they implement __getitem__ and __len__
         """
-        for name, source in self.input_sources.items():
-            if not (hasattr(source, '__getitem__')):
-                raise TypeError('Source {0} does not have __getitem__ method.'.format(name))
-            if not(hasattr(source, '__len__')):
-                raise TypeError('Source {0} does not have __len__ method.'.format(name))
+        for name, pipe in self.input_pipes.items():
+            if not (hasattr(pipe, '__getitem__')):
+                raise TypeError('Pipe {0} does not have __getitem__ method.'.format(name))
+            if not(hasattr(pipe, '__len__')):
+                raise TypeError('Pipe {0} does not have __len__ method.'.format(name))
 
     def __getitem__(self, index):
 
@@ -690,9 +690,9 @@ class ShufflerSource(Source):
         self.reset()
         return self
 
-class IndexMapperSource(Source):
+class IndexMapperPipe(Pipe):
     """
-    Given input sources that implement __getitem__, returns a source that maps indices in input_indices to output_indices via __getitem__
+    Given input Pipes that implement __getitem__, returns a Pipe that maps indices in input_indices to output_indices via __getitem__
     """
     def __init__(self, input_indices, output_indices, *args,**kwargs):
         super().__init__(*args, **kwargs)
@@ -703,19 +703,19 @@ class IndexMapperSource(Source):
         self.pointers[input_indices] = Message({'output':output_indices})
 
     def check_inputs(self):
-        for name, source in self.input_sources.items():
-            if not hasattr(source, '__getitem__'):
-                raise ValueError("Input sources must be indexable.")
+        for name, pipe in self.input_pipes.items():
+            if not hasattr(pipe, '__getitem__'):
+                raise ValueError("Input Pipes must be indexable.")
 
     def __getitem__(self, index):
 
         index = index_to_list(index)
-        return Fireworks.merge([source[self.pointers[index]['output'].values] for source in self.input_sources.values()])
+        return Fireworks.merge([pipe[self.pointers[index]['output'].values] for pipe in self.input_pipes.values()])
 
     def __len__(self):
         return len(self.pointers)
 
-class BatchingSource(Source):
+class BatchingPipe(Pipe):
     """
     Generates minibatches.
     """

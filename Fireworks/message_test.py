@@ -49,7 +49,7 @@ def test_complement():
     assert complement == [0,1,3,5,7,8,9]
 
 def test_Message():
-    """ Test init, getitem, and len methods. """
+    """ Test init, getitem, and len methopl. """
 
     def attribute_test(message, length = 3):
         assert len(message) == length
