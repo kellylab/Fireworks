@@ -1,13 +1,13 @@
 from sqlalchemy import Table, Column, Integer, String, create_engine
 from Fireworks import Message
 from Fireworks import database as db
-from Fireworks import source as ds
+from Fireworks import pipeline as pl
 import os
 import numpy as np
 import itertools
 import copy
 
-class dummy_source(ds.Source):
+class dummy_pipe(pl.Pipe):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -26,7 +26,7 @@ class dummy_source(ds.Source):
         elif max(index) < self.length and min(index) >= 0:
             return Message({'name': 'johnny', 'values': np.array(index)})
         else:
-            raise IndexError("Out of bounds for dummy source with length {0}.".format(self.length))
+            raise IndexError("Out of bounds for dummy pipe with length {0}.".format(self.length))
 
     def __len__(self):
         return self.length
@@ -49,10 +49,10 @@ def test_make_row():
     assert tom.values == 33
 
     engine = create_engine('sqlite:///:memory:', echo=True)
-    source = db.TableSource(tab, engine)
+    pipe = db.TablePipe(tab, engine)
 
     message = Message({'name': ['a','b'], 'values': [1,2]})
-    row = source.make_row(message[0])
+    row = pipe.make_row(message[0])
     assert row.name == 'a'
     assert row.values == 1
 
@@ -76,15 +76,15 @@ def test_parse_columns():
 
     assert set(['values', 'id', 'name']) == set(colnames)
 
-def test_TableSource_explicit():
+def test_TablePipe_explicit():
     """ Colnames are explicitly labeled here. """
 
-    dummy = dummy_source()
+    dummy = dummy_pipe()
     tab = dummy_table('jojo')
     engine = create_engine('sqlite:///:memory:', echo=True)
 
     tab.metadata.create_all(engine)
-    ts = db.TableSource(tab, engine, ['values', 'name'], inputs=dummy)
+    ts = db.TablePipe(tab, engine, ['values', 'name'], inputs=dummy)
     batch = ts[2:10]
     ts.insert(batch)
     ts.commit()
@@ -96,14 +96,14 @@ def test_TableSource_explicit():
         assert row['values'][0] == i+2
     assert i > 1
 
-def test_TableSource_implicit():
+def test_TablePipe_implicit():
     """ Colnames are implicitly identified here. """
 
-    dummy = dummy_source()
+    dummy = dummy_pipe()
     tab = dummy_table('josuke')
     engine = create_engine('sqlite:///:memory:', echo=True)
 
-    ts = db.TableSource(tab, engine, inputs=dummy)
+    ts = db.TablePipe(tab, engine, inputs=dummy)
     batch = ts[2:10]
     ts.insert(batch)
     ts.commit()
@@ -131,18 +131,18 @@ def test_TableSource_implicit():
     assert newer_batch == new_batch
     assert newer_batch != batch
 
-def test_DBSource():
-    dummy = dummy_source()
+def test_DBPipe():
+    dummy = dummy_pipe()
     tab = dummy_table('jotaro')
     engine = create_engine('sqlite:///jotaro.sqlite', echo=True)
     if os.path.exists('jotaro.sqlite'):
         os.remove('jotaro.sqlite')
     tab.metadata.create_all(engine)
-    ts = db.TableSource(tab, engine, ['name', 'values'], inputs=dummy)
+    ts = db.TablePipe(tab, engine, ['name', 'values'], inputs=dummy)
     batch = ts[2:10]
     ts.insert(batch)
     ts.commit()
-    deedee = db.DBSource(tab, engine)
+    deedee = db.DBPipe(tab, engine)
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
     deedee.reset()
@@ -150,20 +150,20 @@ def test_DBSource():
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
 
     # Test using reflections
-    ts = db.DBSource('jotaro', engine)
+    ts = db.DBPipe('jotaro', engine)
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
     deedee.reset()
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
 
-def test_DBSource_query():
+def test_DBPipe_query():
 
-    dummy = dummy_source()
+    dummy = dummy_pipe()
     tab = dummy_table('giorno')
     engine = create_engine('sqlite:///:memory:', echo=True)
     tab.metadata.create_all(engine)
-    ts = db.TableSource(tab, engine, ['name', 'values'], inputs=dummy)
+    ts = db.TablePipe(tab, engine, ['name', 'values'], inputs=dummy)
     batch = ts[0:20]
     ts.insert(batch)
     ts.commit()

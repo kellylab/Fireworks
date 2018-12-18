@@ -1,7 +1,7 @@
 import Fireworks
 import os
 import pandas as pd
-from Fireworks import source as ds
+from Fireworks import pipeline as pl
 from Fireworks.message import Message
 from Fireworks.utils import index_to_list
 from Fireworks.test_utils import *
@@ -11,7 +11,7 @@ import itertools
 
 test_dir = Fireworks.test_dir
 
-class one_way_dummy(ds.Source):
+class one_way_dummy(pl.Pipe):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,7 +33,7 @@ class one_way_iter_dummy(one_way_dummy):
         self.reset()
         return self
 
-class reset_dummy(ds.Source):
+class reset_dummy(pl.Pipe):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.count = 0
@@ -41,7 +41,7 @@ class reset_dummy(ds.Source):
     def reset(self):
         self.count = 0
 
-class next_dummy(ds.Source):
+class next_dummy(pl.Pipe):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -54,7 +54,7 @@ class next_dummy(ds.Source):
         else:
             raise StopIteration # This will trigger StopIteration
 
-class getitem_dummy(ds.Source):
+class getitem_dummy(pl.Pipe):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -64,17 +64,18 @@ class getitem_dummy(ds.Source):
 
         index = index_to_list(index)
 
-        if index == []:
+        # if index == []:
+        if index.size == 0:
             return None
         elif max(index) < self.length and min(index) >= 0:
             return {'values': np.array(index)}
         else:
-            raise IndexError("Out of bounds for dummy source with length {0}.".format(self.length))
+            raise IndexError("Out of bounds for dummy pipe with length {0}.".format(self.length))
 
     def __len__(self):
         return self.length
 
-class smart_dummy(ds.Source):
+class smart_dummy(pl.Pipe):
     """
     Implements all of the methods in the above dummies
     """
@@ -93,7 +94,7 @@ class smart_dummy(ds.Source):
         elif max(index) < self.length and min(index) >= 0:
             return Message({'values': np.array(index)})
         else:
-            raise IndexError("Out of bounds for dummy source with length {0}.".format(self.length))
+            raise IndexError("Out of bounds for dummy pipe with length {0}.".format(self.length))
 
     def reset(self):
         self.count = 0

@@ -3,15 +3,15 @@ from sqlalchemy import Table, Column, Integer, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Query
 from Fireworks import Message, cat
-from Fireworks.source import Source, PassThroughSource
+from Fireworks.pipeline import Pipe, PassThroughPipe
 import numpy as np
 import pandas as pd
 
 Base = declarative_base()
 
-class TableSource(PassThroughSource):
+class TablePipe(PassThroughPipe):
     """
-    Represents an SQLalchemy Table while having the functionality of a Source.
+    Represents an SQLalchemy Table while having the functionality of a Pipe.
     """
     def __init__(self, table, engine, columns = None, inputs = None, **kwargs):
 
@@ -82,7 +82,7 @@ class TableSource(PassThroughSource):
 
     def query(self, entities=None, *args, **kwargs):
         """
-        Queries the database and generates a DBSource corresponding to the result.
+        Queries the database and generates a DBPipe corresponding to the result.
 
         Args:
             entities: A list of column names
@@ -90,7 +90,7 @@ class TableSource(PassThroughSource):
             kwargs: Optional keyword arguments for the SQLalchemy query function
 
         Returns:
-            dbsource (DBSource): A DBSource object that can iterate through the results of the query.
+            dbpipe (DBPipe): A DBPipe object that can iterate through the results of the query.
         """
         if entities is None:
             query = self.session.query(*args, **kwargs)
@@ -108,7 +108,7 @@ class TableSource(PassThroughSource):
             query = self.session.query(*entities, *args, **kwargs)
             columns_and_types = parse_columns_and_types(query)
         # return self.session.query(entities, *args, **kwargs)
-        return DBSource(self.table, self.engine, query, columns_and_types = columns_and_types)
+        return DBPipe(self.table, self.engine, query, columns_and_types = columns_and_types)
 
     def delete(self, column_name, values):
         to_delete = self.query().filter(column_name, 'in_', values)
@@ -186,9 +186,9 @@ def create_table(name, columns, primary_key = None):
 
     return SimpleTable
 
-class DBSource(Source):
+class DBPipe(Pipe):
     """
-    Source that can iterate through the output of a database query.
+    Pipe that can iterate through the output of a database query.
     """
     def __init__(self, table, engine, query = None, columns_and_types= None):
         """
@@ -196,11 +196,11 @@ class DBSource(Source):
             table (sqlalchemy.ext.declarative.api.DeclarativeMeta): Table to perform query on. You can alternatively provide the name of the
                 table as a string, and the schema will be extracted from the engine.
             engine (sqlalchemy.engine.base.Engine): Engine correspondign to the database to read from.
-            query: Can optionally provide an SQLalchemy Query object. If unspecified, the DBSource will perform a SELECT * query.
+            query: Can optionally provide an SQLalchemy Query object. If unspecified, the DBPipe will perform a SELECT * query.
         """
         self.engine = engine
         Session = sessionmaker(bind=engine)
-        self.input_sources = {}
+        self.input_pipes = {}
         self.session = Session()
         if type(table) is str:
             self.table = reflect_table(table, engine)
@@ -224,7 +224,7 @@ class DBSource(Source):
 
     def reset(self, entities=None, *args, **kwargs):
         """
-        Resets DBSource by reperforming the query, so that it is now at the beginning of the query.
+        Resets DBPipe by reperforming the query, so that it is now at the beginning of the query.
         """
         # if entities is None: # TODO: Make this work properly
         #     entities = self.table
@@ -247,7 +247,7 @@ class DBSource(Source):
         column = getattr(self.table, column_name)
         predicate_function = getattr(column, predicate)
         query = self.query.filter(predicate_function(*args, **kwargs))
-        filtered = DBSource(self.table, self.engine, query, columns_and_types=self.columns_and_types)
+        filtered = DBPipe(self.table, self.engine, query, columns_and_types=self.columns_and_types)
         return filtered
 
     def all(self): #TODO: Test dis ish #TODO: Implement the other query methods
@@ -262,7 +262,7 @@ class DBSource(Source):
 
     def update(self, batch):
         """
-        Updates the contents of this DBSource by replacing them with batch
+        Updates the contents of this DBPipe by replacing them with batch
 
         Args:
             batch: A Message
@@ -368,7 +368,7 @@ def cast(value):
 # Test row generation
 # Test with SQLite backend
 # Test with CSV, Message, and Fasta
-# Create reader sources
+# Create reader pipes
 
 def reflect_table(table_name, engine):
     """

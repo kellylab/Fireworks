@@ -1,7 +1,7 @@
 import Fireworks
 import os
 import pandas as pd
-from Fireworks import source as ds
+from Fireworks import pipeline as pl
 from Fireworks.message import Message
 from Fireworks.utils import index_to_list
 from Fireworks.test_utils import *
@@ -11,16 +11,16 @@ import itertools
 
 test_dir = Fireworks.test_dir
 
-def conforms_to_spec(source):
+def conforms_to_spec(pipe):
 
-    assert hasattr(source, '__iter__')
-    assert hasattr(source, '__next__')
+    assert hasattr(pipe, '__iter__')
+    assert hasattr(pipe, '__next__')
 
     return True
 
-def test_source(): pass
+def test_pipe(): pass
 
-def test_Title2LabelSource():
+def test_Title2LabelPipe():
 
     dumbo = one_way_dummy()
     rumbo = one_way_dummy()
@@ -28,17 +28,17 @@ def test_Title2LabelSource():
     gumbo = next_dummy()
     jumbo = next_dummy()
 
-    labeler = ds.Title2LabelSource(inputs = {'yes': dumbo})
-    mislabeler = ds.Title2LabelSource(inputs = {'yes': rumbo}, labels_column='barrels')
-    donkeykong = ds.Title2LabelSource(inputs = {'yes':gumbo})
-    dixiekong = ds.Title2LabelSource(inputs = {'yes': jumbo}, labels_column='bananas')
+    labeler = pl.Title2LabelPipe(inputs = {'yes': dumbo})
+    mislabeler = pl.Title2LabelPipe(inputs = {'yes': rumbo}, labels_column='barrels')
+    donkeykong = pl.Title2LabelPipe(inputs = {'yes':gumbo})
+    dixiekong = pl.Title2LabelPipe(inputs = {'yes': jumbo}, labels_column='bananas')
     labeler.reset()
     assert labeler.count == 0
     mislabeler.reset()
     assert mislabeler.count == 0
-    def test_iteration(source, n, label):
+    def test_iteration(pipe, n, label):
         for i in range(n):
-            x = source.__next__()
+            x = pipe.__next__()
             assert len(x) == 1
             assert (x[label] == ['yes']).all()
 
@@ -51,16 +51,16 @@ def test_Title2LabelSource():
     assert donkeykong.count == 12
     assert dixiekong.count == 14
 
-    labeler = ds.Title2LabelSource(inputs = {'yes': bumbo})
+    labeler = pl.Title2LabelPipe(inputs = {'yes': bumbo})
     labeler.reset()
     assert labeler.count == 0
 
 
 
-def test_BioSeqSource():
+def test_BioSeqPipe():
 
     test_file = os.path.join(test_dir, 'sample_genes.fa')
-    genes = ds.BioSeqSource(test_file)
+    genes = pl.BioSeqPipe(test_file)
     assert conforms_to_spec(genes)
     f = lambda batch: [1 for _ in batch]
     embedding_function = {'sequences': f}
@@ -71,7 +71,7 @@ def test_BioSeqSource():
         assert set(gene.tensor_message.keys()) == set()
         assert set(gene.df.keys()) == set(['ids', 'names', 'descriptions', 'dbxrefs', 'sequences'])
         assert len(gene) == 1
-    # Reset and do it again to confirm we can repeat the source
+    # Reset and do it again to confirm we can repeat the Pipe
     genes.reset()
     for gene in genes:
         assert set(['sequences', 'ids', 'names', 'descriptions', 'dbxrefs']) == set(gene.columns)
@@ -80,25 +80,10 @@ def test_BioSeqSource():
         assert set(gene.df.keys()) == set(['ids', 'names', 'descriptions', 'dbxrefs', 'sequences'])
         assert len(gene) == 1
 
-def test_LoopingSource():
+def test_LoopingPipe():
 
-    # Test type checking
-    # try:
-    #     dumbo = reset_dummy()
-    #     poopy = ds.LoopingSource(inputs = {'mumbo': dumbo})
-    # except TypeError:
-    #     assert True
-    # else:
-    #     assert False
-    # try:
-    #     dumbo = next_dummy()
-    #     scooby = ds.LoopingSource(inputs = {'jumbo': dumbo})
-    # except TypeError:
-    #     assert True
-    # else:
-    #     assert False
     dumbo = one_way_dummy()
-    loopy = ds.LoopingSource(inputs = {'dumbo': dumbo})
+    loopy = pl.LoopingPipe(inputs = {'dumbo': dumbo})
     loopy[10]
     loopy[5]
     numba1 = len(loopy)
@@ -108,11 +93,11 @@ def test_LoopingSource():
     x = loopy[0]
     assert x == Message({'count': [0]})
     loopy[10]
-    loopy = ds.LoopingSource(inputs = {'dumbo': dumbo})
+    loopy = pl.LoopingPipe(inputs = {'dumbo': dumbo})
     x = loopy[0]
-    assert x == Message({'count': [0]}) # Check that the input sources were reset.
+    assert x == Message({'count': [0]}) # Check that the input Pipes were reset.
     assert loopy.length is None
-    try: # Test if length is implicitly calculated whenever input sources run out.
+    try: # Test if length is implicitly calculated whenever input Pipes run out.
         loopy[21]
     except IndexError:
         assert True
@@ -120,10 +105,10 @@ def test_LoopingSource():
         assert False
     assert loopy.length == 20
 
-def test_RepeaterSource():
+def test_RepeaterPipe():
 
     dumbo = one_way_iter_dummy()
-    robert = ds.RepeaterSource(inputs=dumbo)
+    robert = pl.RepeaterPipe(inputs=dumbo)
     numbaz = Message()
     assert len(numbaz) == 0
     for numba in robert:
@@ -131,7 +116,7 @@ def test_RepeaterSource():
     assert len(numbaz) == robert.repetitions*20
 
     dumbo = one_way_dummy()
-    robert = ds.RepeaterSource(inputs=dumbo)
+    robert = pl.RepeaterPipe(inputs=dumbo)
     numbaz = Message()
     robert.reset()
     i = 0
@@ -146,18 +131,11 @@ def test_RepeaterSource():
             break
     assert len(numbaz) == robert.repetitions*20
 
-def test_CachingSource():
+def test_CachingPipe():
 
     # Test type checking
-    dumbo = next_dummy()
-    # try:
-    #     cashmoney = ds.CachingSource(inputs={'dumbo': dumbo})
-    # except TypeError:
-    #     assert True
-    # else:
-    #     assert False
     dumbo = getitem_dummy()
-    cashmoney = ds.CachingSource(inputs={'dumbo': dumbo})
+    cashmoney = pl.CachingPipe(inputs={'dumbo': dumbo})
 
     # Test __getitem__
     assert cashmoney.cache.cache == Message()
@@ -179,7 +157,7 @@ def test_CachingSource():
     length = len(cashmoney)
     assert length == 20
     # Test implicit length calculation
-    cashmoney = ds.CachingSource(inputs={'dumbo': dumbo})
+    cashmoney = pl.CachingPipe(inputs={'dumbo': dumbo})
     assert cashmoney.length is None
     assert cashmoney.lower_bound == 0
     cashmoney[10]
@@ -191,21 +169,21 @@ def test_CachingSource():
     length = len(cashmoney)
     assert length == 20
 
-def test_IndexMapperSource():
+def test_IndexMapperPipe():
 
     getty = getitem_dummy()
     input_indices = [i for i in range(12)]
     output_indices = [i for i in reversed(range(12))]
 
-    flipped = ds.IndexMapperSource(input_indices, output_indices, inputs={'getty':getty})
+    flipped = pl.IndexMapperPipe(input_indices, output_indices, inputs={'getty':getty})
     assert len(flipped) == 12
     for i in range(12):
         assert (flipped[i]['values'] == 11-i).all()
 
-def test_PassThroughSource():
+def test_PassThroughPipe():
 
     dumbo = smart_dummy()
-    pishpish = ds.Source(inputs=dumbo)
+    pishpish = pl.Pipe(inputs=dumbo)
     assert pishpish.count == 0
     assert Message(pishpish.__next__()) == Message({'values': [0]})
     assert pishpish.count == 1
@@ -218,10 +196,10 @@ def test_PassThroughSource():
 
     assert Message(i) == Message({'values': [19]})
 
-def test_ShufflingSource():
+def test_ShufflingPipe():
 
     bobby = getitem_dummy()
-    shuffla = ds.ShufflerSource(inputs=bobby)
+    shuffla = pl.ShufflerPipe(inputs=bobby)
     shuffla[2]
     shuffled = False
     for shu, i in zip(shuffla, itertools.count()):
@@ -229,10 +207,10 @@ def test_ShufflingSource():
             shuffled = True
     assert shuffled
 
-def test_HookedPassThroughSource():
+def test_HookedPassThroughPipe():
 
     dumbo = smart_dummy()
-    class Hooker(ds.HookedPassThroughSource):
+    class Hooker(pl.HookedPassThroughPipe):
 
         def _getitem_hook(self, message):
 

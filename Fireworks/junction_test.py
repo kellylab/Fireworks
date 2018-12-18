@@ -1,7 +1,6 @@
 import Fireworks
 import os
 import pandas as pd
-from Fireworks import source as ds
 from Fireworks import junction as jn
 from Fireworks.message import Message
 from Fireworks.utils import index_to_list
@@ -10,10 +9,8 @@ import numpy as np
 import math
 import itertools
 
-def test_AggregatorSource():
-
-    dumbo = one_way_dummy()
-    bumbo = one_way_dummy()
+def test_junction():
+    
     gumbo = one_way_dummy()
 
     angry = jn.RandomAggregatorJunction(inputs={'dumbo': dumbo, 'bumbo': bumbo, 'gumbo': gumbo})
