@@ -158,7 +158,7 @@ class HookedPassThroughPipe(Pipe): # BUG NOTE: Methods that return self will bre
 
     # def _iter_hook(self, *args, **kwargs): return args[0]
 
-    def __getitem__(self, *args, **kwargs):
+    def __getitem__(self, *args, **kwargs): # TODO: wrap access methods in try/catch statements
 
         return self._getitem_hook(Message(self.input_pipe.__getitem__(*args, **kwargs))) #self.input_pipe.__getitem__(*args, **kwargs))
 
