@@ -8,6 +8,8 @@ from Fireworks.model import Model
 from Fireworks.exceptions import ParameterizationError
 from Fireworks import Message
 from torch.nn import Module
+from random import randint
+import numpy as np
 
 class DummyModel(Model):
     """ Implements y = m*x + b """
@@ -24,6 +26,34 @@ class DummyModel(Model):
         y = m*message['x']+b
         message['y'] = y
         return message
+
+def generate_linear_model_data(n=1000):
+    """
+    Generates n samples from a linear model with a small variability.
+    """
+    m = randint(-3,3)
+    b = randint(-10,10)
+    x = np.random.rand(n)*100
+    errors = np.random.normal(0,.5,n) # Gaussian samples for errors
+    y = m*x+b + errors
+
+    return Message({'x':x, 'y':y}), {'m': m, 'b': b, 'errors': errors} # Second dict is for debugging
+
+def train_model(model, data):
+
+    # Initialize model for training
+    # Define loss function and learning algorithm
+    optimizer = optim.SGD(model.parameters(), lr=.1)
+    # Training loop
+    num_epochs = 3
+    for epoch in num_epochs:
+        for batch in data:
+            optimizer.zero_grad()
+            l = loss(model(data['x']), data['y'])
+            l.backward()
+            optimizer.step()
+
+    return model
 
 class porcupine(Module):
     """ Dummy PyTorch Module. """
@@ -58,3 +88,9 @@ def test_Model_inferencing():
     assert (y['y'] == [2.,4.,6.]).all()
 
 def test_ModelFromModule(): pass
+
+def test_one_Model_training(): pass
+
+def test_multiple_Models_inferencing(): pass
+
+def test_multiple_Models_training(): pass
