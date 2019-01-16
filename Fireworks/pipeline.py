@@ -43,24 +43,26 @@ class Pipe(ABC):
 
     name = 'base_pipe'
 
-    def __init__(self, *args, inputs=None, **kwargs):
+    def __init__(self, input_pipe = None, *args, **kwargs):
 
-        if type(inputs) is dict:
-            self.input_pipes = inputs
-        elif isinstance(inputs, Pipe): # Can give just one Pipe as input without having to type out an entire dict
-            self.input_pipes = {'data': inputs}
-        elif inputs is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
-            self.input_pipes = {}
+        # if type(input_pipe) is dict:
+        #     if len(input_pipe.keys()) > 1:
+        #         raise TypeError("Input must be a single Pipe.")
+        if isinstance(input_pipe, Pipe): # Can give just one Pipe as input without having to type out an entire dict
+            # input_pipe = {'data': input_pipe}
+            self.input_pipe = input_pipe
+        elif input_pipe is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
+            self.input_pipe = None
         else:
-            raise TypeError("inputs must be a dict of Pipes or a single Pipe")
-        self.check_inputs()
-        for title, pipe in self.input_pipes.items(): # There is only one
-            self.input_title = title
-            self.input_pipe = pipe
+            raise TypeError("Inputs must be a Pipe")
+        # for title, pipe in input_pipe.items(): # There is only one
+        #     self.input_title = title
+        #     self.input_pipe = pipe
+        # self.check_inputs()
 
-    def check_inputs(self):
-        if len(self.input_pipes) > 1:
-            raise ValueError("A pass-through Pipe can only have one input Pipe.")
+     # def check_inputs(self):
+     #    if len(self.input_pipes) > 1:
+     #        raise ValueError("A pass-through Pipe can only have one input Pipe.")
 
     def __getitem__(self, *args, **kwargs):
         return self.input_pipe.__getitem__(*args, **kwargs)
