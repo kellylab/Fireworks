@@ -4,9 +4,10 @@
 
 #TODO: Demonstrate the following applications: training and inferencing models, interactive models, auto-generated models
 
-from Fireworks.model import Model
+from Fireworks.model import Model, model_from_module
 from Fireworks.exceptions import ParameterizationError
 from Fireworks import Message
+import torch
 from torch.nn import Module
 from random import randint
 import numpy as np
@@ -39,6 +40,8 @@ def generate_linear_model_data(n=1000):
 
     return Message({'x':x, 'y':y}), {'m': m, 'b': b, 'errors': errors} # Second dict is for debugging
 
+loss = torch.nn.MSELoss()
+
 def train_model(model, data):
 
     # Initialize model for training
@@ -57,8 +60,14 @@ def train_model(model, data):
 
 class porcupine(Module):
     """ Dummy PyTorch Module. """
-    def __init__(self, input_dim, hidden_dim, output_dim):
-        pass
+    def __init__(self):
+        super(Module, self).__init__()
+        m = torch.Tensor(1)
+        b = torch.Tensor(1)
+
+    def forward(self, message):
+
+        return Message({'x': message['x'], 'y': m*x+b})
 
 def test_Model_init():
 
@@ -87,7 +96,13 @@ def test_Model_inferencing():
     assert (y['x'] == [1,2,3]).all()
     assert (y['y'] == [2.,4.,6.]).all()
 
-def test_ModelFromModule(): pass
+def test_ModelFromModule():
+
+    pop = porcupine()
+    mom = model_from_module(porcupine)
+    mob = mom(parameters={})
+    messi = Message({'x':[1,2,3]})
+    assert False
 
 def test_one_Model_training(): pass
 

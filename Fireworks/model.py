@@ -1,9 +1,11 @@
-from Fireworks.better_abc import ABCMeta, abstractattribute
+from abc import ABC, abstractmethod, abstractproperty
+import torch
+from torch.nn import Module
 from abc import abstractmethod
 from Fireworks.exceptions import ParameterizationError
 from Fireworks.pipeline import HookedPassThroughPipe
 
-class Model(HookedPassThroughPipe, metaclass=ABCMeta):
+class Model(HookedPassThroughPipe, ABC):
     """
     Represents a statistical model which has a set of parameters, and a
     means for converting inputs into outputs. The model functions like a Pipe
@@ -49,8 +51,8 @@ class Model(HookedPassThroughPipe, metaclass=ABCMeta):
         if error:
             raise ParameterizationError("Missing required parameters {0}".format(missing_params))
 
-    @abstractattribute
-    def required_parameters(self): pass
+    @property
+    def required_parameters(self): return {}
 
     @abstractmethod
     def forward(self, message):
@@ -72,15 +74,37 @@ class Model(HookedPassThroughPipe, metaclass=ABCMeta):
 
         return self.forward(*args, **kwargs)
 
-class ModelFromModule(Model):
+# class ModelFromModule(Model):
+#     """
+#     Converts a PyTorch Module into a Fireworks Model.
+#     """
+#     def __init__(self, module, parameters, *args, inputs=None, **kwargs):
+#
+#         super.__init__(self, parameters, *args, inputs=inputs, **kwargs)
+#         self.module = module(*args, **parameters) # TODO: Test that these parameters stay linked.
+#
+#     def forward(self, message):
+#
+#         return self.module(message)
+
+class TrainableModel(Module, Model): # This should call Module supermethods before any Fireworks methods.
+
+    def __init__(self, parameters, *args, inputs=None, **kwargs):
+        super(Module, self).__init__()
+        super(Model, self).__init__()
+        for key, param in self.parameters.items():
+            setattr(self.module, key, param)
+
+def model_from_module(module_class):
     """
-    Converts a PyTorch Module into a Fireworks Model.
+    Given the class definition for a pytorch module, returns a model that
+    encapsulates that module.
     """
-    def __init__(self, module, parameters, *args, inputs=None, **kwargs):
+    class TrainableModelFromModule(module_class, TrainableModel):
 
-        super.__init__(self, parameters, *args, inputs=inputs, **kwargs)
-        self.module = module(*args, **parameters) # TODO: Test that these parameters stay linked.
+        def __init__(self, parameters, *args, inputs=None, **kwargs):
+            # self.required_parameters = [] # QUESTION: How can we infer this?
+            module_class.__init__(self, *args, **kwargs)
+            TrainableModel.__init__(self, parameters, inputs=inputs)
 
-    def forward(self, message):
-
-        return self.module(message)
+    return TrainableModelFromModule
