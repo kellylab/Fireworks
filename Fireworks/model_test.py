@@ -8,23 +8,21 @@ from Fireworks.model import Model, model_from_module
 from Fireworks.exceptions import ParameterizationError
 from Fireworks import Message
 import torch
-from torch.nn import Module
+from torch.nn import Parameter
 from random import randint
 import numpy as np
 
 class DummyModel(Model):
     """ Implements y = m*x + b """
-    required_parameters = ['m', 'b']
+    required_components = ['m', 'b']
 
-    def init_default_parameters(self):
+    def init_default_components(self):
         """ Default y-intercept to 0 """
-        self.parameters['b'] = 0
+        self.b = Parameter(torch.Tensor([0.]))
 
     def forward(self, message):
 
-        m = self.parameters['m']
-        b = self.parameters['b']
-        y = m*message['x']+b
+        y = self.m*message['x']+self.b
         message['y'] = y
         return message
 
@@ -58,16 +56,17 @@ def train_model(model, data):
 
     return model
 
-class porcupine(Module):
+class LinearModule(torch.nn.Module):
     """ Dummy PyTorch Module. """
     def __init__(self):
-        super(Module, self).__init__()
-        m = torch.Tensor(1)
-        b = torch.Tensor(1)
+        super().__init__()
+        self.m = Parameter(torch.randn(1))
+        self.b = Parameter(torch.randn(1))
+        self.conv1 = torch.nn.Conv2d(1, 20, 5)
 
     def forward(self, message):
 
-        return Message({'x': message['x'], 'y': m*x+b})
+        return Message({'x': message['x'], 'y': self.m*message['x']+self.b})
 
 def test_Model_init():
 
@@ -79,30 +78,34 @@ def test_Model_init():
         assert True
 
     # Confirm that the model can be initialized
-    damura = DummyModel({'m': 3.})
-    assert damura.parameters['m'] == 3.
-    assert damura.parameters['b'] == 0 # Default for 'b'
+    damura = DummyModel({'m': [3.]})
 
-    damura = DummyModel({'m':4., 'b':5.})
-    assert damura.parameters['m'] == 4.
-    assert damura.parameters['b'] == 5.
+    assert (damura.m == 3.).all()
+    assert (damura.b == 0).all() # Default for 'b'
+
+    damura = DummyModel({'m': [4.], 'b': [5.]})
+    assert (damura.m == 4.).all()
+    assert (damura.b == 5.).all()
 
 def test_Model_inferencing():
 
-    damura = DummyModel(parameters={'m': 2.})
-    x = Message({'x':[1,2,3]})
+    damura = DummyModel({'m': [2.]})
+    x = Message({'x': torch.Tensor([1,2,3])})
     y = damura(x)
     assert y == x
-    assert (y['x'] == [1,2,3]).all()
-    assert (y['y'] == [2.,4.,6.]).all()
+    assert (y['x'] == torch.Tensor([1,2,3])).all()
+    assert (y['y'] == torch.Tensor([2.,4.,6.])).all()
 
 def test_ModelFromModule():
 
-    pop = porcupine()
-    mom = model_from_module(porcupine)
-    mob = mom(parameters={})
-    messi = Message({'x':[1,2,3]})
-    assert False
+    pop = LinearModule()
+    mom = model_from_module(LinearModule)
+    messi = Message({'x':torch.Tensor([1,2,3])})
+    pom = mom()
+    assert set(pom.components) == set(['conv1', 'm', 'b'])
+    result = pom(messi)
+    assert 'y' in result and 'x' in result
+    assert False 
 
 def test_one_Model_training(): pass
 
