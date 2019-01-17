@@ -13,9 +13,9 @@ class TablePipe(PassThroughPipe):
     """
     Represents an SQLalchemy Table while having the functionality of a Pipe.
     """
-    def __init__(self, table, engine, columns = None, inputs = None, **kwargs):
+    def __init__(self, table, engine, columns = None, input_pipe = None, **kwargs):
 
-        super().__init__(inputs=inputs, **kwargs)
+        super().__init__(input_pipe=input_pipe, **kwargs)
         Session = sessionmaker(bind=engine)
         self.session = Session()
         self.engine = engine
@@ -198,9 +198,9 @@ class DBPipe(Pipe):
             engine (sqlalchemy.engine.base.Engine): Engine correspondign to the database to read from.
             query: Can optionally provide an SQLalchemy Query object. If unspecified, the DBPipe will perform a SELECT * query.
         """
+        Pipe.__init__(self)
         self.engine = engine
         Session = sessionmaker(bind=engine)
-        self.input_pipes = {}
         self.session = Session()
         if type(table) is str:
             self.table = reflect_table(table, engine)

@@ -62,6 +62,8 @@ class MessageCache(ABC):
             index: The index to insert into. Can be an int, slice, or list of integer indices.
             message: The Message to insert. Should have the same length as the provided idnex.
         """
+        message = Message(message)
+
         if type(index) is int:
             index = [index]
         if type(index) is slice:
@@ -232,6 +234,7 @@ class BufferedCache(MessageCache):
 
         """
         index = index_to_list(index)
+        message = Message(message)
         if len(index) != len(message):
             raise ValueError("Message length does not match length of index for insertion.")
         # Determine how much space to free in order to insert message
