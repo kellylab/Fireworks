@@ -6,6 +6,7 @@
 
 from Fireworks.model import Model, model_from_module
 from Fireworks.exceptions import ParameterizationError
+from Fireworks.pipeline import BatchingPipe, LoopingPipe, ShufflerPipe, RepeaterPipe
 from Fireworks import Message
 import torch
 from torch.nn import Parameter
@@ -105,9 +106,17 @@ def test_ModelFromModule():
     assert set(pom.components) == set(['conv1', 'm', 'b'])
     result = pom(messi)
     assert 'y' in result and 'x' in result
-    assert False 
 
-def test_one_Model_training(): pass
+def test_one_Model_training():
+
+    A = DummyModel({'m': [0.]})
+    B = model_from_module(LinearModule)
+    training_data = generate_linear_model_data()
+    repeater = RepeaterPipe(training_data[0])
+    lol = LoopingPipe(repeater)
+    assert False 
+    # minibatcher = BatchingPipe(ShufflerPipe(LoopingPipe(training_data)))
+    assert False
 
 def test_multiple_Models_inferencing(): pass
 

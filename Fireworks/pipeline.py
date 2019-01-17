@@ -48,17 +48,19 @@ class Pipe(ABC):
         # if type(input_pipe) is dict:
         #     if len(input_pipe.keys()) > 1:
         #         raise TypeError("Input must be a single Pipe.")
-        if isinstance(input_pipe, Pipe): # Can give just one Pipe as input without having to type out an entire dict
-            # input_pipe = {'data': input_pipe}
-            self.input_pipe = input_pipe
-        elif input_pipe is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
-            self.input_pipe = None
-        else:
-            raise TypeError("Inputs must be a Pipe")
+        # if isinstance(input_pipe, Pipe): # Can give just one Pipe as input without having to type out an entire dict
+        #     # input_pipe = {'data': input_pipe}
+        #     self.input_pipe = input_pipe
+        # elif input_pipe is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
+        #     self.input_pipe = None
+        # else:
+        #     raise TypeError("Inputs must be a Pipe")
         # for title, pipe in input_pipe.items(): # There is only one
         #     self.input_title = title
         #     self.input_pipe = pipe
         # self.check_inputs()
+
+        self.input_pipe = input_pipe
 
      # def check_inputs(self):
      #    if len(self.input_pipes) > 1:
@@ -120,9 +122,24 @@ class Pipe(ABC):
         if not hasattr(self, 'input_pipe') or self.input_pipe is None:
             raise AttributeError("Pipe {0} does not have method/attribute {1}.".format(self.name, str(attribute)))
 
-        response = self.input_pipe.recursive_call(attribute, *args, ignore_first=False, **kwargs)
+        if not isinstance(self.input_pipe, Pipe): # If input is not a pipe, just attempt a non-recursive method/attribute call on input.
+            if args or kwargs: # Is a method call
+                try:
+                    return self.input_pipe.__getattribute__(attribute)(*args, **kwargs)
+                except AttributeError:
+                    raise AttributeError("Pipe {0} does not have method {1}.".format(self.name, str(attribute)))
+            else: # Is an attribute
+                try:
+                    return self.input_pipe.__getattribute__(attribute)
+                except AttributeError:
+                    try:
+                        return self.input_pipe.__getattr__(attribute)
+                    except AttributeError:
+                        raise AttributeError("Pipe {0} does not have attribute {1}".format(self.name, str(attribute)))
 
+        response = self.input_pipe.recursive_call(attribute, *args, ignore_first=False, **kwargs)
         return response
+
         # if response:
         #     if isinstance(responses[0], Pipe):
         #         return Fireworks.merge(responses)
@@ -197,7 +214,7 @@ class BioSeqPipe(Pipe):
 
     name = 'BioSeqPipe'
 
-    def __init__(self, path, inputs = None, filetype = 'fasta', **kwargs):
+    def __init__(self, path, input_pipe = None, filetype = 'fasta', **kwargs):
         """
         Args:
             path: Path on disk where file is located; will be supplied to the SeqIO.parse function.
@@ -270,8 +287,8 @@ class LoopingPipe(Pipe):
 
     name = 'LoopingPipe'
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, input_pipe, *args, **kwargs):
+        super().__init__(input_pipe, *args, **kwargs)
         self.check_input()
         self.reset()
         self.length = None
@@ -413,7 +430,7 @@ class CachingPipe(Pipe):
         cache[25:30] # This will read from the dataset and update the cache again
 
     """
-    def __init__(self, *args, cache_size = 100, buffer_size = 0, cache_type = 'LRU', infinite = False, **kwargs):
+    def __init__(self, input_pipe, *args, cache_size = 100, buffer_size = 0, cache_type = 'LRU', infinite = False, **kwargs):
         """
         Args:
             args: Positional arguments for superclass initialization.
@@ -423,7 +440,7 @@ class CachingPipe(Pipe):
             cache_type (str): Type of cache. Choices are 'LRU' (least-recently-used) and 'LFU' (least-frequently-used). Default = 'LRU'
             infinite (bool): If set to true, the cache will have no upper limit on size and will never clear itself.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(input_pipe, *args, **kwargs)
         self.check_input()
         self.length = None
         self.lower_bound = 0
@@ -602,8 +619,8 @@ class LabelerPipe(Pipe):
     This Pipe implements a to_tensor function that converts labels contained in messages to tensors based on an internal labels dict.
     """
 
-    def __init__(self, labels, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, input_pipe, labels, *args, **kwargs):
+        super().__init__(input_pipe, *args, **kwargs)
         self.labels = labels
         self.labels_dict = bidict({label:i for label,i in zip(labels,count())})
 
@@ -625,17 +642,25 @@ class RepeaterPipe(Pipe):
     Given an input Pipe that is iterable, enables repeat iteration.
     """
 
-    def __init__(self,*args,repetitions=10,**kwargs):
-        super().__init__(*args,**kwargs)
+    def __init__(self, input_pipe, *args,repetitions=10,**kwargs):
+        super().__init__(input_pipe, *args,**kwargs)
         if not type(repetitions) is int:
             raise ValueError("Number of repetitions must be provided as an integer.")
 
         self.repetitions = repetitions
+        if not isinstance(self.input_pipe, Pipe): # TODO: Test this scenario
+            self.iterator = iter(input_pipe)
 
     def reset(self):
         self.iteration = 0
-        self.recursive_call('reset',)()
-        return self
+        if not isinstance(self.input_pipe, Pipe):
+            self.iterator = iter(self.input_pipe)
+        else:
+            try:
+                self.recursive_call('reset',)()
+            except:
+                pass
+            return self
 
     def __iter__(self):
         self.reset()
@@ -643,23 +668,26 @@ class RepeaterPipe(Pipe):
 
     def __next__(self):
 
-        try:
-            return self.recursive_call('__next__')()
-        except StopIteration:
-            self.iteration += 1
-            if self.iteration >= self.repetitions:
-                raise StopIteration
-            else:
-                self.recursive_call('reset')()
-                return self.__next__()
+        if not isinstance(self.input_pipe, Pipe):
+            return self.iterator.__next__()
+        else:
+            try:
+                return self.recursive_call('__next__')()
+            except StopIteration:
+                self.iteration += 1
+                if self.iteration >= self.repetitions:
+                    raise StopIteration
+                else:
+                    self.recursive_call('reset')()
+                    return self.__next__()
 
 class ShufflerPipe(Pipe):
     """
     Given input Pipes that implement __getitem__ and __len__, will shuffle the indices so that iterating through
     the Pipe or calling __getitem__ will return different values.
     """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, input_pipe, *args, **kwargs):
+        super().__init__(input_pipe, *args, **kwargs)
         self.check_input()
         self.current_index = 0
         self.shuffle_indices = np.array([i for i in range(len(self))])
