@@ -65,7 +65,7 @@ class getitem_dummy(pl.Pipe):
         index = index_to_list(index)
 
         # if index == []:
-        if index.size == 0:
+        if len(index) == 0:
             return None
         elif max(index) < self.length and min(index) >= 0:
             return {'values': np.array(index)}

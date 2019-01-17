@@ -28,10 +28,10 @@ def test_Title2LabelPipe():
     gumbo = next_dummy()
     jumbo = next_dummy()
 
-    labeler = pl.Title2LabelPipe(inputs = {'yes': dumbo})
-    mislabeler = pl.Title2LabelPipe(inputs = {'yes': rumbo}, labels_column='barrels')
-    donkeykong = pl.Title2LabelPipe(inputs = {'yes':gumbo})
-    dixiekong = pl.Title2LabelPipe(inputs = {'yes': jumbo}, labels_column='bananas')
+    labeler = pl.Title2LabelPipe( 'yes', dumbo)
+    mislabeler = pl.Title2LabelPipe( 'yes', rumbo, labels_column='barrels')
+    donkeykong = pl.Title2LabelPipe('yes', gumbo)
+    dixiekong = pl.Title2LabelPipe( 'yes', jumbo, labels_column='bananas')
     labeler.reset()
     assert labeler.count == 0
     mislabeler.reset()
@@ -51,7 +51,7 @@ def test_Title2LabelPipe():
     assert donkeykong.count == 12
     assert dixiekong.count == 14
 
-    labeler = pl.Title2LabelPipe(inputs = {'yes': bumbo})
+    labeler = pl.Title2LabelPipe('yes', bumbo)
     labeler.reset()
     assert labeler.count == 0
 
@@ -83,7 +83,7 @@ def test_BioSeqPipe():
 def test_LoopingPipe():
 
     dumbo = one_way_dummy()
-    loopy = pl.LoopingPipe(inputs = {'dumbo': dumbo})
+    loopy = pl.LoopingPipe(dumbo)
     loopy[10]
     loopy[5]
     numba1 = len(loopy)
@@ -93,7 +93,7 @@ def test_LoopingPipe():
     x = loopy[0]
     assert x == Message({'count': [0]})
     loopy[10]
-    loopy = pl.LoopingPipe(inputs = {'dumbo': dumbo})
+    loopy = pl.LoopingPipe(dumbo)
     x = loopy[0]
     assert x == Message({'count': [0]}) # Check that the input Pipes were reset.
     assert loopy.length is None
@@ -108,7 +108,7 @@ def test_LoopingPipe():
 def test_RepeaterPipe():
 
     dumbo = one_way_iter_dummy()
-    robert = pl.RepeaterPipe(inputs=dumbo)
+    robert = pl.RepeaterPipe(dumbo)
     numbaz = Message()
     assert len(numbaz) == 0
     for numba in robert:
@@ -116,7 +116,7 @@ def test_RepeaterPipe():
     assert len(numbaz) == robert.repetitions*20
 
     dumbo = one_way_dummy()
-    robert = pl.RepeaterPipe(inputs=dumbo)
+    robert = pl.RepeaterPipe(dumbo)
     numbaz = Message()
     robert.reset()
     i = 0
@@ -135,7 +135,7 @@ def test_CachingPipe():
 
     # Test type checking
     dumbo = getitem_dummy()
-    cashmoney = pl.CachingPipe(inputs={'dumbo': dumbo})
+    cashmoney = pl.CachingPipe(dumbo)
 
     # Test __getitem__
     assert cashmoney.cache.cache == Message()
@@ -157,7 +157,7 @@ def test_CachingPipe():
     length = len(cashmoney)
     assert length == 20
     # Test implicit length calculation
-    cashmoney = pl.CachingPipe(inputs={'dumbo': dumbo})
+    cashmoney = pl.CachingPipe(dumbo)
     assert cashmoney.length is None
     assert cashmoney.lower_bound == 0
     cashmoney[10]
@@ -175,7 +175,7 @@ def test_IndexMapperPipe():
     input_indices = [i for i in range(12)]
     output_indices = [i for i in reversed(range(12))]
 
-    flipped = pl.IndexMapperPipe(input_indices, output_indices, inputs={'getty':getty})
+    flipped = pl.IndexMapperPipe(input_indices, output_indices,getty)
     assert len(flipped) == 12
     for i in range(12):
         assert (flipped[i]['values'] == 11-i).all()
@@ -183,7 +183,8 @@ def test_IndexMapperPipe():
 def test_PassThroughPipe():
 
     dumbo = smart_dummy()
-    pishpish = pl.Pipe(inputs=dumbo)
+    pishpish = pl.Pipe(input_pipe=dumbo)
+
     assert pishpish.count == 0
     assert Message(pishpish.__next__()) == Message({'values': [0]})
     assert pishpish.count == 1
@@ -199,7 +200,7 @@ def test_PassThroughPipe():
 def test_ShufflingPipe():
 
     bobby = getitem_dummy()
-    shuffla = pl.ShufflerPipe(inputs=bobby)
+    shuffla = pl.ShufflerPipe(input_pipe=bobby)
     shuffla[2]
     shuffled = False
     for shu, i in zip(shuffla, itertools.count()):
@@ -224,7 +225,7 @@ def test_HookedPassThroughPipe():
             message.df = message.df.reindex_axis(sorted(message.df.columns), axis=1)
             return message
 
-    pishpish = Hooker(inputs=dumbo)
+    pishpish = Hooker(input_pipe=dumbo)
     assert pishpish.count == 0
     assert Message(pishpish.__next__()) == Message({'values': [0], 'interception': ['yaro']})
     assert pishpish.count == 1

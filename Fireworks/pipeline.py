@@ -27,9 +27,9 @@ class Pipe(ABC):
     ::
 
         reader = pipe_for_reading_from_some_dataset(...)
-        cache = CachingPipe(input_pipes = {'reader': reader}, type='LRU')
-        embedder = CreateEmbeddingsPipe(input_pipes = {'data': cache})
-        loader = CreateMinibatchesPipe(input_pipes = {'data': embedder})
+        cache = CachingPipe(reader, type='LRU')
+        embedder = CreateEmbeddingsPipe(cache})
+        loader = CreateMinibatchesPipe(embedder})
 
         loader.reset()
         for batch in loader:
@@ -90,7 +90,7 @@ class Pipe(ABC):
 
     def recursive_call(self, attribute, *args, ignore_first = True, **kwargs):
         """
-        Recursively calls method/attribute on input_pipes until reaching an upstream Pipe that implements the method and
+        Recursively calls method/attribute on input_pipe until reaching an upstream Pipe that implements the method and
         returns the response as a message (empty if response is None).
         Recursive calls enable a stack of Pipes to behave as one entity; any method implemented by any component can be accessed
         recursively.
@@ -117,18 +117,19 @@ class Pipe(ABC):
                     except AttributeError:
                         return self.__getattr__(attribute)
 
-        if not self.input_pipes:
+        if not hasattr(self, 'input_pipe') or self.input_pipe is None:
             raise AttributeError("Pipe {0} does not have method/attribute {1}.".format(self.name, str(attribute)))
 
-        responses = [pipe.recursive_call(attribute, *args, ignore_first=False, **kwargs) for pipe in self.input_pipes.values()]
+        response = self.input_pipe.recursive_call(attribute, *args, ignore_first=False, **kwargs)
 
-        if responses:
-            if isinstance(responses[0], Pipe):
-                return Fireworks.merge(responses)
-            elif len(responses) == 1:
-                return responses[0]
-            else:
-                return {key: response for key, respone in zip(self.input_pipes.keys(), responses)}
+        return response
+        # if response:
+        #     if isinstance(responses[0], Pipe):
+        #         return Fireworks.merge(responses)
+        #     elif len(responses) == 1:
+        #         return responses[0]
+        #     else:
+        #         return {key: response for key, respone in zip(self.input_pipes.keys(), responses)}
 
 class PassThroughPipe(Pipe):
     """
@@ -204,11 +205,11 @@ class BioSeqPipe(Pipe):
             filetype: Type of file that will be supplied to the SeqIO.parse function. Default is 'fasta'
             kwargs: Optional key word arguments that will be supplied to the SeqIO.parse function.
         """
+        Pipe.__init__(self, inputs)
         self.path = path
         self.filetype = filetype
         self.kwargs = kwargs
         self.seq = SeqIO.parse(self.path, self.filetype, **self.kwargs)
-        self.input_pipes = {}
 
     def reset(self):
         """
@@ -271,7 +272,7 @@ class LoopingPipe(Pipe):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.check_inputs()
+        self.check_input()
         self.reset()
         self.length = None
 
@@ -319,20 +320,28 @@ class LoopingPipe(Pipe):
             self.position = p
             return self[p]
 
-    def check_inputs(self):
+    def check_input(self):
         """
-        Checks inputs to determine if they implement __next__ and reset methods.
+        Checks input to determine if it implements __next__ and reset methods.
         """
-        for name, pipe in self.input_pipes.items():
-            if not (hasattr(pipe, '__next__') and hasattr(pipe, 'reset')):
-                raise TypeError('Pipe {0} does not have __next__ and reset methods.'.format(name))
+        # for name, pipe in self.input_pipes.items():
+        pipe = self.input_pipe
+
+        if pipe is None:
+            raise TypeError("This pipe has no inputs.")
+        if not (hasattr(pipe, '__next__') and hasattr(pipe, 'reset')):
+            raise TypeError('Pipe {0} does not have __next__ and reset methods.'.format(name))
 
     def reset(self):
         """
         Calls reset on input Pipes and sets position to 0.
         """
-        for pipe in self.input_pipes.values():
-            pipe.reset()
+        # # for pipe in self.input_pipes.values():
+        #     pipe.reset()
+        try:
+            self.input_pipe.reset()
+        except: # TODO: Do proper error catching here
+            pass
         self.position = 0
 
     def compute_length(self):
@@ -364,7 +373,8 @@ class LoopingPipe(Pipe):
         for _ in range(n - self.position):
             try:
                 # x = x.append(Fireworks.merge([Pipe.__next__() for Pipe in self.input_pipes.values()]))
-                x = Fireworks.merge([pipe.__next__() for pipe in self.input_pipes.values()])
+                # x = Fireworks.merge([pipe.__next__() for pipe in self.input_pipes.values()])
+                x = self.input_pipe.__next__()
                 self.position += 1
             except StopIteration:
                 self.length = self.position
@@ -414,7 +424,7 @@ class CachingPipe(Pipe):
             infinite (bool): If set to true, the cache will have no upper limit on size and will never clear itself.
         """
         super().__init__(*args, **kwargs)
-        self.check_inputs()
+        self.check_input()
         self.length = None
         self.lower_bound = 0
         self.upper_bound = None
@@ -432,13 +442,17 @@ class CachingPipe(Pipe):
         choices = {'LRU': LRUCache, 'LFU': LFUCache}
         self.cache = choices[self.cache_type](max_size = self.cache_size, buffer_size=self.buffer_size)
 
-    def check_inputs(self):
+    def check_input(self):
         """
         Checks inputs to determine if they implement __getitem__.
         """
-        for name, pipe in self.input_pipes.items():
-            if not (hasattr(pipe, '__getitem__')):
-                raise TypeError('Pipe {0} does not have __getitem__ method.'.format(name))
+        # for name, pipe in self.input_pipes.items():
+        pipe = self.input_pipe
+        if pipe is None:
+            raise AttributeError("This pipe has no inputs.")
+
+        if not (hasattr(pipe, '__getitem__')):
+            raise TypeError('Pipe {0} does not have __getitem__ method.'.format(name))
 
     def __getitem__(self, index):
 
@@ -455,7 +469,8 @@ class CachingPipe(Pipe):
         # Retrieve from cache existing elements
         in_cache_elements = self.cache[in_cache] # elements in cache corresponding to indices in cache
         # Update cache to have other elements
-        not_in_cache_elements = Fireworks.merge([pipe[not_in_cache] for pipe in self.input_pipes.values()])
+        # not_in_cache_elements = Fireworks.merge([pipe[not_in_cache] for pipe in self.input_pipes.values()])
+        not_in_cache_elements = self.input_pipe[not_in_cache]
         self.cache[not_in_cache] = not_in_cache_elements
         # Reorder and merge requested elements
         message = in_cache_elements.append(not_in_cache_elements)
@@ -510,22 +525,23 @@ class CachingPipe(Pipe):
 
 class Title2LabelPipe(HookedPassThroughPipe):
     """
-    This Pipe takes one Pipe as input and inserts a column called 'label' containing the name
-    of the input Pipe to to all outputs.
+    This Pipe takes one Pipe as input and inserts a column called 'label'
+    containing the provided title of the input Pipe to to all outputs.
     """
 
-    def __init__(self, *args, labels_column = 'labels', **kwargs):
+    def __init__(self, title, input_pipe, *args, labels_column = 'labels', **kwargs):
 
-        super().__init__(*args, **kwargs)
+        super().__init__(input_pipe, *args, **kwargs)
         self.labels_column = labels_column
-        self.check_inputs()
+        self.label = title
+        # self.check_inputs()
 
-    def check_inputs(self):
-        if len(self.input_pipes) > 1:
-            raise ValueError("A label Pipe can only have one input Pipe.")
-        for label, pipe in self.input_pipes.items(): # There is only one
-            self.label = label
-            self.input_pipe = pipe
+    # def check_inputs(self):
+        # if len(self.input_pipes) > 1:
+        #     raise ValueError("A label Pipe can only have one input Pipe.")
+        # for label, pipe in self.input_pipes.items(): # There is only one
+        # self.label = title
+        # self.input_pipe = pipe
 
     def _get_item_hook(self, message):
 
@@ -644,19 +660,22 @@ class ShufflerPipe(Pipe):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.check_inputs()
+        self.check_input()
         self.current_index = 0
         self.shuffle_indices = np.array([i for i in range(len(self))])
 
-    def check_inputs(self):
+    def check_input(self):
         """
         Check inputs to see if they implement __getitem__ and __len__
         """
-        for name, pipe in self.input_pipes.items():
-            if not (hasattr(pipe, '__getitem__')):
-                raise TypeError('Pipe {0} does not have __getitem__ method.'.format(name))
-            if not(hasattr(pipe, '__len__')):
-                raise TypeError('Pipe {0} does not have __len__ method.'.format(name))
+        # for name, pipe in self.input_pipes.items():
+        pipe = self.input_pipe
+        if pipe is None:
+            raise TypeError("This Pipe has no inputs.")
+        if not (hasattr(pipe, '__getitem__')):
+            raise TypeError('Pipe {0} does not have __getitem__ method.'.format(name))
+        if not(hasattr(pipe, '__len__')):
+            raise TypeError('Pipe {0} does not have __len__ method.'.format(name))
 
     def __getitem__(self, index):
 
@@ -698,21 +717,25 @@ class IndexMapperPipe(Pipe):
     """
     def __init__(self, input_indices, output_indices, *args,**kwargs):
         super().__init__(*args, **kwargs)
-        self.check_inputs()
+        self.check_input()
         if len(input_indices) != len(output_indices):
             raise ValueError("The number of input indices does not match the number of output indices.")
         self.pointers = UnlimitedCache()
         self.pointers[input_indices] = Message({'output':output_indices})
 
-    def check_inputs(self):
-        for name, pipe in self.input_pipes.items():
-            if not hasattr(pipe, '__getitem__'):
-                raise ValueError("Input Pipes must be indexable.")
+    def check_input(self):
+        # for name, pipe in self.input_pipes.items():
+        pipe = self.input_pipe
+        if pipe is None:
+            raise TypeError("This Pipe has no inputs.")
+        if not hasattr(pipe, '__getitem__'):
+            raise ValueError("Input Pipes must be indexable.")
 
     def __getitem__(self, index):
 
         index = index_to_list(index)
-        return Fireworks.merge([pipe[self.pointers[index]['output'].values] for pipe in self.input_pipes.values()])
+        # return Fireworks.merge([pipe[self.pointers[index]['output'].values] for pipe in self.input_pipes.values()])
+        return self.input_pipe[self.pointers[index]['output'].values]
 
     def __len__(self):
         return len(self.pointers)
