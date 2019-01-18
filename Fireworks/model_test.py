@@ -7,7 +7,8 @@
 from Fireworks.model import Model, model_from_module
 from Fireworks.exceptions import ParameterizationError
 from Fireworks.pipeline import BatchingPipe, LoopingPipe, ShufflerPipe, RepeaterPipe
-from Fireworks import Message
+from Fireworks import Message, Junction
+import random
 import torch
 from torch.nn import Parameter
 from random import randint
@@ -49,6 +50,43 @@ class DummyMultilinearModel(Model):
         message['y'] = y
         return message
 
+class LinearJunctionModel(Model):
+    """ Implements y = f(x) + b, where the function f(x) is provided as a junction input. """
+
+    required_components = ['b']
+    required_junction_inputs = ['f']
+
+    def init_default_components(self):
+        """ Default y-intercept to 0 """
+        self.b = Parameter(torch.Tensor([0.]))
+
+    def forward(self, message):
+
+        y = self.junction_inputs['f'](message)['z'] + self.b
+        message['y'] = y
+        return message
+
+class LinearModule(torch.nn.Module):
+    """ Dummy PyTorch Module. """
+    def __init__(self):
+        super().__init__()
+        self.m = Parameter(torch.randn(1))
+        self.b = Parameter(torch.randn(1))
+        self.conv1 = torch.nn.Conv2d(1, 20, 5)
+
+    def forward(self, message):
+
+        message['y'] = self.m*message['x']+self.b
+
+        return message
+
+class RandomJunction(Junction):
+
+    def __call__(self, *args, **kwargs):
+
+        target = random.sample(self.junction_inputs.keys(),1)[0]
+        return self.junction_inputs[target](*args, **kwargs)
+
 def generate_linear_model_data(n=1000):
     """
     Generates n samples from a linear model with a small variability.
@@ -56,7 +94,7 @@ def generate_linear_model_data(n=1000):
     m = randint(-3,3)
     b = randint(-10,10)
     x = np.random.rand(n)*100
-    errors = np.random.normal(0,.3,n) # Gaussian samples for errors
+    errors = np.random.normal(0, .3, n) # Gaussian samples for errors
     y = m*x+b + errors
 
     return Message({'x':x, 'y_true':y}), {'m': m, 'b': b, 'errors': errors} # Second dict is for debugging
@@ -76,13 +114,12 @@ def generate_multilinear_model_data(n=1000):
 
     return Message({'x1':x1, 'x2': x2, 'y_true':y}), {'m1': m1, 'm2':m2, 'b': b, 'errors': errors} # Second dict is for debugging
 
-
 def train_model(model, data, models = None, predicted='y', label='y_true'):
 
     # Initialize model for training
     # Define loss function and learning algorithm
-    models = models or [models]
-    parameters = [filter(lambda p: p.requires_grad, model.parameters()) for p in models]
+    models = models or [model]
+    parameters = [filter(lambda p: p.requires_grad, m.parameters()) for m in models]
     parameters = [x for y in parameters for x in y]
     optimizer = torch.optim.SGD(parameters, lr=.00015)
     # Training loop
@@ -96,20 +133,6 @@ def train_model(model, data, models = None, predicted='y', label='y_true'):
             optimizer.step()
 
     return model
-
-class LinearModule(torch.nn.Module):
-    """ Dummy PyTorch Module. """
-    def __init__(self):
-        super().__init__()
-        self.m = Parameter(torch.randn(1))
-        self.b = Parameter(torch.randn(1))
-        self.conv1 = torch.nn.Conv2d(1, 20, 5)
-
-    def forward(self, message):
-
-        message['y'] = self.m*message['x']+self.b
-
-        return message
 
 def test_Model_init():
 
@@ -219,11 +242,11 @@ def test_one_Model_training():
     minibatcher = get_minibatcher(training_data[0])
     train_model(A, minibatcher)
     # For some reason, this model struggles to learn the y-intercept.
-    assert (m-A.m < .1).all()
+    assert (m-A.m < .2).all()
     train_model(B, minibatcher)
-    assert (m - B.m < .1).all()
+    assert (m - B.m < .2).all()
 
-    assert (A.m - B.m < .1).all() # Test precision between models
+    assert (A.m - B.m < .2).all() # Test precision between models
 
 def test_multiple_Models_training():
     """
@@ -247,8 +270,8 @@ def test_multiple_Models_training():
     errors = training_data[1]['errors']
     minibatcher = get_minibatcher(training_data[0])
     train_model(multilinear, minibatcher)
-    assert (A.m - m1 < .1).all()
-    assert (B.m - m2 < .1).all()
+    assert (A.m - m1 < .2).all()
+    assert (B.m - m2 < .2).all()
     assert (A.b == 0).all()
     assert (C.m == 0.).all()
 
@@ -256,8 +279,8 @@ def test_multiple_Models_training_in_pipeline():
     """
     Here, model A pipes its output into B
     """
-    A = DummyModel({'m': [1.]}, out_column='y1')
-    B = DummyModel({'m': [0.], 'b': [2.]}, input_pipe=A, in_column='y1', out_column='y')
+    A = DummyModel({'m': [3.]}, out_column='y1')
+    B = DummyModel({'m': [1.], 'b': [2.]}, input_pipe=A, in_column='y1', out_column='y')
     A.freeze('b')
     B.freeze('m')
     training_data = generate_linear_model_data()
@@ -265,9 +288,66 @@ def test_multiple_Models_training_in_pipeline():
     b = training_data[1]['b']
     errors = training_data[1]['errors']
     minibatcher = get_minibatcher(training_data[0])
-    assert (A.m == 1.).all()
-    assert (B.m == 0).all()
+    assert (A.m == 3.).all()
+    assert (B.m == 1).all()
     assert (A.b == 0).all()
     assert (B.b == 2.).all()
-    train_model(B, minibatcher, models = [A, B])
-    assert False
+    train_model(B, minibatcher, models = [B])
+    assert (A.m - m < .2).all()
+    assert (B.b != 2).all()
+    assert (B.m == 1).all()
+    assert (A.b == 0).all()
+
+def test_multiple_Models_training_in_junction():
+    """
+    Here, model A is a junction input of B
+    """
+    A = DummyModel({'m': [1.],'b':[3.]}, out_column='z')
+    B = LinearJunctionModel(components={'b':[.5]}, junction_inputs={'f':A})
+    training_data = generate_linear_model_data()
+    m = training_data[1]['m']
+    b = training_data[1]['b']
+    errors = training_data[1]['errors']
+    minibatcher = get_minibatcher(training_data[0])
+    batch = minibatcher.__next__()
+    batch.to_tensors()
+    B(batch)
+    assert (A.m == 1.).all()
+    train_model(B, minibatcher, models=[A, B])
+    assert (A.m != 1).all()
+
+def test_multple_Models_training_via_junction():
+    """
+    Here, model B takes a junction A as input that randomly calls one of C, D, or E
+    Hence, B implements y = f(x) + b, where f is randomly C, D, or E
+    """
+    C = DummyModel({'m': [1.],'b':[0.]}, out_column='z')
+    D = DummyModel({'m': [2.],'b':[0.]}, out_column='z')
+    E = DummyModel({'m': [3.],'b':[0.]}, out_column='z')
+    C.freeze('b')
+    D.freeze('b')
+    E.freeze('b')
+    A = RandomJunction(junction_inputs={'C':C, 'D': D, 'E':E})
+    B = LinearJunctionModel(components={'b':[3.]}, junction_inputs={'f':A})
+    training_data = generate_linear_model_data()
+    m = training_data[1]['m']
+    b = training_data[1]['b']
+    errors = training_data[1]['errors']
+    minibatcher = get_minibatcher(training_data[0])
+    batch = minibatcher.__next__()
+    batch.to_tensors()
+    banana = B(batch)['y']
+    rambo = False
+    for i in range(20):
+        bonana = B(batch)['y']
+        if (banana != bonana).all():
+            rambo = True
+            break
+    assert rambo
+    train_model(B, minibatcher, models=[B, C, D, E])
+    assert (C.m - m < .2).all()
+    assert (D.m - m < .2).all()
+    assert (E.m - m < .2).all()
+    assert (C.m != D.m).all()
+    assert (D.m != E.m).all()
+    assert (E.m != C.m).all()

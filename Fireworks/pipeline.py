@@ -222,7 +222,7 @@ class BioSeqPipe(Pipe):
             filetype: Type of file that will be supplied to the SeqIO.parse function. Default is 'fasta'
             kwargs: Optional key word arguments that will be supplied to the SeqIO.parse function.
         """
-        Pipe.__init__(self, inputs)
+        Pipe.__init__(self, input_pipe=input_pipe)
         self.path = path
         self.filetype = filetype
         self.kwargs = kwargs

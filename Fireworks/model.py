@@ -3,9 +3,10 @@ import torch
 from torch.nn import Module, Parameter
 from abc import abstractmethod
 from Fireworks.exceptions import ParameterizationError
+from Fireworks.junction import Junction
 from Fireworks.pipeline import HookedPassThroughPipe
 
-class Model(Module, HookedPassThroughPipe, ABC):
+class Model(Module, HookedPassThroughPipe, Junction, ABC):
     """
     Represents a statistical model which has a set of components, and a
     means for converting inputs into outputs. The model functions like a Pipe
@@ -16,13 +17,14 @@ class Model(Module, HookedPassThroughPipe, ABC):
     complex graphs of Models that can be trained simultaneously or individually.
     """
 
-    def __init__(self, components={}, input_pipe = None, *args, **kwargs): # QUESTION: Should a model have a list of required components?
+    def __init__(self, components={}, input_pipe = None, junction_inputs=None, *args, **kwargs):
         """
         Args:
             components: A dict of components that the model can call on.
         """
         Module.__init__(self)
         HookedPassThroughPipe.__init__(self, input_pipe = input_pipe)
+        Junction.__init__(self, junction_inputs=junction_inputs)
         # self.components = {}
         self.init_default_components()
         self.update_components(components)
@@ -52,17 +54,28 @@ class Model(Module, HookedPassThroughPipe, ABC):
         if components is None:
             components = self.components
         missing_components = []
+        missing_junctions = []
         error = False
         for key in self.required_components:
             if key not in components:
                 missing_components.append(key)
                 error = True
+        for key in self.required_junction_inputs:
+            if key not in self.junction_inputs:
+                missing_junctions.append(key)
+                error = True
         if error:
-            raise ParameterizationError("Missing required components {0}".format(missing_components))
+            if missing_junctions and missing_components:
+                raise ParameterizationError("Missing required components {0} and junctions {1}".format(missing_components, missing_junctions))
+            elif missing_junctions:
+                raise ParameterizationError("Missing required junctions {0}".format(missing_junctions))
+            elif missing_components:
+                raise ParameterizationError("Missing required components {0}".format(missing_components))
+
 
     @property
     def components(self):
-        return list(self._modules.keys()) + list(self._parameters.keys())
+        return list(self._modules.keys()) + list(self._parameters.keys()) + list(self.junction_inputs.keys())
 
     @property
     def required_components(self):
@@ -71,6 +84,10 @@ class Model(Module, HookedPassThroughPipe, ABC):
         this will default to just return the components already present within the Model.
         """
         return self.components
+
+    @property
+    def required_junction_inputs(self):
+        return []
 
     @abstractmethod
     def forward(self, message):
@@ -143,7 +160,7 @@ class Model(Module, HookedPassThroughPipe, ABC):
             message = self.input_pipe(message, *args, **kwargs)
         except:
             pass
-            
+
         return self.forward(message, *args, **kwargs)
 
 def freeze_module(module, parameters = None, submodules = None):

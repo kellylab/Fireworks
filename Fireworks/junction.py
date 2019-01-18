@@ -19,27 +19,27 @@ class Junction:
     A junction can take pipes as inputs, and its outputs can be piped to other pipes.
     All communication is done via Message objects.
 
-    Unlike Pipes, junctions do not automatically have recursive method calling. This is because they have multiple input pipes,
+    Unlike Pipes, junctions do not automatically have recursive method calling. This is because they have multiple input sources,
     which would result in ambiguity. Instead, junctions are meant to act as bridges between multiple pipes in order to enable
     complex workflows which require more than a linear pipeline.
     """
 
-    def __init__(self, *args, inputs=None, **kwargs):
+    def __init__(self, *args, junction_inputs=None, **kwargs):
 
-        if type(inputs) is dict:
-            self.input_pipes = inputs
-        elif isinstance(inputs, Pipe): # Can give just one pipe as input without having to type out an entire dict
-            self.input_pipes = {'data': inputs}
-        elif inputs is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
-            self.input_pipes = {}
+        if type(junction_inputs) is dict:
+            self.junction_inputs = junction_inputs
+        # elif isinstance(inputs, Pipe): # Can give just one pipe as input without having to type out an entire dict
+        #     self.input_sources = {'data': inputs}
+        elif junction_inputs is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
+            self.junction_inputs = {}
         else:
-            raise TypeError("inputs must be a dict of pipes or a single pipe")
+            raise TypeError("Inputs must be a dict of sources, which can be pipes, junctions, or some other object.")
 
 
 class AggregatorJunction(Junction):
     """
-    This junction takes multiple pipes implementing __next__ as input and implements a new __next__ method that samples
-    its input pipes.
+    This junction takes multiple sources implementing __next__ as input and implements a new __next__ method that samples
+    its input sources.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -47,20 +47,20 @@ class AggregatorJunction(Junction):
 
     def check_inputs(self):
 
-        for name, pipe in self.input_pipes.items():
-            if not (hasattr(pipe, '__next__') and hasattr(pipe, 'reset')):
-                raise ValueError("Input pipes must implement __next__ and reset.")
+        for name, source in self.junction_inputs.items():
+            if not (hasattr(source, '__next__') and hasattr(source, 'reset')):
+                raise ValueError("Input sources must implement __next__ and reset.")
 
     def __next__(self):
         """
-        Call __next__ on one of the input pipes based on sampling algorithm until all pipes run out (can run indefinetely if one
+        Call __next__ on one of the input sources based on sampling algorithm until all sources run out (can run indefinetely if one
         or more inputs are infinite.)
         """
         # Choose which input to sample
         sample = self.sample_inputs()
         # Return value
         try:
-            return self.input_pipes[sample].__next__()
+            return self.junction_inputs[sample].__next__()
         except StopIteration: # Remove sample from available_inputs list
             self.available_inputs.remove(sample)
             if not self.available_inputs: # Set of inputs is empty, because they have all finished iterating
@@ -69,9 +69,9 @@ class AggregatorJunction(Junction):
                 return self.__next__()
 
     def reset(self):
-        for name, pipe in self.input_pipes.items():
-            pipe.reset()
-        self.available_inputs = set(self.input_pipes.keys()) # Keep track of which pipes have not yet run out.
+        for name, source in self.junction_inputs.items():
+            source.reset()
+        self.available_inputs = set(self.junction_inputs.keys()) # Keep track of which sources have not yet run out.
 
     def __iter__(self):
         self.reset()
@@ -80,7 +80,7 @@ class AggregatorJunction(Junction):
     @abstractmethod
     def sample_inputs(self):
         """
-        Returns the key associated with an input pipe that should be stepped through next.
+        Returns the key associated with an input source that should be stepped through next.
         """
         pass
 
@@ -95,7 +95,7 @@ class RandomAggregatorJunction(AggregatorJunction):
 
 class ClockworkAggregatorJunction(AggregatorJunction):
     """
-    AggregatorJunction that iterates through input pipes one at a time.
+    AggregatorJunction that iterates through input sources one at a time.
     """
     # TODO: Add support for weighted iteration and setting order (ie. spend two cycles on one input and one on another)
 
