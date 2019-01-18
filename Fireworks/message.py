@@ -489,6 +489,24 @@ class Message:
 
         return self
 
+    def to_tensors(self, keys=None): # TODO: Test
+        """
+        Returns message with columns indicated by keys converted to Tensors. If keys is None, all columns are converted.
+
+        Args:
+            keys: Keys to get. Default = None, in which case all columns are mapped to Tensor.
+
+        Returns:
+            message: A Message in which the desired columns are Tensors.
+        """
+        if keys is None:
+            keys = list(self.df.keys())
+
+        tensor_message = self.tensors(keys=keys)
+        self[keys] = tensor_message
+
+        return self
+
     def permute(self, index):
         """
         Reorders elements of message based on index.

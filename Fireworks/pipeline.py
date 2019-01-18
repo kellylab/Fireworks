@@ -773,11 +773,11 @@ class BatchingPipe(Pipe):
     Generates minibatches.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, batch_size=5, **kwargs):
 
         super().__init__(*args,**kwargs)
         self.current_index = 0
-        self.batch_size = 5
+        self.batch_size = batch_size
 
     def __iter__(self):
 

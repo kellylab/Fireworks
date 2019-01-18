@@ -13,9 +13,16 @@ from torch.nn import Parameter
 from random import randint
 import numpy as np
 
+loss = torch.nn.MSELoss()
+
 class DummyModel(Model):
     """ Implements y = m*x + b """
     required_components = ['m', 'b']
+
+    def __init__(self, components = {}, input_pipe = None, in_column = 'x', out_column = 'y'):
+        Model.__init__(self, components, input_pipe)
+        self.in_column = in_column
+        self.out_column = out_column
 
     def init_default_components(self):
         """ Default y-intercept to 0 """
@@ -23,7 +30,22 @@ class DummyModel(Model):
 
     def forward(self, message):
 
-        y = self.m*message['x']+self.b
+        y = self.m*message[self.in_column]+self.b
+        message[self.out_column] = y
+
+        return message
+
+class DummyMultilinearModel(Model):
+    """ Implements y = m1*x1 +m2*x1 + b """
+    required_components = ['m1', 'm2', 'b']
+
+    def init_default_components(self):
+        """ Default y-intercept to 0 """
+        self.b = Parameter(torch.Tensor([0.]))
+
+    def forward(self, message):
+
+        y = self.m1*message['x1']+ self.m2*message['x2'] + self.b
         message['y'] = y
         return message
 
@@ -34,25 +56,43 @@ def generate_linear_model_data(n=1000):
     m = randint(-3,3)
     b = randint(-10,10)
     x = np.random.rand(n)*100
-    errors = np.random.normal(0,.5,n) # Gaussian samples for errors
+    errors = np.random.normal(0,.3,n) # Gaussian samples for errors
     y = m*x+b + errors
 
-    return Message({'x':x, 'y':y}), {'m': m, 'b': b, 'errors': errors} # Second dict is for debugging
+    return Message({'x':x, 'y_true':y}), {'m': m, 'b': b, 'errors': errors} # Second dict is for debugging
 
-loss = torch.nn.MSELoss()
+def generate_multilinear_model_data(n=1000):
+    """
+    Generates n samples from a multilinear model y = m1*x1 + m2*x2 +b with a small variability.
+    """
 
-def train_model(model, data):
+    m1 = randint(-5,5)
+    m2 = randint(-5,5)
+    b = randint(-10,10)
+    x1 = np.random.rand(n)*100
+    x2 = np.random.rand(n)*100
+    errors = np.random.normal(0,.3,n) # Gaussian samples for errors
+    y = m1*x1 + m2*x2 + b + errors
+
+    return Message({'x1':x1, 'x2': x2, 'y_true':y}), {'m1': m1, 'm2':m2, 'b': b, 'errors': errors} # Second dict is for debugging
+
+
+def train_model(model, data, models = None, predicted='y', label='y_true'):
 
     # Initialize model for training
     # Define loss function and learning algorithm
-    optimizer = optim.SGD(model.parameters(), lr=.1)
+    models = models or [models]
+    parameters = [filter(lambda p: p.requires_grad, model.parameters()) for p in models]
+    parameters = [x for y in parameters for x in y]
+    optimizer = torch.optim.SGD(parameters, lr=.00015)
     # Training loop
-    num_epochs = 3
-    for epoch in num_epochs:
+    num_epochs = 4
+    for epoch in range(num_epochs):
         for batch in data:
             optimizer.zero_grad()
-            l = loss(model(data['x']), data['y'])
-            l.backward()
+            result = model(batch.to_tensors())
+            lo = loss(result[predicted], result[label])
+            lo.backward()
             optimizer.step()
 
     return model
@@ -67,7 +107,9 @@ class LinearModule(torch.nn.Module):
 
     def forward(self, message):
 
-        return Message({'x': message['x'], 'y': self.m*message['x']+self.b})
+        message['y'] = self.m*message['x']+self.b
+
+        return message
 
 def test_Model_init():
 
@@ -107,17 +149,125 @@ def test_ModelFromModule():
     result = pom(messi)
     assert 'y' in result and 'x' in result
 
+def test_freeze_and_unfreeze():
+
+    A = DummyModel({'m': [0.]})
+    assert A.m.requires_grad == True
+    assert A.b.requires_grad == True
+    A.freeze()
+    assert A.m.requires_grad == False
+    assert A.b.requires_grad == False
+    A.unfreeze()
+    assert A.m.requires_grad == True
+    assert A.b.requires_grad == True
+    A.freeze('m')
+    assert A.m.requires_grad == False
+    assert A.b.requires_grad == True
+    A.unfreeze('m')
+    assert A.m.requires_grad == True
+    assert A.b.requires_grad == True
+    A.freeze('b')
+    assert A.m.requires_grad == True
+    assert A.b.requires_grad == False
+    A.unfreeze('b')
+    assert A.m.requires_grad == True
+    assert A.b.requires_grad == True
+
+    B = model_from_module(LinearModule)() # This one has a PyTorch module Conv1 in it as well.
+    assert B.m.requires_grad == True
+    assert B.b.requires_grad == True
+    assert B.conv1.weight.requires_grad == True
+    assert B.conv1.weight.requires_grad == True
+    B.freeze()
+    assert B.m.requires_grad == False
+    assert B.b.requires_grad == False
+    assert B.conv1.weight.requires_grad == False
+    assert B.conv1.weight.requires_grad == False
+    B.unfreeze('conv1')
+    assert B.m.requires_grad == False
+    assert B.b.requires_grad == False
+    assert B.conv1.weight.requires_grad == True
+    assert B.conv1.weight.requires_grad == True
+    B.freeze('conv1')
+    assert B.m.requires_grad == False
+    assert B.b.requires_grad == False
+    assert B.conv1.weight.requires_grad == False
+    assert B.conv1.weight.requires_grad == False
+    B.unfreeze(['m','b'])
+    assert B.m.requires_grad == True
+    assert B.b.requires_grad == True
+    assert B.conv1.weight.requires_grad == False
+    assert B.conv1.weight.requires_grad == False
+
+def get_minibatcher(training_data):
+
+    repeater = RepeaterPipe(training_data)
+    lol = LoopingPipe(repeater)
+    shuffler = ShufflerPipe(lol)
+    minibatcher = BatchingPipe(shuffler, batch_size=10)
+
+    return minibatcher
+
 def test_one_Model_training():
 
     A = DummyModel({'m': [0.]})
-    B = model_from_module(LinearModule)
+    B = model_from_module(LinearModule)()
     training_data = generate_linear_model_data()
-    repeater = RepeaterPipe(training_data[0])
-    lol = LoopingPipe(repeater)
-    assert False 
-    # minibatcher = BatchingPipe(ShufflerPipe(LoopingPipe(training_data)))
+    m = training_data[1]['m']
+    b = training_data[1]['b']
+    errors = training_data[1]['errors']
+    minibatcher = get_minibatcher(training_data[0])
+    train_model(A, minibatcher)
+    # For some reason, this model struggles to learn the y-intercept.
+    assert (m-A.m < .1).all()
+    train_model(B, minibatcher)
+    assert (m - B.m < .1).all()
+
+    assert (A.m - B.m < .1).all() # Test precision between models
+
+def test_multiple_Models_training():
+    """
+    Here, we compose a model multilinear = A + B + C, where A, B, and C represent
+    different components of the overall model.
+    """
+    A = DummyModel({'m': [0.]})
+    A.freeze('b')
+    B = model_from_module(LinearModule)()
+    B.freeze('b')
+    C = DummyModel({'m': [0.]})
+    C.freeze('m')
+    multilinear = DummyMultilinearModel({'m1':A.m, 'm2': B.m, 'b': C.b})
+    assert multilinear.m1 is A.m
+    assert multilinear.m2 is B.m
+    assert multilinear.b is C.b
+    training_data = generate_multilinear_model_data()
+    m1 = training_data[1]['m1']
+    m2 = training_data[1]['m2']
+    b = training_data[1]['b']
+    errors = training_data[1]['errors']
+    minibatcher = get_minibatcher(training_data[0])
+    train_model(multilinear, minibatcher)
+    assert (A.m - m1 < .1).all()
+    assert (B.m - m2 < .1).all()
+    assert (A.b == 0).all()
+    assert (C.m == 0.).all()
+
+def test_multiple_Models_training_in_pipeline():
+    """
+    Here, model A pipes its output into B
+    """
+    A = DummyModel({'m': [1.]}, out_column='y1')
+    B = DummyModel({'m': [0.], 'b': [2.]}, input_pipe=A, in_column='y1', out_column='y')
+    A.freeze('b')
+    B.freeze('m')
+    training_data = generate_linear_model_data()
+    m = training_data[1]['m']
+    b = training_data[1]['b']
+    errors = training_data[1]['errors']
+    minibatcher = get_minibatcher(training_data[0])
+    assert (A.m == 1.).all()
+    assert (B.m == 0).all()
+    assert (A.b == 0).all()
+    assert (B.b == 2.).all()
+    train_model(B, minibatcher, models = [A, B])
     assert False
-
-def test_multiple_Models_inferencing(): pass
-
-def test_multiple_Models_training(): pass

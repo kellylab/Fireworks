@@ -16,14 +16,13 @@ class Model(Module, HookedPassThroughPipe, ABC):
     complex graphs of Models that can be trained simultaneously or individually.
     """
 
-    def __init__(self, components={}, *args, inputs=None, **kwargs): # QUESTION: Should a model have a list of required components?
+    def __init__(self, components={}, input_pipe = None, *args, **kwargs): # QUESTION: Should a model have a list of required components?
         """
         Args:
             components: A dict of components that the model can call on.
         """
-
-        HookedPassThroughPipe.__init__(self, inputs=inputs)
         Module.__init__(self)
+        HookedPassThroughPipe.__init__(self, input_pipe = input_pipe)
         # self.components = {}
         self.init_default_components()
         self.update_components(components)
@@ -81,11 +80,50 @@ class Model(Module, HookedPassThroughPipe, ABC):
         """
         pass
 
+    def _change_temperature(self, boo, components = None):
+
+        if isinstance(components, str): # eg. a single component is provided as a string
+            components = [components]
+
+        if components is None:
+            components = self.components
+
+        for component in components:
+            if isinstance(getattr(self, component), Parameter):
+                getattr(self, component).requires_grad = boo
+            elif isinstance(getattr(self, component), Model):
+                getattr(self, component)._change_temperature(boo) # Recursively freezes Models
+            elif isinstance(getattr(self, component), Module): # Is a PyTorch module but not a model.
+                _change_temperature(boo, getattr(self, component))
+
     def freeze(self, components = None):
         """
         Freezes the given components of the model (or all of them if none are specified) in order to prevent gradient updates.
+        This means setting requires_grad to false for specified components so that these components
+        are not updated during training.
         """
-        pass # TODO: Implement
+        self._change_temperature(False, components)
+
+    def unfreeze(self, components = None):
+        """
+        Unfreezes the given components of the model (or all of them if none are specified) in order to prevent gradient updates.
+        This means setting requires_grad to true for specified components so that these components
+        are updated during training.
+        """
+        self._change_temperature(True, components)
+        # if isinstance(components, str): # eg. a single component is provided as a string
+        #     components = [components]
+        #
+        # if components is None:
+        #     components = self.components
+        #
+        # for component in components:
+        #     if isinstance(getattr(self, component), Parameter):
+        #         getattr(self, component).requires_grad = True
+        #     elif isinstance(getattr(self, component), Model):
+        #         getattr(self, component).unfreeze() # Recursively unfreezes Models
+        #     elif isinstance(getattr(self, component), Module): # Is a PyTorch module but not a model.
+        #         unfreeze_module(getattr(self, component))
 
     # TODO: Figure out model i/o
     # TODO: Implement description methods
@@ -99,9 +137,51 @@ class Model(Module, HookedPassThroughPipe, ABC):
 
         return self.forward(message)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, message, *args, **kwargs):
 
-        return self.forward(*args, **kwargs)
+        try: # This will trigger a recursive call if possible.
+            message = self.input_pipe(message, *args, **kwargs)
+        except:
+            pass
+            
+        return self.forward(message, *args, **kwargs)
+
+def freeze_module(module, parameters = None, submodules = None):
+    """
+    Recursively freezes the parameters in a PyTorch module.
+    """
+    _change_temperature(False, module, parameters, submodules)
+
+def unfreeze_module(module, parameters = None, submodules = None):
+    """
+    Recursively unfreezes the parameters in a PyTorch module.
+    """
+    _change_temperature(True, module, parameters, submodules)
+
+def _change_temperature(boo, module, parameters = None, submodules = None):
+    """
+    Changes the temperature of a PyTorch module.
+    """
+    parameters = parameters or module.parameters()
+    submodules = submodules or module.modules()
+
+    for parameter in parameters:
+        parameter.requires_grad = boo
+    for submodule in submodules:
+        if submodule is not module:
+            change_temperature(boo, submodule)
+
+# def unfreeze_module(module, parameters = None, submodules = None):
+#     """
+#     Recursively unfreezes the parameters in a PyTorch module.
+#     """
+#     parameters = parameters or module.parameters()
+#     modules = modules or module.modules()
+#
+#     for parameter in parameters:
+#         parameter.requires_grad = False
+#     for module in modules:
+#         unfreeze_module(module)
 
 # class ModelFromModule(Model):
 #     """
