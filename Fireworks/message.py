@@ -200,6 +200,7 @@ class Message:
                 with the same length as the index.
         """
         t = type(index)
+
         if t is str:
             # Check if the update would require moving a column from df to tensor_message or vice-versa, in which case, delete the original
             # and then insert the new value into the correct location.
@@ -242,42 +243,6 @@ class Message:
                     raise IndexError("{0} is not a valid index.".format(index))
             else:
                 raise ValueError("No index specified.")
-        # if type(index) is str: # Index is a column name
-        #     # Check if the update would require moving a column from df to tensor_message or vice-versa, in which case, delete the original
-        #     # and then insert the new value into the correct location.
-        #     if (type(value) is torch.Tensor and index in self.df.columns) or (not type(value) is torch.Tensor and index in self.tensor_message.columns):
-        #         del self[index]
-        #
-        #     # Update or insert
-        #     if type(value) is torch.Tensor:
-        #         if len(value) == self.length:
-        #             self.tensor_message[index] = value
-        #             self.check_length()
-        #         else:
-        #             raise ValueError("Cannot set value {0} of length {1} to column name {2} for message with length {3}. Lengths of all columns \
-        #         must be the same.".format(value, len(value), index, self.length))
-        #     else:
-        #         if len(value) == self.length:
-        #             self.df[index] = value
-        #             self.check_length()
-        #         else:
-        #             raise ValueError("Cannot set value {0} of length {1} to column name {2} for message with length {3}. Lengths of all columns \
-        #         must be the same.".format(value, len(value), index, self.length))
-
-        # if isinstance(index, Hashable) and index in self.tensor_message.keys():
-        #
-        #     self.check_length()
-        # elif isinstance(index, Hashable) and index in self.df.keys():
-        #     self.df[index] = value
-        #     self.check_length()
-        # else: # Index is a range
-        #     # if type(index) is int: # To ensure proper formatting of dataframes, convert point queries to length 1 range queries.
-        #     #     index = slice(index, index+1)
-        #     index = index_to_list(index)
-        #     value = Message(value)
-        #     self.tensor_message[index] = value.tensor_message
-        #     value.df.index = self.df.iloc[index].index # Indices must align when updating a dataframe or something terrible happens
-        #     self.df.iloc[index] = value.df
 
     def __delitem__(self, index):
         """
@@ -301,9 +266,6 @@ class Message:
                 raise IndexError("Cannot delete element {0} from message with length {1}".format(index, self.length))
             self._delindex(index)
         elif t is slice:
-            # m = max(index.start, index.stop)
-            # if m > self.length:
-            #     raise IndexError("Cannot delete slice {0} from message with length {1}".format(index, self.length))
             self._delindex(index)
         elif t is list:
             if len(index): # Otherwise list is empty and do nothing
@@ -647,17 +609,6 @@ class TensorMessage:
             if not type(value) is torch.Tensor:
                 value = torch.Tensor(value)
             self.tensor_dict[index] = value
-
-        # if type(index) is str: # Index is the name of a key
-        #     if len(value) == self.length or self.length == 0:
-        #         try:
-        #             self.tensor_dict[index] = value # TODO: If the update is invalid, then this step should not occur.
-        #             self.length = compute_length(self)
-        #         except ValueError as e:
-        #             raise ValueError(e)
-        #     else:
-        #         raise ValueError("Cannot set value {0} of length {1} to column name {2} for message with length {3}. Lengths of all columns \
-        #         must be the same.".format(value, len(value), index, self.length))
         elif t is int or t is slice:
             value = TensorMessage(value)
             for key in self.tensor_dict:
@@ -676,10 +627,6 @@ class TensorMessage:
                     raise IndexError("{0} is not a valid index.".format(index))
             else: # Empty list
                 raise ValueError("No index specified for setitem.")
-        # else: # Index is a range
-        #     value = TensorMessage(value)
-        #     for key in self.tensor_dict:
-        #         self.tensor_dict[key][index] = value[key]
 
     def __delitem__(self, index): # BUG: delitem raises sigfaults when called on a tensor.
 
@@ -707,16 +654,6 @@ class TensorMessage:
 
         if len(self.keys()) == 0: # If you've deleted the last column, the length is now 0 #TODO: Test this
             self.length = 0
-
-        # if isinstance(index, Hashable) and index in self.tensor_dict.keys():
-        #     del self.tensor_dict[index]
-        # else:
-        #     # Identify complement indices (indices that will remain)
-        #     complement_indices = complement(index, self.length)
-        #     # Assign self to self[complementary indices]
-        #     deleted = self[complement_indices]
-        #     self.tensor_dict = deleted.tensor_dict
-        #     self.length = deleted.length
 
     def _delindex(self, index):
         """
@@ -928,12 +865,6 @@ def slice_to_list(s):
 
 def complement(indices, n):
     """ Given an index, returns all indices between 0 and n that are not in the index. """
-    # everything = [i for i in range(n) if i not in index_list]
-    # indexed = everything[indices]
-    # if type(indices) is int:
-    #     indexed = [indexed]
-    # complement = [i for i in everything if i not in indexed]
-    # return complement
 
     if type(indices) is slice:
         indices = slice_to_list(indices)

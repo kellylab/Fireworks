@@ -45,26 +45,7 @@ class Pipe(ABC):
 
     def __init__(self, input = None, *args, **kwargs):
 
-        # if type(input) is dict:
-        #     if len(input.keys()) > 1:
-        #         raise TypeError("Input must be a single Pipe.")
-        # if isinstance(input, Pipe): # Can give just one Pipe as input without having to type out an entire dict
-        #     # input = {'data': input}
-        #     self.input = input
-        # elif input is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
-        #     self.input = None
-        # else:
-        #     raise TypeError("Inputs must be a Pipe")
-        # for title, pipe in input.items(): # There is only one
-        #     self.input_title = title
-        #     self.input = pipe
-        # self.check_inputs()
-
         self.input = input
-
-     # def check_inputs(self):
-     #    if len(self.inputs) > 1:
-     #        raise ValueError("A pass-through Pipe can only have one input Pipe.")
 
     def __getitem__(self, *args, **kwargs):
         return self.input.__getitem__(*args, **kwargs)
@@ -551,14 +532,6 @@ class Title2LabelPipe(HookedPassThroughPipe):
         super().__init__(input, *args, **kwargs)
         self.labels_column = labels_column
         self.label = title
-        # self.check_inputs()
-
-    # def check_inputs(self):
-        # if len(self.inputs) > 1:
-        #     raise ValueError("A label Pipe can only have one input Pipe.")
-        # for label, pipe in self.inputs.items(): # There is only one
-        # self.label = title
-        # self.input = pipe
 
     def _get_item_hook(self, message):
 
@@ -568,6 +541,10 @@ class Title2LabelPipe(HookedPassThroughPipe):
 
         return self.insert_labels(message)
 
+    """
+    NOTE: Explore using the below code as an approach to make a general purpose wrapper Pipes,
+    ie. Pipes that modify all function calls from their input.
+    """
     # def __getattr__(self, *args, **kwargs):
     #     """
     #     Pass through all methods of the input pipe while adding labels.
@@ -577,35 +554,35 @@ class Title2LabelPipe(HookedPassThroughPipe):
     #         return self.method_wrapper(output)
     #     else:
     #         return self.attribute_wrapper(output)
-
-    def method_wrapper(self, function):
-        """
-        Wraps method with a label attacher such that whenever the method is called, the output is modified
-        by adding the label.
-        """
-
-        def new_function(*args, **kwargs):
-
-            output = function(*args, **kwargs)
-            try:
-                output = Message(output)
-            except:
-                return output
-
-            return self.insert_labels(output)
-
-        return new_function
-
-    def attribute_wrapper(self, attribute):
-        """
-        Wraps attribute with new label if attribute returns a message.
-        """
-        try:
-            output = Message(attribute)
-        except:
-            return attribute
-
-        return self.insert_labels(output)
+    #
+    # def method_wrapper(self, function):
+    #     """
+    #     Wraps method with a label attacher such that whenever the method is called, the output is modified
+    #     by adding the label.
+    #     """
+    #
+    #     def new_function(*args, **kwargs):
+    #
+    #         output = function(*args, **kwargs)
+    #         try:
+    #             output = Message(output)
+    #         except:
+    #             return output
+    #
+    #         return self.insert_labels(output)
+    #
+    #     return new_function
+    #
+    # def attribute_wrapper(self, attribute):
+    #     """
+    #     Wraps attribute with new label if attribute returns a message.
+    #     """
+    #     try:
+    #         output = Message(attribute)
+    #     except:
+    #         return attribute
+    #
+    #     return self.insert_labels(output)
 
     def insert_labels(self, message):
 

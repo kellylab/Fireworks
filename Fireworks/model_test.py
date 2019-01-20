@@ -21,7 +21,7 @@ class DummyModel(Model):
     required_components = ['m', 'b']
 
     def __init__(self, components = {}, input = None, in_column = 'x', out_column = 'y'):
-        Model.__init__(self, components, input)
+        Model.__init__(self, components, input = input)
         self.in_column = in_column
         self.out_column = out_column
 
@@ -86,19 +86,19 @@ class RandomJunction(Junction):
         target = random.sample(self.components.keys(),1)[0]
         return self.components[target](*args, **kwargs)
 
-def generate_linear_model_data(n=600):
+def generate_linear_model_data(n=300):
     """
     Generates n samples from a linear model with a small variability.
     """
     m = randint(-3,3)
     b = randint(-10,10)
     x = np.random.rand(n)*100
-    errors = np.random.normal(0, .3, n) # Gaussian samples for errors
+    errors = np.random.normal(0, .4, n) # Gaussian samples for errors
     y = m*x+b + errors
 
     return Message({'x':x, 'y_true':y}), {'m': m, 'b': b, 'errors': errors} # Second dict is for debugging
 
-def generate_multilinear_model_data(n=600):
+def generate_multilinear_model_data(n=550):
     """
     Generates n samples from a multilinear model y = m1*x1 + m2*x2 +b with a small variability.
     """
@@ -169,7 +169,16 @@ def test_ModelFromModule():
     pom = mom()
     assert set(pom.components) == set(['conv1', 'm', 'b'])
     result = pom(messi)
-    assert 'y' in result and 'x' in result
+    y = result['y']
+    x = result['x']
+    assert 'y' in result and 'x' in result and 'z' not in result
+    # Test that Model calls are recursive on inputs
+    hom = DummyModel({'m': [3.]}, out_column='z')
+    pom.input = hom
+    result = pom(messi)
+    assert (x == result['x']).all()
+    assert (y == result['y']).all()
+    assert 'y' in result and 'x' in result and 'z' in result
 
 def test_freeze_and_unfreeze():
 
@@ -241,11 +250,11 @@ def test_one_Model_training():
     minibatcher = get_minibatcher(training_data[0])
     train_model(A, minibatcher)
     # For some reason, this model struggles to learn the y-intercept.
-    assert (m-A.m < .3).all()
+    assert (m-A.m < .4).all()
     train_model(B, minibatcher)
-    assert (m - B.m < .3).all()
+    assert (m - B.m < .4).all()
 
-    assert (A.m - B.m < .3).all() # Test precision between models
+    assert (A.m - B.m < .4).all() # Test precision between models
 
 def test_multiple_Models_training():
     """
@@ -269,8 +278,8 @@ def test_multiple_Models_training():
     errors = training_data[1]['errors']
     minibatcher = get_minibatcher(training_data[0])
     train_model(multilinear, minibatcher)
-    assert (A.m - m1 < .3).all()
-    assert (B.m - m2 < .3).all()
+    assert (A.m - m1 < .4).all()
+    assert (B.m - m2 < .4).all()
     assert (A.b == 0).all()
     assert (C.m == 0.).all()
 
@@ -292,14 +301,14 @@ def test_multiple_Models_training_in_pipeline():
     assert (A.b == 0).all()
     assert (B.b == 2.).all()
     train_model(B, minibatcher, models = [B])
-    assert (A.m - m < .3).all()
+    assert (A.m - m < .4).all()
     assert (B.b != 2).all()
     assert (B.m == 1).all()
     assert (A.b == 0).all()
 
 def test_multiple_Models_training_in_junction():
     """
-    Here, model A is a junction input of B
+    Here, model A is provided as a component of B
     """
     A = DummyModel({'m': [1.],'b':[3.]}, out_column='z')
     B = LinearJunctionModel(components={'b':[.5], 'f':A})
@@ -315,7 +324,7 @@ def test_multiple_Models_training_in_junction():
     train_model(B, minibatcher, models=[A, B])
     assert (A.m != 1).all()
 
-def test_multple_Models_training_via_junction():
+def test_multiple_Models_training_via_junction():
     """
     Here, model B takes a junction A as input that randomly calls one of C, D, or E
     Hence, B implements y = f(x) + b, where f is randomly C, D, or E
@@ -328,7 +337,7 @@ def test_multple_Models_training_via_junction():
     E.freeze('b')
     A = RandomJunction(components={'C':C, 'D': D, 'E':E})
     B = LinearJunctionModel(components={'b': [3.], 'f':A})
-    training_data = generate_linear_model_data()
+    training_data = generate_linear_model_data(n=750)
     m = training_data[1]['m']
     b = training_data[1]['b']
     errors = training_data[1]['errors']
@@ -344,9 +353,10 @@ def test_multple_Models_training_via_junction():
             break
     assert rambo
     train_model(B, minibatcher, models=[B, C, D, E])
-    assert (C.m - m < .3).all()
-    assert (D.m - m < .3).all()
-    assert (E.m - m < .3).all()
+    # Test that all Models trained
+    assert (C.m - m < .4).all()
+    assert (D.m - m < .4).all()
+    assert (E.m - m < .4).all()
     assert (C.m != D.m).all()
     assert (D.m != E.m).all()
     assert (E.m != C.m).all()

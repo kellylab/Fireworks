@@ -17,7 +17,7 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
     complex graphs of Models that can be trained simultaneously or individually.
     """
 
-    def __init__(self, components={}, input = None, *args, skip_module_init=False, **kwargs):
+    def __init__(self, components = {}, *args, input = None, skip_module_init=False, **kwargs):
         """
         Args:
             components: A dict of components that the model can call on.
@@ -72,22 +72,8 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
             if key not in components:
                 missing_components.append(key)
                 error = True
-        # for key in self.required_junction_inputs:
-        #     if key not in self.junction_inputs:
-        #         missing_junctions.append(key)
-        #         error = True
         if error:
-            # if missing_junctions and missing_components:
-            #     raise ParameterizationError("Missing required components {0} and junctions {1}".format(missing_components, missing_junctions))
-            # elif missing_junctions:
-            #     raise ParameterizationError("Missing required junctions {0}".format(missing_junctions))
-            # elif missing_components:
             raise ParameterizationError("Missing required components {0}".format(missing_components))
-
-
-    # @property
-    # def components(self):
-    #     return list(self._modules.keys()) + list(self._parameters.keys()) + list(self.junction_inputs.keys())
 
     @property
     def required_components(self):
@@ -96,10 +82,6 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         this will default to just return the components already present within the Model.
         """
         return self.components
-
-    # @property
-    # def required_junction_inputs(self):
-    #     return []
 
     @abstractmethod
     def forward(self, message):
@@ -142,23 +124,9 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         are updated during training.
         """
         self._change_temperature(True, components)
-        # if isinstance(components, str): # eg. a single component is provided as a string
-        #     components = [components]
-        #
-        # if components is None:
-        #     components = self.components
-        #
-        # for component in components:
-        #     if isinstance(getattr(self, component), Parameter):
-        #         getattr(self, component).requires_grad = True
-        #     elif isinstance(getattr(self, component), Model):
-        #         getattr(self, component).unfreeze() # Recursively unfreezes Models
-        #     elif isinstance(getattr(self, component), Module): # Is a PyTorch module but not a model.
-        #         unfreeze_module(getattr(self, component))
 
     # TODO: Figure out model i/o
     # TODO: Implement description methods
-    # TODO: Implement method to access components by key
 
     def __getitem_hook(self, message):
 
@@ -202,39 +170,6 @@ def _change_temperature(boo, module, parameters = None, submodules = None):
         if submodule is not module:
             change_temperature(boo, submodule)
 
-# def unfreeze_module(module, parameters = None, submodules = None):
-#     """
-#     Recursively unfreezes the parameters in a PyTorch module.
-#     """
-#     parameters = parameters or module.parameters()
-#     modules = modules or module.modules()
-#
-#     for parameter in parameters:
-#         parameter.requires_grad = False
-#     for module in modules:
-#         unfreeze_module(module)
-
-# class ModelFromModule(Model):
-#     """
-#     Converts a PyTorch Module into a Fireworks Model.
-#     """
-#     def __init__(self, module, parameters, *args, inputs=None, **kwargs):
-#
-#         super.__init__(self, parameters, *args, inputs=inputs, **kwargs)
-#         self.module = module(*args, **parameters) # TODO: Test that these parameters stay linked.
-#
-#     def forward(self, message):
-#
-#         return self.module(message)
-
-# class TrainableModel(Module, Model): # This should call Module supermethods before any Fireworks methods.
-#
-#     def __init__(self, parameters, *args, inputs=None, **kwargs):
-#         super(Module, self).__init__()
-#         super(Model, self).__init__()
-#         for key, param in self.parameters.items():
-#             setattr(self.module, key, param)
-
 def model_from_module(module_class):
     """
     Given the class definition for a pytorch module, returns a model that
@@ -242,13 +177,16 @@ def model_from_module(module_class):
     """
     class ModelFromModule(module_class, Model):
 
-        def __init__(self, components={}, *args, inputs=None, **kwargs):
+        def __init__(self, components={}, *args, input=None, **kwargs):
             module_class.__init__(self, *args, **kwargs)
-            Model.__init__(self, components, inputs=inputs, skip_module_init=True)
+            Model.__init__(self, components, input=input, skip_module_init=True)
 
-        # def forward(self, message):
-        #
-        #     try:
-        #         message = self.inpu
+        def __call__(self, message, *args, **kwargs):
+            try: # This will trigger a recursive call if possible.
+                message = self.input(message, *args, **kwargs)
+            except:
+                pass
+
+            return self.forward(message, *args, **kwargs)
 
     return ModelFromModule
