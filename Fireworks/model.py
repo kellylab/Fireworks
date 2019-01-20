@@ -17,7 +17,7 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
     complex graphs of Models that can be trained simultaneously or individually.
     """
 
-    def __init__(self, components={}, input_pipe = None, *args, skip_module_init=False, **kwargs):
+    def __init__(self, components={}, input = None, *args, skip_module_init=False, **kwargs):
         """
         Args:
             components: A dict of components that the model can call on.
@@ -25,7 +25,7 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         if not skip_module_init: # This is so the ModelFromModule Class can work.
             Module.__init__(self)
 
-        HookedPassThroughPipe.__init__(self, input_pipe = input_pipe)
+        HookedPassThroughPipe.__init__(self, input = input)
 
         Junction.__init__(self, components = components)
         # self.components = {}
@@ -171,7 +171,7 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
     def __call__(self, message, *args, **kwargs):
 
         try: # This will trigger a recursive call if possible.
-            message = self.input_pipe(message, *args, **kwargs)
+            message = self.input(message, *args, **kwargs)
         except:
             pass
 
