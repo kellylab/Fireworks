@@ -43,56 +43,37 @@ class Pipe(ABC):
 
     name = 'base_pipe'
 
-    def __init__(self, input_pipe = None, *args, **kwargs):
+    def __init__(self, input = None, *args, **kwargs):
 
-        # if type(input_pipe) is dict:
-        #     if len(input_pipe.keys()) > 1:
-        #         raise TypeError("Input must be a single Pipe.")
-        # if isinstance(input_pipe, Pipe): # Can give just one Pipe as input without having to type out an entire dict
-        #     # input_pipe = {'data': input_pipe}
-        #     self.input_pipe = input_pipe
-        # elif input_pipe is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
-        #     self.input_pipe = None
-        # else:
-        #     raise TypeError("Inputs must be a Pipe")
-        # for title, pipe in input_pipe.items(): # There is only one
-        #     self.input_title = title
-        #     self.input_pipe = pipe
-        # self.check_inputs()
-
-        self.input_pipe = input_pipe
-
-     # def check_inputs(self):
-     #    if len(self.input_pipes) > 1:
-     #        raise ValueError("A pass-through Pipe can only have one input Pipe.")
+        self.input = input
 
     def __getitem__(self, *args, **kwargs):
-        return self.input_pipe.__getitem__(*args, **kwargs)
+        return self.input.__getitem__(*args, **kwargs)
 
     def __setitem__(self, *args, **kwargs):
-        return self.input_pipe.__setitem__(*args, **kwargs)
+        return self.input.__setitem__(*args, **kwargs)
 
     def __delitem__(self, *args, **kwargs):
-        return self.input_pipe.__delitem__(*args, **kwargs)
+        return self.input.__delitem__(*args, **kwargs)
 
     def __len__(self, *args, **kwargs):
-        return self.input_pipe.__len__(*args, **kwargs)
+        return self.input.__len__(*args, **kwargs)
 
     def __next__(self, *args, **kwargs):
-        return self.input_pipe.__next__(*args, **kwargs)
+        return self.input.__next__(*args, **kwargs)
 
     def __iter__(self, *args, **kwargs):
-        return self.input_pipe.__iter__(*args, **kwargs)
+        return self.input.__iter__(*args, **kwargs)
 
     def __getattr__(self, *args, **kwargs):
         """
         Pass through all methods of the input Pipe while adding labels. This does not intercept special methods (__x__ methods)
         """
-        return self.recursive_call(*args, **kwargs) #self.input_pipe.__getattribute__(*args, **kwargs)
+        return self.recursive_call(*args, **kwargs) #self.input.__getattribute__(*args, **kwargs)
 
     def recursive_call(self, attribute, *args, ignore_first = True, **kwargs):
         """
-        Recursively calls method/attribute on input_pipe until reaching an upstream Pipe that implements the method and
+        Recursively calls method/attribute on input until reaching an upstream Pipe that implements the method and
         returns the response as a message (empty if response is None).
         Recursive calls enable a stack of Pipes to behave as one entity; any method implemented by any component can be accessed
         recursively.
@@ -119,25 +100,25 @@ class Pipe(ABC):
                     except AttributeError:
                         return self.__getattr__(attribute)
 
-        if not hasattr(self, 'input_pipe') or self.input_pipe is None:
+        if not hasattr(self, 'input') or self.input is None:
             raise AttributeError("Pipe {0} does not have method/attribute {1}.".format(self.name, str(attribute)))
 
-        if not isinstance(self.input_pipe, Pipe): # If input is not a pipe, just attempt a non-recursive method/attribute call on input.
+        if not isinstance(self.input, Pipe): # If input is not a pipe, just attempt a non-recursive method/attribute call on input.
             if args or kwargs: # Is a method call
                 try:
-                    return self.input_pipe.__getattribute__(attribute)(*args, **kwargs)
+                    return self.input.__getattribute__(attribute)(*args, **kwargs)
                 except AttributeError:
                     raise AttributeError("Pipe {0} does not have method {1}.".format(self.name, str(attribute)))
             else: # Is an attribute
                 try:
-                    return self.input_pipe.__getattribute__(attribute)
+                    return self.input.__getattribute__(attribute)
                 except AttributeError:
                     try:
-                        return self.input_pipe.__getattr__(attribute)
+                        return self.input.__getattr__(attribute)
                     except AttributeError:
                         raise AttributeError("Pipe {0} does not have attribute {1}".format(self.name, str(attribute)))
 
-        response = self.input_pipe.recursive_call(attribute, *args, ignore_first=False, **kwargs)
+        response = self.input.recursive_call(attribute, *args, ignore_first=False, **kwargs)
         return response
 
         # if response:
@@ -146,7 +127,7 @@ class Pipe(ABC):
         #     elif len(responses) == 1:
         #         return responses[0]
         #     else:
-        #         return {key: response for key, respone in zip(self.input_pipes.keys(), responses)}
+        #         return {key: response for key, respone in zip(self.inputs.keys(), responses)}
 
 class PassThroughPipe(Pipe):
     """
@@ -180,30 +161,30 @@ class HookedPassThroughPipe(Pipe): # BUG NOTE: Methods that return self will bre
 
     def __getitem__(self, *args, **kwargs): # TODO: wrap access methods in try/catch statements
 
-        return self._getitem_hook(Message(self.input_pipe.__getitem__(*args, **kwargs))) #self.input_pipe.__getitem__(*args, **kwargs))
+        return self._getitem_hook(Message(self.input.__getitem__(*args, **kwargs))) #self.input.__getitem__(*args, **kwargs))
 
     # def __setitem__(self, *args, **kwargs):
-    #     self._setitem_hook(self.input_pipe.__setitem__(*args, **kwargs))
+    #     self._setitem_hook(self.input.__setitem__(*args, **kwargs))
     #
     # def __delitem__(self, *args, **kwargs):
-    #     self._delitem_hook(self.input_pipe.__delitem__(*args, **kwargs))
+    #     self._delitem_hook(self.input.__delitem__(*args, **kwargs))
     #
     # def __len__(self, *args, **kwargs):
-    #     return self._len_hook(self.input_pipe.__len__(*args, **kwargs))
+    #     return self._len_hook(self.input.__len__(*args, **kwargs))
 
     def __next__(self, *args, **kwargs):
-        return self._next_hook(Message(self.input_pipe.__next__(*args, **kwargs)))
+        return self._next_hook(Message(self.input.__next__(*args, **kwargs)))
 
     def __iter__(self, *args, **kwargs):
 
-        self.input_pipe = self.input_pipe.__iter__(*args, **kwargs)
+        self.input = self.input.__iter__(*args, **kwargs)
         return self
 
     # def __getattr__(self, *args, **kwargs):
     #     """
     #     Pass through all methods of the input Pipe while adding labels. This does not intercept special methods (__x__ methods)
     #     """
-    #     return self.input_pipe.__getattribute__(*args, **kwargs)
+    #     return self.input.__getattribute__(*args, **kwargs)
 
 class BioSeqPipe(Pipe):
     """
@@ -214,7 +195,7 @@ class BioSeqPipe(Pipe):
 
     name = 'BioSeqPipe'
 
-    def __init__(self, path, input_pipe = None, filetype = 'fasta', **kwargs):
+    def __init__(self, path, input = None, filetype = 'fasta', **kwargs):
         """
         Args:
             path: Path on disk where file is located; will be supplied to the SeqIO.parse function.
@@ -222,7 +203,7 @@ class BioSeqPipe(Pipe):
             filetype: Type of file that will be supplied to the SeqIO.parse function. Default is 'fasta'
             kwargs: Optional key word arguments that will be supplied to the SeqIO.parse function.
         """
-        Pipe.__init__(self, input_pipe=input_pipe)
+        Pipe.__init__(self, input=input)
         self.path = path
         self.filetype = filetype
         self.kwargs = kwargs
@@ -287,8 +268,8 @@ class LoopingPipe(Pipe):
 
     name = 'LoopingPipe'
 
-    def __init__(self, input_pipe, *args, **kwargs):
-        super().__init__(input_pipe, *args, **kwargs)
+    def __init__(self, input, *args, **kwargs):
+        super().__init__(input, *args, **kwargs)
         self.check_input()
         self.reset()
         self.length = None
@@ -341,8 +322,8 @@ class LoopingPipe(Pipe):
         """
         Checks input to determine if it implements __next__ and reset methods.
         """
-        # for name, pipe in self.input_pipes.items():
-        pipe = self.input_pipe
+        # for name, pipe in self.inputs.items():
+        pipe = self.input
 
         if pipe is None:
             raise TypeError("This pipe has no inputs.")
@@ -353,10 +334,10 @@ class LoopingPipe(Pipe):
         """
         Calls reset on input Pipes and sets position to 0.
         """
-        # # for pipe in self.input_pipes.values():
+        # # for pipe in self.inputs.values():
         #     pipe.reset()
         try:
-            self.input_pipe.reset()
+            self.input.reset()
         except: # TODO: Do proper error catching here
             pass
         self.position = 0
@@ -389,9 +370,9 @@ class LoopingPipe(Pipe):
         x = Message()
         for _ in range(n - self.position):
             try:
-                # x = x.append(Fireworks.merge([Pipe.__next__() for Pipe in self.input_pipes.values()]))
-                # x = Fireworks.merge([pipe.__next__() for pipe in self.input_pipes.values()])
-                x = self.input_pipe.__next__()
+                # x = x.append(Fireworks.merge([Pipe.__next__() for Pipe in self.inputs.values()]))
+                # x = Fireworks.merge([pipe.__next__() for pipe in self.inputs.values()])
+                x = self.input.__next__()
                 self.position += 1
             except StopIteration:
                 self.length = self.position
@@ -430,7 +411,7 @@ class CachingPipe(Pipe):
         cache[25:30] # This will read from the dataset and update the cache again
 
     """
-    def __init__(self, input_pipe, *args, cache_size = 100, buffer_size = 0, cache_type = 'LRU', infinite = False, **kwargs):
+    def __init__(self, input, *args, cache_size = 100, buffer_size = 0, cache_type = 'LRU', infinite = False, **kwargs):
         """
         Args:
             args: Positional arguments for superclass initialization.
@@ -440,7 +421,7 @@ class CachingPipe(Pipe):
             cache_type (str): Type of cache. Choices are 'LRU' (least-recently-used) and 'LFU' (least-frequently-used). Default = 'LRU'
             infinite (bool): If set to true, the cache will have no upper limit on size and will never clear itself.
         """
-        super().__init__(input_pipe, *args, **kwargs)
+        super().__init__(input, *args, **kwargs)
         self.check_input()
         self.length = None
         self.lower_bound = 0
@@ -463,8 +444,8 @@ class CachingPipe(Pipe):
         """
         Checks inputs to determine if they implement __getitem__.
         """
-        # for name, pipe in self.input_pipes.items():
-        pipe = self.input_pipe
+        # for name, pipe in self.inputs.items():
+        pipe = self.input
         if pipe is None:
             raise AttributeError("This pipe has no inputs.")
 
@@ -486,8 +467,8 @@ class CachingPipe(Pipe):
         # Retrieve from cache existing elements
         in_cache_elements = self.cache[in_cache] # elements in cache corresponding to indices in cache
         # Update cache to have other elements
-        # not_in_cache_elements = Fireworks.merge([pipe[not_in_cache] for pipe in self.input_pipes.values()])
-        not_in_cache_elements = self.input_pipe[not_in_cache]
+        # not_in_cache_elements = Fireworks.merge([pipe[not_in_cache] for pipe in self.inputs.values()])
+        not_in_cache_elements = self.input[not_in_cache]
         self.cache[not_in_cache] = not_in_cache_elements
         # Reorder and merge requested elements
         message = in_cache_elements.append(not_in_cache_elements)
@@ -546,19 +527,11 @@ class Title2LabelPipe(HookedPassThroughPipe):
     containing the provided title of the input Pipe to to all outputs.
     """
 
-    def __init__(self, title, input_pipe, *args, labels_column = 'labels', **kwargs):
+    def __init__(self, title, input, *args, labels_column = 'labels', **kwargs):
 
-        super().__init__(input_pipe, *args, **kwargs)
+        super().__init__(input, *args, **kwargs)
         self.labels_column = labels_column
         self.label = title
-        # self.check_inputs()
-
-    # def check_inputs(self):
-        # if len(self.input_pipes) > 1:
-        #     raise ValueError("A label Pipe can only have one input Pipe.")
-        # for label, pipe in self.input_pipes.items(): # There is only one
-        # self.label = title
-        # self.input_pipe = pipe
 
     def _get_item_hook(self, message):
 
@@ -568,44 +541,48 @@ class Title2LabelPipe(HookedPassThroughPipe):
 
         return self.insert_labels(message)
 
+    """
+    NOTE: Explore using the below code as an approach to make a general purpose wrapper Pipes,
+    ie. Pipes that modify all function calls from their input.
+    """
     # def __getattr__(self, *args, **kwargs):
     #     """
     #     Pass through all methods of the input pipe while adding labels.
     #     """
-    #     output = self.input_pipe.__getattribute__(*args, **kwargs)
+    #     output = self.input.__getattribute__(*args, **kwargs)
     #     if type(output) is types.MethodType: # Wrap the method in a converter
     #         return self.method_wrapper(output)
     #     else:
     #         return self.attribute_wrapper(output)
-
-    def method_wrapper(self, function):
-        """
-        Wraps method with a label attacher such that whenever the method is called, the output is modified
-        by adding the label.
-        """
-
-        def new_function(*args, **kwargs):
-
-            output = function(*args, **kwargs)
-            try:
-                output = Message(output)
-            except:
-                return output
-
-            return self.insert_labels(output)
-
-        return new_function
-
-    def attribute_wrapper(self, attribute):
-        """
-        Wraps attribute with new label if attribute returns a message.
-        """
-        try:
-            output = Message(attribute)
-        except:
-            return attribute
-
-        return self.insert_labels(output)
+    #
+    # def method_wrapper(self, function):
+    #     """
+    #     Wraps method with a label attacher such that whenever the method is called, the output is modified
+    #     by adding the label.
+    #     """
+    #
+    #     def new_function(*args, **kwargs):
+    #
+    #         output = function(*args, **kwargs)
+    #         try:
+    #             output = Message(output)
+    #         except:
+    #             return output
+    #
+    #         return self.insert_labels(output)
+    #
+    #     return new_function
+    #
+    # def attribute_wrapper(self, attribute):
+    #     """
+    #     Wraps attribute with new label if attribute returns a message.
+    #     """
+    #     try:
+    #         output = Message(attribute)
+    #     except:
+    #         return attribute
+    #
+    #     return self.insert_labels(output)
 
     def insert_labels(self, message):
 
@@ -619,8 +596,8 @@ class LabelerPipe(Pipe):
     This Pipe implements a to_tensor function that converts labels contained in messages to tensors based on an internal labels dict.
     """
 
-    def __init__(self, input_pipe, labels, *args, **kwargs):
-        super().__init__(input_pipe, *args, **kwargs)
+    def __init__(self, input, labels, *args, **kwargs):
+        super().__init__(input, *args, **kwargs)
         self.labels = labels
         self.labels_dict = bidict({label:i for label,i in zip(labels,count())})
 
@@ -642,19 +619,19 @@ class RepeaterPipe(Pipe):
     Given an input Pipe that is iterable, enables repeat iteration.
     """
 
-    def __init__(self, input_pipe, *args,repetitions=10,**kwargs):
-        super().__init__(input_pipe, *args,**kwargs)
+    def __init__(self, input, *args,repetitions=10,**kwargs):
+        super().__init__(input, *args,**kwargs)
         if not type(repetitions) is int:
             raise ValueError("Number of repetitions must be provided as an integer.")
 
         self.repetitions = repetitions
-        if not isinstance(self.input_pipe, Pipe): # TODO: Test this scenario
-            self.iterator = iter(input_pipe)
+        if not isinstance(self.input, Pipe): # TODO: Test this scenario
+            self.iterator = iter(input)
 
     def reset(self):
         self.iteration = 0
-        if not isinstance(self.input_pipe, Pipe):
-            self.iterator = iter(self.input_pipe)
+        if not isinstance(self.input, Pipe):
+            self.iterator = iter(self.input)
         else:
             try:
                 self.recursive_call('reset',)()
@@ -668,7 +645,7 @@ class RepeaterPipe(Pipe):
 
     def __next__(self):
 
-        if not isinstance(self.input_pipe, Pipe):
+        if not isinstance(self.input, Pipe):
             return self.iterator.__next__()
         else:
             try:
@@ -686,8 +663,8 @@ class ShufflerPipe(Pipe):
     Given input Pipes that implement __getitem__ and __len__, will shuffle the indices so that iterating through
     the Pipe or calling __getitem__ will return different values.
     """
-    def __init__(self, input_pipe, *args, **kwargs):
-        super().__init__(input_pipe, *args, **kwargs)
+    def __init__(self, input, *args, **kwargs):
+        super().__init__(input, *args, **kwargs)
         self.check_input()
         self.current_index = 0
         self.shuffle_indices = np.array([i for i in range(len(self))])
@@ -696,8 +673,8 @@ class ShufflerPipe(Pipe):
         """
         Check inputs to see if they implement __getitem__ and __len__
         """
-        # for name, pipe in self.input_pipes.items():
-        pipe = self.input_pipe
+        # for name, pipe in self.inputs.items():
+        pipe = self.input
         if pipe is None:
             raise TypeError("This Pipe has no inputs.")
         if not (hasattr(pipe, '__getitem__')):
@@ -752,8 +729,8 @@ class IndexMapperPipe(Pipe):
         self.pointers[input_indices] = Message({'output':output_indices})
 
     def check_input(self):
-        # for name, pipe in self.input_pipes.items():
-        pipe = self.input_pipe
+        # for name, pipe in self.inputs.items():
+        pipe = self.input
         if pipe is None:
             raise TypeError("This Pipe has no inputs.")
         if not hasattr(pipe, '__getitem__'):
@@ -762,8 +739,8 @@ class IndexMapperPipe(Pipe):
     def __getitem__(self, index):
 
         index = index_to_list(index)
-        # return Fireworks.merge([pipe[self.pointers[index]['output'].values] for pipe in self.input_pipes.values()])
-        return self.input_pipe[self.pointers[index]['output'].values]
+        # return Fireworks.merge([pipe[self.pointers[index]['output'].values] for pipe in self.inputs.values()])
+        return self.input[self.pointers[index]['output'].values]
 
     def __len__(self):
         return len(self.pointers)

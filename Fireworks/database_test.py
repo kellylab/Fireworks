@@ -84,7 +84,7 @@ def test_TablePipe_explicit():
     engine = create_engine('sqlite:///:memory:', echo=True)
 
     tab.metadata.create_all(engine)
-    ts = db.TablePipe(tab, engine, ['values', 'name'], input_pipe=dummy)
+    ts = db.TablePipe(tab, engine, ['values', 'name'], input=dummy)
     batch = ts[2:10]
     ts.insert(batch)
     ts.commit()
@@ -103,7 +103,7 @@ def test_TablePipe_implicit():
     tab = dummy_table('josuke')
     engine = create_engine('sqlite:///:memory:', echo=True)
 
-    ts = db.TablePipe(tab, engine, input_pipe=dummy)
+    ts = db.TablePipe(tab, engine, input=dummy)
     batch = ts[2:10]
     ts.insert(batch)
     ts.commit()
@@ -138,7 +138,7 @@ def test_DBPipe():
     if os.path.exists('jotaro.sqlite'):
         os.remove('jotaro.sqlite')
     tab.metadata.create_all(engine)
-    ts = db.TablePipe(tab, engine, ['name', 'values'], input_pipe=dummy)
+    ts = db.TablePipe(tab, engine, ['name', 'values'], input=dummy)
     batch = ts[2:10]
     ts.insert(batch)
     ts.commit()
@@ -163,7 +163,7 @@ def test_DBPipe_query():
     tab = dummy_table('giorno')
     engine = create_engine('sqlite:///:memory:', echo=True)
     tab.metadata.create_all(engine)
-    ts = db.TablePipe(tab, engine, ['name', 'values'], input_pipe=dummy)
+    ts = db.TablePipe(tab, engine, ['name', 'values'], input=dummy)
     batch = ts[0:20]
     ts.insert(batch)
     ts.commit()

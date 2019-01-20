@@ -183,7 +183,7 @@ def test_IndexMapperPipe():
 def test_PassThroughPipe():
 
     dumbo = smart_dummy()
-    pishpish = pl.Pipe(input_pipe=dumbo)
+    pishpish = pl.Pipe(input=dumbo)
 
     assert pishpish.count == 0
     assert Message(pishpish.__next__()) == Message({'values': [0]})
@@ -200,7 +200,7 @@ def test_PassThroughPipe():
 def test_ShufflingPipe():
 
     bobby = getitem_dummy()
-    shuffla = pl.ShufflerPipe(input_pipe=bobby)
+    shuffla = pl.ShufflerPipe(input=bobby)
     shuffla[2]
     shuffled = False
     for shu, i in zip(shuffla, itertools.count()):
@@ -225,7 +225,7 @@ def test_HookedPassThroughPipe():
             message.df = message.df.reindex_axis(sorted(message.df.columns), axis=1)
             return message
 
-    pishpish = Hooker(input_pipe=dumbo)
+    pishpish = Hooker(input=dumbo)
     assert pishpish.count == 0
     assert Message(pishpish.__next__()) == Message({'values': [0], 'interception': ['yaro']})
     assert pishpish.count == 1

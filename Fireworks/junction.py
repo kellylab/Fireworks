@@ -24,14 +24,14 @@ class Junction:
     complex workflows which require more than a linear pipeline.
     """
 
-    def __init__(self, *args, junction_inputs=None, **kwargs):
+    def __init__(self, *args, components=None, **kwargs):
 
-        if type(junction_inputs) is dict:
-            self.junction_inputs = junction_inputs
+        if type(components) is dict:
+            self.components = components
         # elif isinstance(inputs, Pipe): # Can give just one pipe as input without having to type out an entire dict
         #     self.input_sources = {'data': inputs}
-        elif junction_inputs is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
-            self.junction_inputs = {}
+        elif components is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
+            self.components = {}
         else:
             raise TypeError("Inputs must be a dict of sources, which can be pipes, junctions, or some other object.")
 
@@ -47,7 +47,7 @@ class AggregatorJunction(Junction):
 
     def check_inputs(self):
 
-        for name, source in self.junction_inputs.items():
+        for name, source in self.components.items():
             if not (hasattr(source, '__next__') and hasattr(source, 'reset')):
                 raise ValueError("Input sources must implement __next__ and reset.")
 
@@ -60,7 +60,7 @@ class AggregatorJunction(Junction):
         sample = self.sample_inputs()
         # Return value
         try:
-            return self.junction_inputs[sample].__next__()
+            return self.components[sample].__next__()
         except StopIteration: # Remove sample from available_inputs list
             self.available_inputs.remove(sample)
             if not self.available_inputs: # Set of inputs is empty, because they have all finished iterating
@@ -69,9 +69,9 @@ class AggregatorJunction(Junction):
                 return self.__next__()
 
     def reset(self):
-        for name, source in self.junction_inputs.items():
+        for name, source in self.components.items():
             source.reset()
-        self.available_inputs = set(self.junction_inputs.keys()) # Keep track of which sources have not yet run out.
+        self.available_inputs = set(self.components.keys()) # Keep track of which sources have not yet run out.
 
     def __iter__(self):
         self.reset()

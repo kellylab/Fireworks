@@ -13,9 +13,9 @@ class TablePipe(PassThroughPipe):
     """
     Represents an SQLalchemy Table while having the functionality of a Pipe.
     """
-    def __init__(self, table, engine, columns = None, input_pipe = None, **kwargs):
+    def __init__(self, table, engine, columns = None, input = None, **kwargs):
 
-        super().__init__(input_pipe=input_pipe, **kwargs)
+        super().__init__(input=input, **kwargs)
         Session = sessionmaker(bind=engine)
         self.session = Session()
         self.engine = engine
