@@ -15,7 +15,7 @@ def test_junction():
     bumbo = one_way_dummy()
     gumbo = one_way_dummy()
 
-    angry = jn.RandomAggregatorJunction(junction_inputs={'dumbo': dumbo, 'bumbo': bumbo, 'gumbo': gumbo})
+    angry = jn.RandomAggregatorJunction(components={'dumbo': dumbo, 'bumbo': bumbo, 'gumbo': gumbo})
     angry.reset()
     assert angry.available_inputs == set(['dumbo', 'bumbo', 'gumbo'])
     numbaz = Message()
@@ -37,7 +37,7 @@ def test_junction():
     for count in counts.values():
         assert count == 3 # Make sure each element showed up 3 times, corresponding to the 3 inputs
 
-    mangry = jn.ClockworkAggregatorJunction(junction_inputs = {'dumbo': dumbo, 'bumbo': bumbo, 'gumbo': gumbo})
+    mangry = jn.ClockworkAggregatorJunction(components = {'dumbo': dumbo, 'bumbo': bumbo, 'gumbo': gumbo})
     bumbaz = Message()
 
     for nextone in mangry:

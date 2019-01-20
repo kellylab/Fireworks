@@ -17,14 +17,17 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
     complex graphs of Models that can be trained simultaneously or individually.
     """
 
-    def __init__(self, components={}, input_pipe = None, junction_inputs=None, *args, **kwargs):
+    def __init__(self, components={}, input_pipe = None, *args, skip_module_init=False, **kwargs):
         """
         Args:
             components: A dict of components that the model can call on.
         """
-        Module.__init__(self)
+        if not skip_module_init: # This is so the ModelFromModule Class can work.
+            Module.__init__(self)
+
         HookedPassThroughPipe.__init__(self, input_pipe = input_pipe)
-        Junction.__init__(self, junction_inputs=junction_inputs)
+
+        Junction.__init__(self, components = components)
         # self.components = {}
         self.init_default_components()
         self.update_components(components)
@@ -40,11 +43,20 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         """
         pass
 
-    def update_components(self, components):
+    def update_components(self, components = None):
+
+        self.components = {**self.components, **self._modules, **self._parameters}
+
+        if components is None:
+            components = self.components
 
         for key, component in components.items():
             if not isinstance(component, Parameter) and not isinstance(component, Module): # Convert to Parameter
-                component = Parameter(torch.Tensor(component))
+                try:
+                    component = Parameter(torch.Tensor(component))
+                except: # If the component is not a tensor-like, Parameter, or Module, then it is some other object that we simply attach to the model
+                # For example, it could be a Pipe or Junction that the model can call upon.
+                    pass
             setattr(self, key, component)
 
     def check_components(self, components = None):
@@ -54,28 +66,28 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         if components is None:
             components = self.components
         missing_components = []
-        missing_junctions = []
         error = False
+        # missing_junctions = []
         for key in self.required_components:
             if key not in components:
                 missing_components.append(key)
                 error = True
-        for key in self.required_junction_inputs:
-            if key not in self.junction_inputs:
-                missing_junctions.append(key)
-                error = True
+        # for key in self.required_junction_inputs:
+        #     if key not in self.junction_inputs:
+        #         missing_junctions.append(key)
+        #         error = True
         if error:
-            if missing_junctions and missing_components:
-                raise ParameterizationError("Missing required components {0} and junctions {1}".format(missing_components, missing_junctions))
-            elif missing_junctions:
-                raise ParameterizationError("Missing required junctions {0}".format(missing_junctions))
-            elif missing_components:
-                raise ParameterizationError("Missing required components {0}".format(missing_components))
+            # if missing_junctions and missing_components:
+            #     raise ParameterizationError("Missing required components {0} and junctions {1}".format(missing_components, missing_junctions))
+            # elif missing_junctions:
+            #     raise ParameterizationError("Missing required junctions {0}".format(missing_junctions))
+            # elif missing_components:
+            raise ParameterizationError("Missing required components {0}".format(missing_components))
 
 
-    @property
-    def components(self):
-        return list(self._modules.keys()) + list(self._parameters.keys()) + list(self.junction_inputs.keys())
+    # @property
+    # def components(self):
+    #     return list(self._modules.keys()) + list(self._parameters.keys()) + list(self.junction_inputs.keys())
 
     @property
     def required_components(self):
@@ -85,9 +97,9 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         """
         return self.components
 
-    @property
-    def required_junction_inputs(self):
-        return []
+    # @property
+    # def required_junction_inputs(self):
+    #     return []
 
     @abstractmethod
     def forward(self, message):
@@ -98,6 +110,8 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         pass
 
     def _change_temperature(self, boo, components = None):
+
+        self.update_components() # This is here so that the model checks to see if Parameters/Modules have changed before freezing/unfreezing
 
         if isinstance(components, str): # eg. a single component is provided as a string
             components = [components]
@@ -229,8 +243,8 @@ def model_from_module(module_class):
     class ModelFromModule(module_class, Model):
 
         def __init__(self, components={}, *args, inputs=None, **kwargs):
-            Model.__init__(self, components, inputs=inputs)
             module_class.__init__(self, *args, **kwargs)
+            Model.__init__(self, components, inputs=inputs, skip_module_init=True)
 
         # def forward(self, message):
         #

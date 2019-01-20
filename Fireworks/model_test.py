@@ -53,8 +53,7 @@ class DummyMultilinearModel(Model):
 class LinearJunctionModel(Model):
     """ Implements y = f(x) + b, where the function f(x) is provided as a junction input. """
 
-    required_components = ['b']
-    required_junction_inputs = ['f']
+    required_components = ['b', 'f']
 
     def init_default_components(self):
         """ Default y-intercept to 0 """
@@ -62,14 +61,14 @@ class LinearJunctionModel(Model):
 
     def forward(self, message):
 
-        y = self.junction_inputs['f'](message)['z'] + self.b
+        y = self.f(message)['z'] + self.b
         message['y'] = y
         return message
 
 class LinearModule(torch.nn.Module):
     """ Dummy PyTorch Module. """
     def __init__(self):
-        super().__init__()
+        torch.nn.Module.__init__(self)
         self.m = Parameter(torch.randn(1))
         self.b = Parameter(torch.randn(1))
         self.conv1 = torch.nn.Conv2d(1, 20, 5)
@@ -84,8 +83,8 @@ class RandomJunction(Junction):
 
     def __call__(self, *args, **kwargs):
 
-        target = random.sample(self.junction_inputs.keys(),1)[0]
-        return self.junction_inputs[target](*args, **kwargs)
+        target = random.sample(self.components.keys(),1)[0]
+        return self.components[target](*args, **kwargs)
 
 def generate_linear_model_data(n=1000):
     """
@@ -303,7 +302,7 @@ def test_multiple_Models_training_in_junction():
     Here, model A is a junction input of B
     """
     A = DummyModel({'m': [1.],'b':[3.]}, out_column='z')
-    B = LinearJunctionModel(components={'b':[.5]}, junction_inputs={'f':A})
+    B = LinearJunctionModel(components={'b':[.5], 'f':A})
     training_data = generate_linear_model_data()
     m = training_data[1]['m']
     b = training_data[1]['b']
@@ -327,8 +326,8 @@ def test_multple_Models_training_via_junction():
     C.freeze('b')
     D.freeze('b')
     E.freeze('b')
-    A = RandomJunction(junction_inputs={'C':C, 'D': D, 'E':E})
-    B = LinearJunctionModel(components={'b':[3.]}, junction_inputs={'f':A})
+    A = RandomJunction(components={'C':C, 'D': D, 'E':E})
+    B = LinearJunctionModel(components={'b': [3.], 'f':A})
     training_data = generate_linear_model_data()
     m = training_data[1]['m']
     b = training_data[1]['b']
