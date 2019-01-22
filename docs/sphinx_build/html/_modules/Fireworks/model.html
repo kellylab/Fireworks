@@ -1,0 +1,299 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Fireworks.model &#8212; Fireworks 0.2.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Fireworks</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../Project.html">Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../License.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Fireworks.html">API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for Fireworks.model</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span><span class="p">,</span> <span class="n">abstractproperty</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="k">import</span> <span class="n">Module</span><span class="p">,</span> <span class="n">Parameter</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">Fireworks.exceptions</span> <span class="k">import</span> <span class="n">ParameterizationError</span>
+<span class="kn">from</span> <span class="nn">Fireworks.junction</span> <span class="k">import</span> <span class="n">Junction</span>
+<span class="kn">from</span> <span class="nn">Fireworks.pipeline</span> <span class="k">import</span> <span class="n">HookedPassThroughPipe</span>
+
+<div class="viewcode-block" id="Model"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.model.Model">[docs]</a><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">Module</span><span class="p">,</span> <span class="n">HookedPassThroughPipe</span><span class="p">,</span> <span class="n">Junction</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represents a statistical model which has a set of components, and a</span>
+<span class="sd">    means for converting inputs into outputs. The model functions like a Pipe</span>
+<span class="sd">    with respect to the input/output stream, and it functions like a Junction</span>
+<span class="sd">    with respect to the parameterization. components can be provided via multiple</span>
+<span class="sd">    different sources in this way, providing flexibility in model configuration.</span>
+<span class="sd">    Models can also provide components for other Models, enabling one to create</span>
+<span class="sd">    complex graphs of Models that can be trained simultaneously or individually.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">components</span> <span class="o">=</span> <span class="p">{},</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="nb">input</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">skip_module_init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            components: A dict of components that the model can call on.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_module_init</span><span class="p">:</span> <span class="c1"># This is so the ModelFromModule Class can work.</span>
+            <span class="n">Module</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="n">HookedPassThroughPipe</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span> <span class="o">=</span> <span class="nb">input</span><span class="p">)</span>
+
+        <span class="n">Junction</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">components</span> <span class="o">=</span> <span class="n">components</span><span class="p">)</span>
+        <span class="c1"># self.components = {}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_default_components</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_components</span><span class="p">(</span><span class="n">components</span><span class="p">)</span>
+        <span class="c1"># self.components.update(components) # Overwrite and/or adds params in the argument.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_components</span><span class="p">()</span>
+
+        <span class="c1">#TODO: Implement pytorch module methods to mirror pytorch style</span>
+
+<div class="viewcode-block" id="Model.init_default_components"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.model.Model.init_default_components">[docs]</a>    <span class="k">def</span> <span class="nf">init_default_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This method can optionally be implemented in order for the model to provide a default initialization for some or all of its</span>
+<span class="sd">        required components.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Model.update_components"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.model.Model.update_components">[docs]</a>    <span class="k">def</span> <span class="nf">update_components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">components</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">components</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_modules</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">components</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">components</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">components</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="n">Module</span><span class="p">):</span> <span class="c1"># Convert to Parameter</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">component</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">component</span><span class="p">))</span>
+                <span class="k">except</span><span class="p">:</span> <span class="c1"># If the component is not a tensor-like, Parameter, or Module, then it is some other object that we simply attach to the model</span>
+                <span class="c1"># For example, it could be a Pipe or Junction that the model can call upon.</span>
+                    <span class="k">pass</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">component</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Model.check_components"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.model.Model.check_components">[docs]</a>    <span class="k">def</span> <span class="nf">check_components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">components</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks to see if the provided components dict provides all necessary params for this model to run.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">components</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">components</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span>
+        <span class="n">missing_components</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># missing_junctions = []</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_components</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">components</span><span class="p">:</span>
+                <span class="n">missing_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ParameterizationError</span><span class="p">(</span><span class="s2">&quot;Missing required components </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">missing_components</span><span class="p">))</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">required_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This should be overridden by a subclass in order to specify components that should be provided during initialization. Otherwise,</span>
+<span class="sd">        this will default to just return the components already present within the Model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span>
+
+<div class="viewcode-block" id="Model.forward"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.model.Model.forward">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Represents a forward pass application of the model to an input. Must be implemented by a subclass.</span>
+<span class="sd">        This should return a Message.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    <span class="k">def</span> <span class="nf">_change_temperature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">boo</span><span class="p">,</span> <span class="n">components</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_components</span><span class="p">()</span> <span class="c1"># This is here so that the model checks to see if Parameters/Modules have changed before freezing/unfreezing</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">components</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span> <span class="c1"># eg. a single component is provided as a string</span>
+            <span class="n">components</span> <span class="o">=</span> <span class="p">[</span><span class="n">components</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">components</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">components</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span>
+
+        <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">components</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">),</span> <span class="n">Parameter</span><span class="p">):</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">)</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="n">boo</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">),</span> <span class="n">Model</span><span class="p">):</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">)</span><span class="o">.</span><span class="n">_change_temperature</span><span class="p">(</span><span class="n">boo</span><span class="p">)</span> <span class="c1"># Recursively freezes Models</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">),</span> <span class="n">Module</span><span class="p">):</span> <span class="c1"># Is a PyTorch module but not a model.</span>
+                <span class="n">_change_temperature</span><span class="p">(</span><span class="n">boo</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">))</span>
+
+<div class="viewcode-block" id="Model.freeze"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.model.Model.freeze">[docs]</a>    <span class="k">def</span> <span class="nf">freeze</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">components</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Freezes the given components of the model (or all of them if none are specified) in order to prevent gradient updates.</span>
+<span class="sd">        This means setting requires_grad to false for specified components so that these components</span>
+<span class="sd">        are not updated during training.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_change_temperature</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">components</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Model.unfreeze"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.model.Model.unfreeze">[docs]</a>    <span class="k">def</span> <span class="nf">unfreeze</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">components</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Unfreezes the given components of the model (or all of them if none are specified) in order to prevent gradient updates.</span>
+<span class="sd">        This means setting requires_grad to true for specified components so that these components</span>
+<span class="sd">        are updated during training.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_change_temperature</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">components</span><span class="p">)</span></div>
+
+    <span class="c1"># TODO: Figure out model i/o</span>
+    <span class="c1"># TODO: Implement description methods</span>
+
+    <span class="k">def</span> <span class="nf">__getitem_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__next_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="k">try</span><span class="p">:</span> <span class="c1"># This will trigger a recursive call if possible.</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="freeze_module"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.model.freeze_module">[docs]</a><span class="k">def</span> <span class="nf">freeze_module</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">parameters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">submodules</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Recursively freezes the parameters in a PyTorch module.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_change_temperature</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">module</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">submodules</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="unfreeze_module"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.model.unfreeze_module">[docs]</a><span class="k">def</span> <span class="nf">unfreeze_module</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">parameters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">submodules</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Recursively unfreezes the parameters in a PyTorch module.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_change_temperature</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">module</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">submodules</span><span class="p">)</span></div>
+
+<span class="k">def</span> <span class="nf">_change_temperature</span><span class="p">(</span><span class="n">boo</span><span class="p">,</span> <span class="n">module</span><span class="p">,</span> <span class="n">parameters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">submodules</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Changes the temperature of a PyTorch module.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">parameters</span> <span class="ow">or</span> <span class="n">module</span><span class="o">.</span><span class="n">parameters</span><span class="p">()</span>
+    <span class="n">submodules</span> <span class="o">=</span> <span class="n">submodules</span> <span class="ow">or</span> <span class="n">module</span><span class="o">.</span><span class="n">modules</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">:</span>
+        <span class="n">parameter</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="n">boo</span>
+    <span class="k">for</span> <span class="n">submodule</span> <span class="ow">in</span> <span class="n">submodules</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">submodule</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">module</span><span class="p">:</span>
+            <span class="n">change_temperature</span><span class="p">(</span><span class="n">boo</span><span class="p">,</span> <span class="n">submodule</span><span class="p">)</span>
+
+<div class="viewcode-block" id="model_from_module"><a class="viewcode-back" href="../../Fireworks.html#Fireworks.model.model_from_module">[docs]</a><span class="k">def</span> <span class="nf">model_from_module</span><span class="p">(</span><span class="n">module_class</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given the class definition for a pytorch module, returns a model that</span>
+<span class="sd">    encapsulates that module.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">class</span> <span class="nc">ModelFromModule</span><span class="p">(</span><span class="n">module_class</span><span class="p">,</span> <span class="n">Model</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="p">{},</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">module_class</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">Model</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">components</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="nb">input</span><span class="p">,</span> <span class="n">skip_module_init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span> <span class="c1"># This will trigger a recursive call if possible.</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ModelFromModule</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;2018, Saad Khan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

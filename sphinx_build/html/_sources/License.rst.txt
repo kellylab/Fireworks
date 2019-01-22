@@ -1,4 +1,0 @@
-License
-=================
-
-Add the License
