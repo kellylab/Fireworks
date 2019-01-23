@@ -1,5 +1,6 @@
 import Fireworks
 from Fireworks import Message
+from Fireworks.pipeline import ShufflerPipe, BatchingPipe
 import numpy as np
 from random import randint
 
@@ -12,7 +13,7 @@ def generate_data(n=1000):
     x = np.random.rand(n)*100
     y = a + b*x + c*x**2
 
-    return Message({'x': x, 'y': y,}), {'errors': errors, 'a': a, 'b': b, 'c': c}
+    return Message({'x': x, 'y': y, 'errors': errors}), {'a': a, 'b': b, 'c': c}
 
 class NonlinearModel(Model):
 
@@ -29,7 +30,14 @@ class NonlinearModel(Model):
 
         return message
 
-# Construct training data, save into database, and get get_minibatcher
+# Construct data, split into train/eval/test, and get get_minibatcher
+data, params = generate_data(n=1000)
+training = data[0:800]
+evaluation = data[800:900]
+testing = data[900:]
+
+shuffler = ShufflerPipe(training)
+minibatcher = BatchingPipe(shuffler, batch_size=25)
 
 # Construct training closure and train using ignite
 

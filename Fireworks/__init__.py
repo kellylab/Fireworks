@@ -6,3 +6,4 @@ from .message import cat, merge
 from .pipeline import Pipe
 from .junction import Junction
 from .message import Message
+from .model import Model, model_from_module

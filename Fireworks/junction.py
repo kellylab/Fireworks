@@ -115,3 +115,35 @@ class ClockworkAggregatorJunction(AggregatorJunction):
             self.current_cycle = (self.current_cycle + 1) % len(self.cycle_dict)
             if sample in self.available_inputs:
                 return sample
+
+class SwitchJunction(Junction):
+    """
+    This junction has an internal switch that determines which of it's components all method calls will be routed to.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.switch = random.sample(self.components.keys())
+
+    @parameter
+    def route(self):
+        """
+        Returns the component to route method calls to based on the internal switch.
+        """
+        return self.components[self.switch]
+
+    def __call__(self, *args, **kwargs):
+
+        return self.route(*args, **kwargs)
+
+    def __next__(self):
+
+        return self.route.__next__()
+
+    def __getitem__(self, index):
+
+        return self.route[index]
+
+    def __getattr__(self, attr):
+
+        return getattr(self.route, attr)

@@ -139,7 +139,7 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
     def __call__(self, message, *args, **kwargs):
 
         try: # This will trigger a recursive call if possible.
-            message = self.input(message, *args, **kwargs)
+            message = self.recursive_call('__call__')(message, *args, **kwargs)
         except:
             pass
 
