@@ -1,8 +1,8 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(
     name='Fireworks',
     version='0.2.8',
-    packages=['Fireworks'],
+    packages=find_packages(),
     long_description=open('README.md').read()
 )
