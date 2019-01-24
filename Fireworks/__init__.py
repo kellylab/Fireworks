@@ -2,8 +2,6 @@ import os
 base_path = os.getcwd()
 test_dir =  os.path.join(base_path, 'test')
 
-from .message import cat, merge
-from .pipeline import Pipe
-from .junction import Junction
-from .message import Message
-from .model import Model, model_from_module
+from .core import *
+from .extensions import *
+from . import utils, toolbox

@@ -1,4 +1,4 @@
-from Fireworks.message import Message
+from .message import Message
 from abc import ABC, abstractmethod
 import pandas as pd
 from itertools import count

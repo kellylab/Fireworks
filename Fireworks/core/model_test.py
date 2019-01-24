@@ -4,9 +4,9 @@
 
 #TODO: Demonstrate the following applications: training and inferencing models, interactive models, auto-generated models
 
-from Fireworks.model import Model, model_from_module
-from Fireworks.exceptions import ParameterizationError
-from Fireworks.pipeline import BatchingPipe, LoopingPipe, ShufflerPipe, RepeaterPipe
+from .model import Model, model_from_module
+from Fireworks.utils.exceptions import ParameterizationError
+from Fireworks.toolbox.pipes import BatchingPipe, LoopingPipe, ShufflerPipe, RepeaterPipe
 from Fireworks import Message, Junction
 import random
 import torch

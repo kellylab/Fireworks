@@ -1,7 +1,7 @@
 from ignite.handlers import ModelCheckpoint, Timer
 import visdom
 
-def visdom_loss_handler(modules_dict):
+def visdom_loss_handler(modules_dict, model_name):
     """ Attaches plots and metrics to trainer. """
 
     tim = Timer()
@@ -30,5 +30,5 @@ def visdom_loss_handler(modules_dict):
                  win=train_loss_window)
 
     save_interval = 50
-    handler = ModelCheckpoint('/tmp/models', 'virnn', save_interval = save_interval, n_saved=5, create_dir=True, require_empty=False)
+    handler = ModelCheckpoint('/tmp/models', model_name, save_interval = save_interval, n_saved=5, create_dir=True, require_empty=False)
     trainer.add_event_handler(Events.ITERATION_COMPLETED, handler, modules_dict)

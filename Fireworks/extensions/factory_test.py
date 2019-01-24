@@ -1,6 +1,6 @@
 from Fireworks import factory, Message
-from Fireworks.exceptions import EndHyperparameterOptimization
-from Fireworks.database import create_table
+from Fireworks.utils.exceptions import EndHyperparameterOptimization
+from Fireworks.extensions.database import create_table
 from sqlalchemy import create_engine, Column, Integer, String
 from collections import defaultdict
 

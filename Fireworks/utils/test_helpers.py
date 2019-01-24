@@ -1,17 +1,15 @@
 import Fireworks
 import os
 import pandas as pd
-from Fireworks import pipeline as pl
-from Fireworks.message import Message
+from Fireworks import Message, Junction, Pipe
 from Fireworks.utils import index_to_list
-from Fireworks.test_utils import *
 import numpy as np
 import math
 import itertools
 
 test_dir = Fireworks.test_dir
 
-class one_way_dummy(pl.Pipe):
+class one_way_dummy(Pipe):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,7 +31,7 @@ class one_way_iter_dummy(one_way_dummy):
         self.reset()
         return self
 
-class reset_dummy(pl.Pipe):
+class reset_dummy(Pipe):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.count = 0
@@ -41,7 +39,7 @@ class reset_dummy(pl.Pipe):
     def reset(self):
         self.count = 0
 
-class next_dummy(pl.Pipe):
+class next_dummy(Pipe):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -54,7 +52,7 @@ class next_dummy(pl.Pipe):
         else:
             raise StopIteration # This will trigger StopIteration
 
-class getitem_dummy(pl.Pipe):
+class getitem_dummy(Pipe):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -75,7 +73,7 @@ class getitem_dummy(pl.Pipe):
     def __len__(self):
         return self.length
 
-class smart_dummy(pl.Pipe):
+class smart_dummy(Pipe):
     """
     Implements all of the methods in the above dummies
     """

@@ -1,5 +1,5 @@
 from Fireworks import cache
-from Fireworks.message import Message, TensorMessage
+from Fireworks import Message, TensorMessage
 import torch
 import numpy as np
 import pandas as pd

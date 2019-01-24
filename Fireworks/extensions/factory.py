@@ -1,8 +1,7 @@
 import abc
-import Fireworks
 from Fireworks import Message
-from Fireworks.exceptions import EndHyperparameterOptimization
-from Fireworks.database import create_table, TablePipe
+from Fireworks.utils.exceptions import EndHyperparameterOptimization
+from .database import create_table, TablePipe
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import Column
 from sqlalchemy_utils import JSONType as JSON

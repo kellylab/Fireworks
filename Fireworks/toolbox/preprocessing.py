@@ -1,17 +1,9 @@
 from functools import lru_cache
 import math
 import numpy as np
-from Fireworks import pipeline as pl
-from Fireworks.model import Model
-import torch
+from Fireworks.toolbox import pipes as pl
+from Fireworks import Model
 from collections import defaultdict
-
-@lru_cache(maxsize=32)
-def one_hot(index, max):
-
-    hot = np.zeros(max)
-    hot[index] = 1
-    return hot
 
 def train_test_split(pipe, test=.2):
     """
@@ -59,12 +51,12 @@ class Normalizer(Model):
 
         return batch
 
-    def fit(self, dataset=None, continue=False):
+    def fit(self, dataset=None, continuamos=False):
 
         if dataset is None:
             dataset = self.input
 
-        if not continue:
+        if not continuamos:
             self.reset()
 
         for batch in dataset:

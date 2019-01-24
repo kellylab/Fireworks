@@ -2,14 +2,13 @@ import sqlalchemy
 from sqlalchemy import Table, Column, Integer, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Query
-from Fireworks import Message, cat
-from Fireworks.pipeline import Pipe, PassThroughPipe
+from Fireworks import Message, cat, Pipe
 import numpy as np
 import pandas as pd
 
-Base = declarative_base()
+#TODO: Develop a way to infer schemas from Messages and Pipes to make save/load easier.
 
-class TablePipe(PassThroughPipe):
+class TablePipe(Pipe):
     """
     Represents an SQLalchemy Table while having the functionality of a Pipe.
     """
@@ -160,7 +159,7 @@ class TablePipe(PassThroughPipe):
 
         return kwargs
 
-def create_table(name, columns, primary_key = None):
+def create_table(name, columns, primary_key = None, Base=None):
     """
     Creates a table given a dict of column names to data types. This is an easy
     way to quickly create a schema for a data pipeline.
@@ -170,12 +169,16 @@ def create_table(name, columns, primary_key = None):
         primary_key: The column that should be the primary key of the table. If unspecified, a new auto-incrementing column called 'id'
             will be added as the primary key. SQLalchemy requires that all tables have a primary key, and this ensures that every row
             is always uniquely identifiable.
+        Base : An optional argument that can be provided to specify the Base class that the new table class will inherit from. By
+            default, this will be set to an instance of declarative_base from SQLalchemy.
 
     Returns:
         simpletable (sqlalchemy.ext.declarative.api.DeclarativeMeta): A table class specifying the schema for the database table.
     """
     if primary_key is None: # Create a default, autoincrementing primary key # NOTE: TODO: If a primary key is desired, we need to specify that
         columns.insert(0, Column('id', Integer, primary_key=True, autoincrement=True)) # Prepend to columns list
+
+    Base = Base or declarative_base()
 
     class SimpleTable(Base):
         __table__ = Table(name, Base.metadata, *columns)

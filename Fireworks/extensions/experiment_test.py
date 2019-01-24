@@ -47,7 +47,7 @@ def test_Experiment():
 
     # Test engine/session creation
     assert xmen.engines == {}
-    nginx = xmen.create_engine('wolverine')
+    nginx = xmen.get_engine('wolverine')
     assert 'wolverine' in xmen.engines
 
     wolverine = xmen.get_session('wolverine')
@@ -105,7 +105,7 @@ def test_load_experiment():
     all_avengers = [x for x in dirs if x.startswith('avenger')]
     assert len(all_avengers) == 0
     avenger = exp.Experiment('avenger', os.getcwd(), description='ok')
-    ironman = avenger.create_engine('ironman')
+    ironman = avenger.get_engine('ironman')
     saver = dummy_table(ironman)
     saver.insert(Message({
         'superpower': ['flying', 'walking', 'eating'],

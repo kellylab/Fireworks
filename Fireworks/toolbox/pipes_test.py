@@ -1,12 +1,11 @@
 import Fireworks
 import os
 import pandas as pd
-from Fireworks import pipeline as pl
-from Fireworks.message import Message
+from Fireworks.toolbox import pipes as pl
+from Fireworks import Message
 from Fireworks.utils import index_to_list
-from Fireworks.test_utils import *
+from Fireworks.utils.test_helpers import *
 import numpy as np
-import math
 import itertools
 
 test_dir = Fireworks.test_dir
@@ -180,23 +179,6 @@ def test_IndexMapperPipe():
     for i in range(12):
         assert (flipped[i]['values'] == 11-i).all()
 
-def test_PassThroughPipe():
-
-    dumbo = smart_dummy()
-    pishpish = pl.Pipe(input=dumbo)
-
-    assert pishpish.count == 0
-    assert Message(pishpish.__next__()) == Message({'values': [0]})
-    assert pishpish.count == 1
-    pishpish.reset()
-    assert pishpish.count == 0
-    assert Message(pishpish[12]) == Message({'values': [12]})
-    assert Message(pishpish[10:14]) == Message({'values': [10,11,12,13]})
-    for i, j in zip(pishpish.reset(), itertools.count()):
-        assert Message(i) == Message({'values': [j]})
-
-    assert Message(i) == Message({'values': [19]})
-
 def test_ShufflingPipe():
 
     bobby = getitem_dummy()
@@ -207,34 +189,3 @@ def test_ShufflingPipe():
         if shu['values'][0] != i:
             shuffled = True
     assert shuffled
-
-def test_HookedPassThroughPipe():
-
-    dumbo = smart_dummy()
-    class Hooker(pl.HookedPassThroughPipe):
-
-        def _getitem_hook(self, message):
-
-            message['interception'] = ['aho' for _ in range(len(message))]
-            message.df = message.df.reindex_axis(sorted(message.df.columns), axis=1)
-            return message
-
-        def _next_hook(self, message):
-
-            message['interception'] = ['yaro' for _ in range(len(message))]
-            message.df = message.df.reindex_axis(sorted(message.df.columns), axis=1)
-            return message
-
-    pishpish = Hooker(input=dumbo)
-    assert pishpish.count == 0
-    assert Message(pishpish.__next__()) == Message({'values': [0], 'interception': ['yaro']})
-    assert pishpish.count == 1
-    pishpish.reset()
-    assert pishpish.count == 0
-    assert Message(pishpish[12]) == Message({'values': [12], 'interception': ['aho']})
-    assert Message(pishpish[10:14]) == Message({'values': [10,11,12,13], 'interception': ['aho','aho','aho','aho']})
-    pishpish.reset()
-    for i, j in zip(pishpish, itertools.count()):
-        assert i == Message({'values': [j], 'interception': ['yaro']})
-
-    assert i == Message({'values': [19], 'interception': ['yaro']})

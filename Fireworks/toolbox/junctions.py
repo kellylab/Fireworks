@@ -1,42 +1,17 @@
 from abc import ABC, abstractmethod
 from Bio import SeqIO
 import pandas as pd
-import Fireworks
-from Fireworks.message import Message
+from Fireworks import Message, Junction
 from Fireworks.utils import index_to_list
-from Fireworks.cache import LRUCache, LFUCache, UnlimitedCache
-from Fireworks.preprocessing import one_hot
+from Fireworks.core.cache import LRUCache, LFUCache, UnlimitedCache
 from abc import ABC, abstractmethod
 from itertools import count
 import types
 import random
 from bidict import bidict
 import torch
-import math
 
-class Junction:
-    """
-    A junction can take pipes as inputs, and its outputs can be piped to other pipes.
-    All communication is done via Message objects.
-
-    Unlike Pipes, junctions do not automatically have recursive method calling. This is because they have multiple input sources,
-    which would result in ambiguity. Instead, junctions are meant to act as bridges between multiple pipes in order to enable
-    complex workflows which require more than a linear pipeline.
-    """
-
-    def __init__(self, *args, components=None, **kwargs):
-
-        if type(components) is dict:
-            self.components = components
-        # elif isinstance(inputs, Pipe): # Can give just one pipe as input without having to type out an entire dict
-        #     self.input_sources = {'data': inputs}
-        elif components is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
-            self.components = {}
-        else:
-            raise TypeError("Inputs must be a dict of sources, which can be pipes, junctions, or some other object.")
-
-
-class AggregatorJunction(Junction):
+class HubJunction(Junction):
     """
     This junction takes multiple sources implementing __next__ as input and implements a new __next__ method that samples
     its input sources.
@@ -84,18 +59,18 @@ class AggregatorJunction(Junction):
         """
         pass
 
-class RandomAggregatorJunction(AggregatorJunction):
+class RandomHubJunction(HubJunction):
     """
-    AggregatorJunction that randomly chooses inputs to step through.
+    HubJunction that randomly chooses inputs to step through.
     """
     # TODO: Add support for weighted random sampling
 
     def sample_inputs(self):
         return random.sample(self.available_inputs, 1)[0]
 
-class ClockworkAggregatorJunction(AggregatorJunction):
+class ClockworkHubJunction(HubJunction):
     """
-    AggregatorJunction that iterates through input sources one at a time.
+    HubJunction that iterates through input sources one at a time.
     """
     # TODO: Add support for weighted iteration and setting order (ie. spend two cycles on one input and one on another)
 
@@ -125,7 +100,7 @@ class SwitchJunction(Junction):
         super().__init__(*args, **kwargs)
         self.switch = random.sample(self.components.keys())
 
-    @parameter
+    @property
     def route(self):
         """
         Returns the component to route method calls to based on the internal switch.

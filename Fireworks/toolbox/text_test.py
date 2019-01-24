@@ -1,4 +1,4 @@
-from Fireworks import text
+from Fireworks.toolbox import text
 import random
 
 def test_space_tokenizer():

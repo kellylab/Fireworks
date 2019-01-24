@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod, abstractproperty
 import torch
 from torch.nn import Module, Parameter
 from abc import abstractmethod
-from Fireworks.exceptions import ParameterizationError
-from Fireworks.junction import Junction
-from Fireworks.pipeline import HookedPassThroughPipe
+from Fireworks.utils.exceptions import ParameterizationError
+from .junction import Junction
+from .pipe import HookedPassThroughPipe
 
 class Model(Module, HookedPassThroughPipe, Junction, ABC):
     """

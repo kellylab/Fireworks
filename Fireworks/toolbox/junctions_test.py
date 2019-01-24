@@ -1,12 +1,10 @@
 import Fireworks
 import os
-import pandas as pd
-from Fireworks import junction as jn
-from Fireworks.message import Message
+from Fireworks.toolbox import junctions as jn
+from Fireworks import Message
 from Fireworks.utils import index_to_list
-from Fireworks.test_utils import *
+from Fireworks.utils.test_helpers import *
 import numpy as np
-import math
 import itertools
 
 def test_junction():
@@ -15,7 +13,7 @@ def test_junction():
     bumbo = one_way_dummy()
     gumbo = one_way_dummy()
 
-    angry = jn.RandomAggregatorJunction(components={'dumbo': dumbo, 'bumbo': bumbo, 'gumbo': gumbo})
+    angry = jn.RandomHubJunction(components={'dumbo': dumbo, 'bumbo': bumbo, 'gumbo': gumbo})
     angry.reset()
     assert angry.available_inputs == set(['dumbo', 'bumbo', 'gumbo'])
     numbaz = Message()
@@ -37,7 +35,7 @@ def test_junction():
     for count in counts.values():
         assert count == 3 # Make sure each element showed up 3 times, corresponding to the 3 inputs
 
-    mangry = jn.ClockworkAggregatorJunction(components = {'dumbo': dumbo, 'bumbo': bumbo, 'gumbo': gumbo})
+    mangry = jn.ClockworkHubJunction(components = {'dumbo': dumbo, 'bumbo': bumbo, 'gumbo': gumbo})
     bumbaz = Message()
 
     for nextone in mangry:

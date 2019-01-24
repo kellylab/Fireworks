@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, Column, Float, Integer, String, DateTime
 from sqlalchemy.orm import sessionmaker
 import datetime
 from Fireworks import Message
-from Fireworks import database as db
+from . import database as db
 from deprecated import deprecated
 
 """
@@ -47,7 +47,7 @@ class Experiment:
         if load:
             self.load_experiment()
             self.engines = {
-                name.rstrip('.sqlite'): self.create_engine(name.rstrip('.sqlite'))
+                name.rstrip('.sqlite'): self.get_engine(name.rstrip('.sqlite'))
                 for name in os.listdir(self.save_path) if name.endswith('.sqlite')
                 }
             self.load_metadata()
@@ -128,12 +128,12 @@ class Experiment:
         self.engines[name] = create_engine("sqlite:///{filename}".format(filename=os.path.join(self.db_path,self.save_path, name+'.sqlite')))
         return self.engines[name]
 
-    @deprecated(reason="This is an alias for get_engine and will be removed in the future.")
-    def create_engine(self, name):
-        """
-        Alias for get_engine. This will be removed in the future.
-        """
-        return self.get_engine(name)
+    # @deprecated(reason="This is an alias for get_engine and will be removed in the future.")
+    # def create_engine(self, name):
+    #     """
+    #     Alias for get_engine. This will be removed in the future.
+    #     """
+    #     return self.get_engine(name)
 
     def get_session(self, name):
         """
@@ -148,7 +148,7 @@ class Experiment:
         if name in self.engines:
             engine = self.engines[name]
         else: # QUESTION: Should this raise an error or autocreate a new engine?
-            engine = self.create_engine(name)
+            engine = self.get_engine(name)
         Session = sessionmaker(bind=engine)
         session = Session()
         return session
