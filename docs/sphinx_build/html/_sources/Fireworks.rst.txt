@@ -11,7 +11,7 @@ Messages
 Most data processing workflows have the same basic architecture and only differ in the type of data and how those inputs are formatted. Minor differences in this formatting can make almost identical code non-reusable. To address this issue, this framework insists on using a single data structure to pass information between components - the Message object.
 A Message consists of two components: a Pandas DataFrame and a TensorMessage. The former is a very general purpose structure that benefits from all of the features of the popular Pandas library - a DataFrame is essentially a dictionary of arrays. However, in the context of pytorch deep learning, we cannot use DataFrames for everything because we cannot store tensor objects inside a dataframe (Pandas breaks down tensors into unit sized tensors and stores those units as objects as opposed to storing them as one entity). The TensorMessage emulates the structure and methods of DataFrames, except it only stores pytorch tensors (in the future, tensor’s in other frameworks could be supported). Because of this, it also attempts to autoconvert inputs to tensors. With this combined structure, one could store metadata in the dataframe and example/label pairs in the TensorMessage.
 
-.. automodule:: Fireworks.message
+.. automodule:: Fireworks.core.message
     :members:
     :undoc-members:
     :show-inheritance:
@@ -23,12 +23,17 @@ With a uniform data structure for information transfer established, we can creat
 
 These transformations are represented as classes rather than functions because we sometimes want to be able to apply transformations in a just-in-time or ahead-of-time manner, or have the transformations be dependent on some upstream or downstream aspect of the pipeline. For example, the Pipe that creates minibatches for training can convert its inputs to tensors and move them to GPU as a minibatch is created, using the tensor-conversion method implemented by an upstream Pipe. Or a Pipe that caches its inputs can prefetch objects to improve overall performance, and so on.
 
-.. automodule:: Fireworks.pipeline
+.. automodule:: Fireworks.core.pipe
     :members:
     :undoc-members:
     :show-inheritance:
 
-.. automodule:: Fireworks.cache
+.. automodule:: Fireworks.core.cache
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: Fireworks.toolbox.pipes
     :members:
     :undoc-members:
     :show-inheritance:
@@ -41,7 +46,12 @@ define how recursive method calls would work in this situation, it is the respon
 aggregate its components in order to respond to method calls from downstream sources. This provides a way to construct more complex
 computation graphs.
 
-.. automodule:: Fireworks.junction
+.. automodule:: Fireworks.core.junction
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: Fireworks.toolbox.junctions
     :members:
     :undoc-members:
     :show-inheritance:
@@ -60,7 +70,7 @@ PyTorch Modules, or some other object that has whatever methods/attributes the M
 Models function like Pipes with respect to their arguments. Hence, you can insert a Model inside a Pipeline. Models also function like
 PyTorch Modules with respect to computation and training. Hence, once you have created a Model, you can train it using a method like gradient
 descent. PyTorch will keep track of gradients and Parameters inside your Models automatically. You can also freeze and unfreeze components
-of a Model using the freeze/unfreeze methods. 
+of a Model using the freeze/unfreeze methods.
 
 .. code-block:: python
 
@@ -72,7 +82,7 @@ of a Model using the freeze/unfreeze methods.
     result = f(x) # Evaluates f(m(x)) on argument message x. Because m is an input of f, m will be called first and pipe its output to f.
 
 
-.. automodule:: Fireworks.model
+.. automodule:: Fireworks.core.model
     :members:
     :undoc-members:
     :show-inheritance:
@@ -102,12 +112,7 @@ object corresponding to that query.
 This Source is initialized with an SQLalchemy query and iterates through the results of that query. It converts the outputs to Messages as
 it does so, enabling one to easily incorporate database queries into a Source pipeline.
 
-.. automodule:: Fireworks.database
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-.. automodule:: Fireworks.database_utils
+.. automodule:: Fireworks.extensions.database
     :members:
     :undoc-members:
     :show-inheritance:
@@ -133,7 +138,7 @@ This will create a file handle f to the desired filename in the folder. You can 
 to get an SQLalchemy session/engine object with the given name that you can then use to save/load data. Combined with Fireworks.db, you can
 save any data in Message format relatively easily.
 
-.. automodule:: Fireworks.experiment
+.. automodule:: Fireworks.extensions.experiment
     :members:
     :undoc-members:
     :show-inheritance:
@@ -169,35 +174,35 @@ with the database.
 
 Currently, all of these steps take place on a single thread, but in the future we will be able to automatically parallelize and distribute them.
 
-.. automodule:: Fireworks.factory
+.. automodule:: Fireworks.extensions.factory
     :members:
     :undoc-members:
     :show-inheritance:
 
-Utils
+Miscellaneous
 ---------------------
 
-.. automodule:: Fireworks.text
+.. automodule:: Fireworks.toolbox.text
     :members:
     :undoc-members:
     :show-inheritance:
 
-.. automodule:: Fireworks.utils
+.. automodule:: Fireworks.utils.utils
     :members:
     :undoc-members:
     :show-inheritance:
 
-.. automodule:: Fireworks.preprocessing
+.. automodule:: Fireworks.toolbox.preprocessing
     :members:
     :undoc-members:
     :show-inheritance:
 
-.. automodule:: Fireworks.events
+.. automodule:: Fireworks.utils.events
     :members:
     :undoc-members:
     :show-inheritance:
 
-.. automodule:: Fireworks.exceptions
+.. automodule:: Fireworks.utils.exceptions
     :members:
     :undoc-members:
     :show-inheritance:

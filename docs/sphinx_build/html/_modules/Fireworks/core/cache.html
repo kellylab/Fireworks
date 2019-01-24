@@ -1,0 +1,521 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Fireworks.core.cache &#8212; Fireworks 0.2.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Fireworks</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Project.html">Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../License.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Fireworks.html">API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for Fireworks.core.cache</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">.message</span> <span class="k">import</span> <span class="n">Message</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">count</span>
+<span class="kn">from</span> <span class="nn">bidict</span> <span class="k">import</span> <span class="n">bidict</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<div class="viewcode-block" id="MessageCache"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.MessageCache">[docs]</a><span class="k">class</span> <span class="nc">MessageCache</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A message cache stores parts of a larger method and supports retrievals and</span>
+<span class="sd">    insertions based on index.</span>
+<span class="sd">    The use case for a MessageCache is for storing parts of a large dataset in memory.</span>
+<span class="sd">    The MessageCache can keep track of which elements and which indices are present</span>
+<span class="sd">    in memory at a given time and allow for updates and retrievals.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_size</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            max_size (int): The maximum size of this cache.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_size</span> <span class="o">=</span> <span class="n">max_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="n">Message</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span> <span class="o">=</span> <span class="n">bidict</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span> <span class="c1"># TODO: Optimize for range queries.</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Translates the given index into the appropriate index for the internal message and returns those values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">slice</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">slice_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="n">pointers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pointers</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">]</span> <span class="c1"># This will raise an error if index not present</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">pointers</span><span class="p">]</span> <span class="c1">#list(pointers.keys())]#.tolist()]</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span> <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="fm">__getattr__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;MessageCache with indices </span><span class="si">{0}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span><span class="c1">#.tolist())</span>
+
+<div class="viewcode-block" id="MessageCache.insert"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.MessageCache.insert">[docs]</a>    <span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Inserts message into cache along with the desired indices.</span>
+<span class="sd">        This method should be called by __setitem__ as needed to perform the insertion.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index: The index to insert into. Can be an int, slice, or list of integer indices.</span>
+<span class="sd">            message: The Message to insert. Should have the same length as the provided idnex.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">slice</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">slice_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="n">present</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span> <span class="c1"># Intersection</span>
+        <span class="n">not_present</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span> <span class="c1"># Difference</span>
+        <span class="c1"># Get indices in message</span>
+        <span class="n">present_indices</span> <span class="o">=</span> <span class="n">get_indices</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">present</span><span class="p">)</span>
+        <span class="n">not_present_indices</span> <span class="o">=</span> <span class="n">get_indices</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">not_present</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_new</span><span class="p">(</span><span class="n">not_present</span><span class="p">,</span> <span class="n">message</span><span class="p">[</span><span class="n">not_present_indices</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_existing</span><span class="p">(</span><span class="n">present</span><span class="p">,</span> <span class="n">message</span><span class="p">[</span><span class="n">present_indices</span><span class="p">])</span></div>
+
+    <span class="k">def</span> <span class="nf">_add_new</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds new elements to cache and updates pointers.</span>
+<span class="sd">        This method should be called by __setitem__ or insert as needed to perform insertions.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index: The index to insert into. Can be an int, slice, or list of integer indices.</span>
+<span class="sd">            message: The Message to insert. Should have the same length as the provided idnex.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="n">stop</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">),</span> <span class="n">index</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+
+    <span class="k">def</span> <span class="nf">_update_existing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Updates elements already in the message.</span>
+<span class="sd">        This method should be called by __setitem__ or insert as needed to perform updates.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index: The index to insert into. Can be an int, slice, or list of integer indices.</span>
+<span class="sd">            message: The Message to insert. Should have the same length as the provided idnex.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">index</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span> <span class="o">=</span> <span class="n">message</span> <span class="c1">#indices.tolist()</span>
+
+<div class="viewcode-block" id="MessageCache.delete"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.MessageCache.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Deletes elements in the message corresponding to index.</span>
+<span class="sd">        This method should be called by __setitem__ or __delitem__ as needed.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index: The index to insert into. Can be an int, slice, or list of integer indices.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get the index in the internal cache corresponding to the virtual (argument) index</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">slice</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">slice_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">]</span>
+        <span class="n">internal_indices</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">]</span>
+        <span class="c1"># Delete those elements</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">internal_indices</span><span class="p">]</span>
+        <span class="c1"># Delete the pointers for those elements</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">pointer_adjustment_function</span><span class="p">(</span><span class="n">internal_indices</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">)</span> <span class="c1"># Convert to normal dict to prevent duplication errors</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">-=</span> <span class="n">f</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span> <span class="o">=</span> <span class="n">bidict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">)</span></div>
+        <span class="c1"># temp_dict = {}</span>
+        <span class="c1"># i = -1</span>
+        <span class="c1"># for key, internal_index in self.pointers.items():</span>
+        <span class="c1">#     temp_dict[key] = self.pointers[key] - f(internal_index)</span>
+        <span class="c1">#     self.pointers[key] = i</span>
+        <span class="c1">#     i -= 1</span>
+        <span class="c1"># for key, internal_index in self.pointers.items():</span>
+        <span class="c1">#     self.pointers[key] = temp_dict[key]</span>
+
+    <span class="k">def</span> <span class="nf">_permute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">permutation</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Rearranges elements of cache based on permutation.</span>
+<span class="sd">        Permutation should be a list of indices. Can optionally specify target, which is the indices to apply the permutation to.</span>
+<span class="sd">        By default, the entire index will be treated as the target.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            permutation: A list of indices</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="o">.</span><span class="n">inv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">))]</span>
+
+        <span class="n">pointers</span> <span class="o">=</span> <span class="n">bidict</span><span class="p">({</span><span class="n">t</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="o">.</span><span class="n">inv</span><span class="p">[</span><span class="n">p</span><span class="p">]]</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span><span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">permutation</span><span class="p">)})</span> <span class="c1"># Permute which internal index a pointer points to</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">target</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">permutation</span><span class="p">]</span>  <span class="c1"># Permute internal indices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span> <span class="o">=</span> <span class="n">pointers</span>
+
+<div class="viewcode-block" id="MessageCache.sort"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.MessageCache.sort">[docs]</a>    <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Rearranges internal cache indices to be in sorted order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Identify sort permutation</span>
+        <span class="c1"># Apply sort permutation</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="MessageCache.search"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.MessageCache.search">[docs]</a>    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+    <span class="c1"># def free(self, n):</span>
+    <span class="c1">#     &quot;&quot;&quot; Ensure there is enough free space for n elements. &quot;&quot;&quot;</span>
+    <span class="c1">#     free_space = self.max_size - self.size</span>
+    <span class="c1">#     if n &gt; free_space:</span>
+    <span class="c1">#         self._free(n-free_space)</span>
+    <span class="c1">#</span>
+    <span class="c1"># def _free(self, n): pass</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="UnlimitedCache"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.UnlimitedCache">[docs]</a><span class="k">class</span> <span class="nc">UnlimitedCache</span><span class="p">(</span><span class="n">MessageCache</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is a basic implementation of a MessageCache that simply appends new</span>
+<span class="sd">    elements and never clears memory internally</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span> <span class="c1"># No max size</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simply inserts the message with the corresponding index without ever freeing memory.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index: The index to insert into. Can be an int, slice, or list of integer indices.</span>
+<span class="sd">            message: The Message to insert. Should have the same length as the provided idnex.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            index: The index to insert into. Can be an int, slice, or list of integer indices.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">index</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BufferedCache"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.BufferedCache">[docs]</a><span class="k">class</span> <span class="nc">BufferedCache</span><span class="p">(</span><span class="n">MessageCache</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This implements a setitem method that assumes that when the cache is full, elements must be deleted until it is max_size - buffer_size</span>
+<span class="sd">    in length. The deletion method, _free, must be implemented by a subclass.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="BufferedCache.init_buffer"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.BufferedCache.init_buffer">[docs]</a>    <span class="k">def</span> <span class="nf">init_buffer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buffer_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer_size</span> <span class="o">=</span> <span class="n">buffer_size</span> <span class="c1"># Specifies how far above max_size the cache can go before having to delete elements</span></div>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index: The index to insert into. Can be an int, slice, or list of integer indices.</span>
+<span class="sd">            message: The Message to insert. Should have the same length as the provided idnex.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">index_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Message length does not match length of index for insertion.&quot;</span><span class="p">)</span>
+        <span class="c1"># Determine how much space to free in order to insert message</span>
+        <span class="n">free_space</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_size</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">free_space</span><span class="p">:</span>
+            <span class="n">how_much</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer_size</span> <span class="o">-</span> <span class="n">free_space</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="o">-</span> <span class="n">free_space</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">free</span><span class="p">(</span><span class="n">how_much</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            index: The index to insert into. Can be an int, slice, or list of integer indices.</span>
+<span class="sd">            message: The Message to insert. Should have the same length as the provided idnex.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BufferedCache.free"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.BufferedCache.free">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">free</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span> <span class="k">pass</span></div></div>
+
+<div class="viewcode-block" id="RRCache"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.RRCache">[docs]</a><span class="k">class</span> <span class="nc">RRCache</span><span class="p">(</span><span class="n">BufferedCache</span><span class="p">):</span>
+
+<div class="viewcode-block" id="RRCache.free"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.RRCache.free">[docs]</a>    <span class="k">def</span> <span class="nf">free</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="n">indices_present</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="n">delete_indices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">indices_present</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="fm">__delete__</span><span class="p">(</span><span class="n">delete_indices</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="RankingCache"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.RankingCache">[docs]</a><span class="k">class</span> <span class="nc">RankingCache</span><span class="p">(</span><span class="n">MessageCache</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a free method that deletes elements based on a ranking function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RankingCache.init_rank_dict"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.RankingCache.init_rank_dict">[docs]</a>    <span class="k">def</span> <span class="nf">init_rank_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rank_dict</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="RankingCache.free"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.RankingCache.free">[docs]</a>    <span class="k">def</span> <span class="nf">free</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+
+        <span class="n">to_sort</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rank_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">sort_by</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rank_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="n">sorter</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="n">ranks</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">to_sort</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">sorter</span><span class="p">)</span>
+        <span class="n">del_indices</span> <span class="o">=</span> <span class="n">ranks</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">n</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="fm">__delitem__</span><span class="p">(</span><span class="n">del_indices</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="c1"># Remove index components from rank_dict</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">index_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank_dict</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">on_delete</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RankingCache.on_update_existing"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.RankingCache.on_update_existing">[docs]</a>    <span class="k">def</span> <span class="nf">on_update_existing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span> <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="RankingCache.on_add_new"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.RankingCache.on_add_new">[docs]</a>    <span class="k">def</span> <span class="nf">on_add_new</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span> <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="RankingCache.on_delete"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.RankingCache.on_delete">[docs]</a>    <span class="k">def</span> <span class="nf">on_delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span> <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="RankingCache.on_getitem"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.RankingCache.on_getitem">[docs]</a>    <span class="k">def</span> <span class="nf">on_getitem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span> <span class="k">pass</span></div>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+
+        <span class="n">message</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">on_getitem</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">message</span>
+
+    <span class="k">def</span> <span class="nf">_update_existing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_update_existing</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">on_update_existing</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_add_new</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_add_new</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">on_add_new</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LRUCache"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.LRUCache">[docs]</a><span class="k">class</span> <span class="nc">LRUCache</span><span class="p">(</span><span class="n">RankingCache</span><span class="p">,</span> <span class="n">BufferedCache</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a Least Recently Used cache. Items are deleted in descending order of how recently they were accessed.</span>
+<span class="sd">    A call to __getitem__ or __setitem__ counts as accessing an element.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">buffer_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_rank_dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_buffer</span><span class="p">(</span><span class="n">buffer_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="LRUCache.update_rank"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.LRUCache.update_rank">[docs]</a>    <span class="k">def</span> <span class="nf">update_rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">index_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rank_dict</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">counter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="LRUCache.on_update_existing"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.LRUCache.on_update_existing">[docs]</a>    <span class="k">def</span> <span class="nf">on_update_existing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_rank</span><span class="p">(</span><span class="n">index</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LRUCache.on_add_new"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.LRUCache.on_add_new">[docs]</a>    <span class="k">def</span> <span class="nf">on_add_new</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_rank</span><span class="p">(</span><span class="n">index</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LRUCache.on_delete"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.LRUCache.on_delete">[docs]</a>    <span class="k">def</span> <span class="nf">on_delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span> <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="LRUCache.on_getitem"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.LRUCache.on_getitem">[docs]</a>    <span class="k">def</span> <span class="nf">on_getitem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_rank</span><span class="p">(</span><span class="n">index</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="LFUCache"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.LFUCache">[docs]</a><span class="k">class</span> <span class="nc">LFUCache</span><span class="p">(</span><span class="n">RankingCache</span><span class="p">,</span> <span class="n">BufferedCache</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a Least Frequently Used cache. Items are deleted in increasing order of how frequently they are accessed.</span>
+<span class="sd">    A call to __getitem__ or __setitem__ counts as accessing an element.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_rank_dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_buffer</span><span class="p">(</span><span class="n">buffer_size</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LFUCache.update_rank"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.LFUCache.update_rank">[docs]</a>    <span class="k">def</span> <span class="nf">update_rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">index_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rank_dict</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="LFUCache.on_update_existing"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.LFUCache.on_update_existing">[docs]</a>    <span class="k">def</span> <span class="nf">on_update_existing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_rank</span><span class="p">(</span><span class="n">index</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LFUCache.on_add_new"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.LFUCache.on_add_new">[docs]</a>    <span class="k">def</span> <span class="nf">on_add_new</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">index_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rank_dict</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="LFUCache.on_delete"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.LFUCache.on_delete">[docs]</a>    <span class="k">def</span> <span class="nf">on_delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_rank</span><span class="p">(</span><span class="n">index</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LFUCache.on_getitem"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.LFUCache.on_getitem">[docs]</a>    <span class="k">def</span> <span class="nf">on_getitem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_rank</span><span class="p">(</span><span class="n">index</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="pointer_adjustment_function"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.pointer_adjustment_function">[docs]</a><span class="k">def</span> <span class="nf">pointer_adjustment_function</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given an index, returns a function that that takes an integer as input and returns how many elements of the index the number is greater than.</span>
+<span class="sd">    This is used for readjusting pointers after a deletion. For example, if you delete index 2, then every index greater than 2 must slide down 1</span>
+<span class="sd">    but index 0 and 1 do not more.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">slice</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">slice_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+    <span class="n">index</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">adjustment_function</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">c</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">count</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">i</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">c</span>
+        <span class="k">return</span> <span class="n">c</span><span class="o">+</span><span class="mi">1</span> <span class="c1"># If x &gt; every index</span>
+
+    <span class="k">return</span> <span class="n">adjustment_function</span></div>
+
+<div class="viewcode-block" id="index_to_list"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.index_to_list">[docs]</a><span class="k">def</span> <span class="nf">index_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts an index to a list.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">slice</span><span class="p">:</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">slice_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">index</span></div>
+
+<div class="viewcode-block" id="slice_to_list"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.slice_to_list">[docs]</a><span class="k">def</span> <span class="nf">slice_to_list</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts a slice object to a list of indices</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">step</span> <span class="ow">or</span> <span class="mi">1</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">start</span>
+    <span class="n">stop</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">stop</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span><span class="n">stop</span><span class="p">,</span><span class="n">step</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="get_indices"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.cache.get_indices">[docs]</a><span class="k">def</span> <span class="nf">get_indices</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">listlike</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the indices in litlike that match elements in values</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span>  <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">count</span><span class="p">(),</span> <span class="n">listlike</span><span class="p">)</span> <span class="k">if</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">values</span><span class="p">]</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;2018, Saad Khan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
