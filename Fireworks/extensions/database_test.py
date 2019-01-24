@@ -119,6 +119,7 @@ def test_TablePipe_implicit():
     assert len(cop) == 5
     assert (ts.query().all()['values'] == [2,3,4,5,6,7,8,9]).all()
     ts.delete('values', batch['values'][1:4])
+    ts.commit()
     assert (ts.query().all()['values'] == [2,6,7,8,9]).all()
     assert 'id' in ts.query().all()
 
@@ -127,6 +128,7 @@ def test_TablePipe_implicit():
     new_batch = copy.deepcopy(batch)
     new_batch['values'] = [10,11,12,13,14]
     ts.update('id', new_batch)
+    ts.commit()
     newer_batch = ts.query().all()
     assert newer_batch == new_batch
     assert newer_batch != batch
@@ -143,6 +145,22 @@ def test_DBPipe():
     ts.insert(batch)
     ts.commit()
     deedee = db.DBPipe(tab, engine)
+    for row, i in zip(deedee, itertools.count()):
+        assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
+    deedee.reset()
+    for row, i in zip(deedee, itertools.count()):
+        assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
+
+    # Test using reflections
+    ts = db.DBPipe('jotaro', engine)
+    for row, i in zip(deedee, itertools.count()):
+        assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
+    deedee.reset()
+    for row, i in zip(deedee, itertools.count()):
+        assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
+
+    # Reset the session and try again.
+    deedee.reset_session()
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
     deedee.reset()
@@ -176,6 +194,26 @@ def test_DBPipe_query():
     assert (result['values'] == [1,2,3,4,5]).all()
     assert set(result.columns) == set(['values'])
     result = ts.query('values', 'name').filter('values', 'between', 1,5).all()
+    assert (result['values'] == [1,2,3,4,5]).all()
+    assert set(result.columns) == set(['name', 'values'])
+
+    # Test if resetting the session after making a query affects anything.
+    query = ts.query('values')
+    query.reset_session()
+    result = query.all()
+    assert set(result.columns) == set(['values'])
+    query = ts.query('values', 'name')
+    query.reset_session()
+    result = query.all()
+    assert set(result.columns) == set(['name', 'values'])
+    query = ts.query('values').filter('values', 'between', 1,5)
+    query.reset_session()
+    result = query.all()
+    assert (result['values'] == [1,2,3,4,5]).all()
+    assert set(result.columns) == set(['values'])
+    query = ts.query('values', 'name')
+    query.reset_session()
+    result = query.filter('values', 'between', 1,5).all()
     assert (result['values'] == [1,2,3,4,5]).all()
     assert set(result.columns) == set(['name', 'values'])
 

@@ -15,8 +15,8 @@ class TablePipe(Pipe):
     def __init__(self, table, engine, columns = None, input = None, **kwargs):
 
         super().__init__(input=input, **kwargs)
-        Session = sessionmaker(bind=engine)
-        self.session = Session()
+        self.sessionmaker = sessionmaker(bind=engine)
+        self.reset_session()
         self.engine = engine
         if type(table) is str:
             table = reflect_table(table, engine)
@@ -29,7 +29,6 @@ class TablePipe(Pipe):
         Initializes metadata for internal table. This ensures that the table exists in the database.
         """
         self.table.metadata.create_all(self.engine)
-        self.commit()
 
     def commit(self):
         """
@@ -43,6 +42,10 @@ class TablePipe(Pipe):
         """
         self.session.rollback()
 
+    def reset_session(self, session=None):
+
+        self.session = session or self.sessionmaker()
+
     def insert(self, batch):
         """
         Inserts the contents of batch message into the database using self.table object
@@ -50,7 +53,6 @@ class TablePipe(Pipe):
 
         Args:
             batch (Message): A message to be inserted. The columns and types must be consistent with the database schema.
-
         """
 
         # TODO:     Enable inserting TensorMessages (QUESTION: how would this work?)
@@ -203,8 +205,8 @@ class DBPipe(Pipe):
         """
         Pipe.__init__(self)
         self.engine = engine
-        Session = sessionmaker(bind=engine)
-        self.session = Session()
+        self.sessionmaker = sessionmaker(bind=engine)
+        self.reset_session()
         if type(table) is str:
             self.table = reflect_table(table, engine)
         else:
@@ -235,6 +237,10 @@ class DBPipe(Pipe):
         # self.query = self.session.query(entities, *args, **kwargs)
         pass
 
+    def reset_session(self, session=None):
+
+        self.session = session or self.sessionmaker()
+
     def __next__(self):
 
         return to_message(self.iterator.__next__(), columns_and_types=self.columns_and_types)
@@ -261,7 +267,6 @@ class DBPipe(Pipe):
 
     def delete(self):
         self.query.delete(synchronize_session=False)
-        self.session.commit()
 
     def update(self, batch):
         """
@@ -272,8 +277,6 @@ class DBPipe(Pipe):
         """
         rows = list(batch.df.T.to_dict().values())
         self.session.bulk_update_mappings(self.table, rows)
-        self.session.commit()
-
 
 def parse_columns(object, ignore_id=True):
     """
