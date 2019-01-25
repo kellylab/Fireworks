@@ -17,6 +17,8 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
     complex graphs of Models that can be trained simultaneously or individually.
     """
 
+    # TODO: Add methods to move model components to and from GPU
+
     def __init__(self, components = {}, *args, input = None, skip_module_init=False, **kwargs):
         """
         Args:
@@ -33,8 +35,8 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         self.update_components(components)
         # self.components.update(components) # Overwrite and/or adds params in the argument.
         self.check_components()
-
-        #TODO: Implement pytorch module methods to mirror pytorch style
+        self.update_hook = self.update
+        self.forward_hook = self.forward
 
     def init_default_components(self):
         """
@@ -91,6 +93,10 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         """
         pass
 
+    def update(self, batch, method=None): pass
+
+    def compile(self): pass
+
     def _change_temperature(self, boo, components = None):
 
         self.update_components() # This is here so that the model checks to see if Parameters/Modules have changed before freezing/unfreezing
@@ -128,22 +134,58 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
     # TODO: Figure out model i/o
     # TODO: Implement description methods
 
-    def __getitem_hook(self, message):
+    def _getitem_hook(self, message):
 
-        return self.forward(message)
+        self.update_hook(message, method='get')
+        return self.forward_hook(message)
 
-    def __next_hook(self, message):
+    def _next_hook(self, message):
 
-        return self.forward(message)
+        self.update_hook(message, method='next')
+        return self.forward_hook(message)
 
-    def __call__(self, message, *args, **kwargs):
+    def _call_hook(self, message, *args, **kwargs):
 
-        try: # This will trigger a recursive call if possible.
-            message = self.recursive_call('__call__')(message, *args, **kwargs)
-        except:
+        self.update_hook(message, method='call')
+        return self.forward_hook(message, *args, **kwargs)
+        # try: # This will trigger a recursive call if possible.
+        #     message = self.recursive_call('__call__')(message, *args, **kwargs)
+        # except:
+        #     pass
+
+        # return self.forward(message, *args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+
+        return HookedPassThroughPipe.__call__(self, *args, **kwargs)
+
+    def disable_inference(self): #TODO: test this
+        self.forward_hook = lambda x: x
+        try:
+            self.recursive_call('disable_inference')
+        except AttributeError:
             pass
 
-        return self.forward(message, *args, **kwargs)
+    def enable_inference(self):
+        self.forward_hook = self.forward
+        try:
+            self.recursive_call('enable_inference')
+        except AttributeError:
+            pass
+
+    def enable_updates(self):
+        self.update_hook = lambda x: x
+        try:
+            self.recursive_call('enable_updates')
+        except AttributeError:
+            pass
+
+    def disable_updates(self):
+        self.update_hook = self.update
+        try:
+            self.recursive_call('disable_updates')
+        except AttributeError:
+            pass
 
 def freeze_module(module, parameters = None, submodules = None):
     """

@@ -73,6 +73,27 @@ class getitem_dummy(Pipe):
     def __len__(self):
         return self.length
 
+# class recursion_dummy(Pipe):
+#
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.height = 0
+#         self.depth = 0
+#
+#     @self.recursive
+#     def jump(self):
+#         self.height += 1
+#
+#     @self.recursive
+#     def somersault(self, x):
+#
+#         y = x+1
+#         self.depth = y
+#         return y
+#
+#     def poop(self):
+#         return 3
+
 class smart_dummy(Pipe):
     """
     Implements all of the methods in the above dummies

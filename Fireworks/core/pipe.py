@@ -60,6 +60,9 @@ class Pipe(ABC):
     def __next__(self, *args, **kwargs):
         return self.input.__next__(*args, **kwargs)
 
+    def __call__(self, *args, **kwargs):
+        return self.input.__call__(*args, **kwargs)
+
     def __iter__(self, *args, **kwargs):
         return self.input.__iter__(*args, **kwargs)
 
@@ -119,6 +122,26 @@ class Pipe(ABC):
         response = self.input.recursive_call(attribute, *args, ignore_first=False, **kwargs)
         return response
 
+    # class recursive_decorator:
+    #     """
+    #     Decorator that labels a Pipe method as recursive. This means, that method func will first be called on
+    #     the Pipe's inputs and then on the Pipe itself.
+    #     If accumulate is set to True, then the result from calling the method on a given Pipe will be
+    #     used as input to the next one. If False, then the original arguments will be used when calling
+    #     the method each time.
+    #     """
+    #     def __init__(self, outer):
+    #         self.outer = outer
+    #
+    #     def __call__(self, accumulate=True):
+    #         def wrapper(func, *args, **kwargs):
+    #             response = self.outer.recursive_call(func.__name__, *args, **kwargs)
+    #             if accumulate:
+    #                 return func(response)
+    #             else:
+    #                 return func(*args, **kwargs)
+    #         return wrapper
+
         # if response:
         #     if isinstance(responses[0], Pipe):
         #         return Fireworks.merge(responses)
@@ -156,6 +179,8 @@ class HookedPassThroughPipe(Pipe): # BUG NOTE: Methods that return self will bre
 
     # TODO: Implement and test a hook functionality for __call__
 
+    def _call_hook(self, messsage): return message
+
     def _next_hook(self, message): return message
 
     # def _iter_hook(self, *args, **kwargs): return args[0]
@@ -176,6 +201,13 @@ class HookedPassThroughPipe(Pipe): # BUG NOTE: Methods that return self will bre
     def __next__(self, *args, **kwargs):
         return self._next_hook(Message(self.input.__next__(*args, **kwargs)))
 
+    def __call__(self, *args, **kwargs):
+
+        if hasattr(self, 'input') and hasattr(self.input, '__call__'):
+            return self._call_hook(self.input.__call__(*args, **kwargs))
+        else:
+            return self._call_hook(*args, **kwargs)
+
     def __iter__(self, *args, **kwargs):
 
         self.input = self.input.__iter__(*args, **kwargs)
@@ -186,3 +218,24 @@ class HookedPassThroughPipe(Pipe): # BUG NOTE: Methods that return self will bre
     #     Pass through all methods of the input Pipe while adding labels. This does not intercept special methods (__x__ methods)
     #     """
     #     return self.input.__getattribute__(*args, **kwargs)
+
+# def recursive(pipin, target=None, accumulate=False):
+#     """
+#     Decorator that labels a Pipe method as recursive. This means, that method func will first be called on
+#     the Pipe's inputs and then on the Pipe itself.
+#     If accumulate is set to True, then the result from calling the method on a given Pipe will be
+#     used as input to the next one. If False, then the original arguments will be used when calling
+#     the method each time.
+#     """
+#     def decorator(func):
+#         def wrapper(*args, **kwargs):
+#             # response = pipe.recursive_call(func.__name__, *args, **kwargs)
+#             response = 2
+#             assert False
+#             if accumulate:
+#                 return func(response)
+#             else:
+#                 return func(*args, **kwargs)
+#
+#         return wrapper
+#     return decorator

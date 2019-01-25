@@ -64,3 +64,34 @@ def test_HookedPassThroughPipe():
         assert i == Message({'values': [j], 'interception': ['yaro']})
 
     assert i == Message({'values': [19], 'interception': ['yaro']})
+
+# def test_recursive_decorator():
+#
+#     alto = recursion_dummy()
+#     balto = recursion_dummy(alto)
+#     calto = recursion_dummy(balto)
+#
+#     assert alto.height == 0 and alto.depth == 0
+#     assert balto.height == 0  and balto.depth == 0
+#     assert calto.height == 0  and calto.depth == 0
+#
+#     calto.jump()
+#     assert calto.height == 1
+#     assert balto.height == 1
+#     assert alto.height == 1
+#
+#     balto.jump()
+#     assert calto.height == 1
+#     assert balto.height == 2
+#     assert alto.height == 2
+#
+#     calto.somersault(1)
+#     assert alto.depth == 1
+#     assert balto.depth == 2
+#     assert calto.depth == 3
+#
+#     balto.somersault(1)
+#     assert alto.depth == 2
+#     assert balto.depth == 4
+#
+#     assert False

@@ -32,12 +32,25 @@ class Normalizer(Model):
     Normalizes Data by Mean and Variance. Analogous to sklearn.preprocessing.Normalizer
     """
 
-    required_components = ['mean', 'variance']
+    required_components = ['mean', 'variance', 'count', 'rolling_sum', 'rolling_squares']
+
+    def __init__(self, *args, **kwargs):
+
+        Model.__init__(self, *args, **kwargs)
+        self.freeze(['mean', 'variance', 'count', 'rolling_sum', 'rolling_squares'])
 
     def init_default_components(self):
 
-        self.mean = {}
-        self.variance = {}
+        # self.mean = {}
+        # self.variance = {}
+        # self.count = 0
+        # self.rolling_sum = defaultdict(lambda : 0)
+        # self.rolling_squares = defaultdict(lambda : 0)
+        self.components['mean'] = {}
+        self.components['variance'] = {}
+        self.components['count'] = [0.]
+        self.components['rolling_sum'] = defaultdict(lambda : 0.)
+        self.components['rolling_squares'] = defaultdict(lambda : 0.)
 
     def forward(self, batch):
         """
@@ -51,29 +64,39 @@ class Normalizer(Model):
 
         return batch
 
-    def fit(self, dataset=None, continuamos=False):
-
-        if dataset is None:
-            dataset = self.input
-
-        if not continuamos:
-            self.reset()
-
-        for batch in dataset:
+    def update(self, batch, method=None):
+        """
+        Updates internal tracking of mean and variance given a batch.
+        """
+        if method == 'next' or method is None:
             self.count += len(batch)
-            for key in batch:
-                self.rolling_sum += sum(batch[key])
-                self.rolling_squares += sum(batch[key]**2)
+            for key in batch.keys():
+                self.rolling_sum[key] += sum(batch[key])
+                self.rolling_squares[key] += sum(batch[key]**2)
 
+    def compile(self):
+        """
+        Computes mean and variance given internal rolling sum and squares.
+        """
         for key in self.rolling_sum:
             self.mean[key] = self.rolling_sum[key] / self.count
-            self.variance[key] = (self.rolling_squares[key] - 2*self.rolling_sum[key]*self.mean[key] + self.mean[key]**2) / self.count
+            self.variance[key] = (self.rolling_squares[key] - 2*self.rolling_sum[key]*self.mean[key]) / self.count + self.mean[key]**2
+
+    # def fit(self, dataset=None, continuamos=False):
+    #
+    #     if dataset is None:
+    #         dataset = self.input
+    #
+    #     if not continuamos:
+    #         self.reset()
+    #
+    #     for batch in dataset:
 
     def reset(self):
 
         self.count = 0
         self.rolling_sum = defaultdict(lambda : 0)
-        self.rolling_squares = defaultdict(lambda: 0)
+        self.rolling_squares = defaultdict(lambda : 0)
 
         try:
             self.recursive_call('reset')()
