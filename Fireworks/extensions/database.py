@@ -44,6 +44,10 @@ class TablePipe(Pipe):
 
     def reset_session(self, session=None):
 
+        try:
+            self.session.close()
+        except:
+            pass
         self.session = session or self.sessionmaker()
 
     def insert(self, batch):
@@ -206,12 +210,17 @@ class DBPipe(Pipe):
         Pipe.__init__(self)
         self.engine = engine
         self.sessionmaker = sessionmaker(bind=engine)
-        self.reset_session()
+        if query is None:
+            self.reset_session()
+            self.query = self.session.query()
+        else:
+            self.query = query # or self.session.query()
+            self.reset_session(query.session)
         if type(table) is str:
             self.table = reflect_table(table, engine)
         else:
             self.table = table
-        self.query = query or self.session.query()
+
         if columns_and_types is None:
             self.columns_and_types = parse_columns_and_types(self.query, ignore_id=False)
             if self.columns_and_types == {}: # Remap empty query to SELECT *
@@ -239,7 +248,13 @@ class DBPipe(Pipe):
 
     def reset_session(self, session=None):
 
+        if hasattr(self, 'session'):
+            self.session.close()
+
         self.session = session or self.sessionmaker()
+
+        if hasattr(self, 'query'):
+            self.query.session = self.session
 
     def __next__(self):
 
