@@ -110,10 +110,10 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         for component in components:
             if isinstance(getattr(self, component), Parameter):
                 getattr(self, component).requires_grad = boo
-            elif isinstance(getattr(self, component), Model):
-                getattr(self, component)._change_temperature(boo) # Recursively freezes Models
-            elif isinstance(getattr(self, component), Module): # Is a PyTorch module but not a model.
-                _change_temperature(boo, getattr(self, component))
+            elif isinstance(getattr(self,component), Model):
+                getattr(self,component)._change_temperature(boo) # Recursively freezes Models
+            elif isinstance(getattr(self,component), Module): # Is a PyTorch module but not a model.
+                _change_temperature(boo, getattr(self,component))
 
     def freeze(self, components = None):
         """
@@ -159,12 +159,11 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
 
         return HookedPassThroughPipe.__call__(self, *args, **kwargs)
 
-    def disable_inference(self): #TODO: test this
-        self.forward_hook = lambda x: x
-        try:
-            self.recursive_call('disable_inference')
-        except AttributeError:
-            pass
+    # def __getattr__(self, *args, **kwargs):
+    #
+    #     assert False
+    #
+    #     return HookedPassThroughPipe.__getattr__(self, *args, **kwargs)
 
     def enable_inference(self):
         self.forward_hook = self.forward
@@ -173,19 +172,30 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         except AttributeError:
             pass
 
+    def disable_inference(self): #TODO: test this
+        self.forward_hook = identity
+        try:
+            self.recursive_call('disable_inference')
+        except AttributeError:
+            pass
+
     def enable_updates(self):
-        self.update_hook = lambda x: x
+        self.update_hook = self.update
         try:
             self.recursive_call('enable_updates')
         except AttributeError:
             pass
 
     def disable_updates(self):
-        self.update_hook = self.update
+        self.update_hook = identity
         try:
             self.recursive_call('disable_updates')
         except AttributeError:
             pass
+
+def identity(*args, **kwargs):
+
+    return args, kwargs
 
 def freeze_module(module, parameters = None, submodules = None):
     """

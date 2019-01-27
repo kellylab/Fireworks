@@ -27,6 +27,7 @@ def oversample(): pass
 
 def apply_noise(): pass
 
+#IDEA: Instead of implementing this, what if we couple a LoopingSource + CachingSource to a SKLearn estimator?
 class Normalizer(Model):
     """
     Normalizes Data by Mean and Variance. Analogous to sklearn.preprocessing.Normalizer
@@ -70,7 +71,7 @@ class Normalizer(Model):
         """
         if method == 'next' or method is None:
             self.count += len(batch)
-            for key in batch.keys():
+            for key in batch.keys(): #WARNING: This is numerically unstable
                 self.rolling_sum[key] += sum(batch[key])
                 self.rolling_squares[key] += sum(batch[key]**2)
 
@@ -80,8 +81,8 @@ class Normalizer(Model):
         """
         for key in self.rolling_sum:
             self.mean[key] = self.rolling_sum[key] / self.count
-            self.variance[key] = (self.rolling_squares[key] - 2*self.rolling_sum[key]*self.mean[key]) / self.count + self.mean[key]**2
-
+            # self.variance[key] = (self.rolling_squares[key] - 2*self.rolling_sum[key]*self.mean[key]) / self.count + self.mean[key]**2
+            self.variance[key] = (self.rolling_squares[key] - (self.rolling_sum[key])**2/self.count) / self.count
     # def fit(self, dataset=None, continuamos=False):
     #
     #     if dataset is None:
@@ -92,13 +93,13 @@ class Normalizer(Model):
     #
     #     for batch in dataset:
 
-    def reset(self):
-
-        self.count = 0
-        self.rolling_sum = defaultdict(lambda : 0)
-        self.rolling_squares = defaultdict(lambda : 0)
-
-        try:
-            self.recursive_call('reset')()
-        except:
-            pass
+    # def reset(self):
+    #
+    #     self.count = 0
+    #     self.rolling_sum = defaultdict(lambda : 0)
+    #     self.rolling_squares = defaultdict(lambda : 0)
+    #
+    #     try:
+    #         self.recursive_call('reset')()
+    #     except:
+    #         pass

@@ -70,6 +70,7 @@ class Pipe(ABC):
         """
         Pass through all methods of the input Pipe while adding labels. This does not intercept special methods (__x__ methods)
         """
+
         return self.recursive_call(*args, **kwargs) #self.input.__getattribute__(*args, **kwargs)
 
     def recursive_call(self, attribute, *args, ignore_first = True, **kwargs):

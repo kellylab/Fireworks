@@ -13,6 +13,8 @@ def test_Normalizer():
     d = 4
     data = Message({'ok': np.random.normal(a,b,1000), 'good': np.random.normal(c,d,1000)})
     shuffler = ShufflerPipe(data)
+    from sklearn import preprocessing
+    assert False
     batcher = BatchingPipe(shuffler)
     normie = pr.Normalizer(input=batcher)
     normie.disable_inference()
@@ -42,11 +44,14 @@ def test_Normalizer():
         assert abs(vok -1 )< 1
     normie2 = pr.Normalizer(input=normie)
     normie2.disable_inference()
+    le = 0
     for batch in normie2:
+        le += len(batch)
         continue
     normie2.compile()
     means = normie2.mean
     variances = normie2.variance
+    assert False
     assert (abs(means['ok']) < .4).all()
     assert (abs(means['good']) < .4).all()
     assert (abs(variances['ok'] - 1) < .4).all()
