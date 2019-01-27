@@ -159,11 +159,12 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
 
         return HookedPassThroughPipe.__call__(self, *args, **kwargs)
 
-    # def __getattr__(self, *args, **kwargs):
-    #
-    #     assert False
-    #
-    #     return HookedPassThroughPipe.__getattr__(self, *args, **kwargs)
+    def __getattribute__(self, *args, **kwargs): #TODO: Test this
+
+        try:
+            return object.__getattribute__(self, *args, **kwargs)
+        except AttributeError:
+            return HookedPassThroughPipe.__getattr__(self, *args, **kwargs)
 
     def enable_inference(self):
         self.forward_hook = self.forward

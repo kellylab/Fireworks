@@ -47,8 +47,8 @@ class Normalizer(Model):
         # self.count = 0
         # self.rolling_sum = defaultdict(lambda : 0)
         # self.rolling_squares = defaultdict(lambda : 0)
-        self.components['mean'] = {}
-        self.components['variance'] = {}
+        self.components['mean'] = defaultdict(lambda : 0)
+        self.components['variance'] = defaultdict(lambda : 1)
         self.components['count'] = [0.]
         self.components['rolling_sum'] = defaultdict(lambda : 0.)
         self.components['rolling_squares'] = defaultdict(lambda : 0.)
@@ -61,7 +61,7 @@ class Normalizer(Model):
         keys = self.mean.keys()
         for key in keys:
             if key in batch:
-                batch[key] = (batch[key] - self.mean[key]) / self.variance[key]
+                batch[key] = (batch[key] - self.mean[key])/np.sqrt(self.variance[key])
 
         return batch
 
@@ -73,7 +73,9 @@ class Normalizer(Model):
             self.count += len(batch)
             for key in batch.keys(): #WARNING: This is numerically unstable
                 self.rolling_sum[key] += sum(batch[key])
-                self.rolling_squares[key] += sum(batch[key]**2)
+                self.rolling_squares[key] += sum((batch[key]-self.mean[key])**2)
+                # self.rolling_squares[key] += np.var(batch[key])
+                self.compile()
 
     def compile(self):
         """
@@ -81,8 +83,9 @@ class Normalizer(Model):
         """
         for key in self.rolling_sum:
             self.mean[key] = self.rolling_sum[key] / self.count
-            # self.variance[key] = (self.rolling_squares[key] - 2*self.rolling_sum[key]*self.mean[key]) / self.count + self.mean[key]**2
-            self.variance[key] = (self.rolling_squares[key] - (self.rolling_sum[key])**2/self.count) / self.count
+            self.variance[key] = (self.rolling_squares[key] - (self.rolling_sum[key])**2/self.count) / self.count + self.mean[key]**2
+            self.variance[key] = self.rolling_squares[key] / self.count
+
     # def fit(self, dataset=None, continuamos=False):
     #
     #     if dataset is None:
