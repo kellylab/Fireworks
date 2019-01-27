@@ -24,15 +24,17 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         Args:
             components: A dict of components that the model can call on.
         """
+        self.__flag = 0
+
         if not skip_module_init: # This is so the ModelFromModule Class can work.
             Module.__init__(self)
 
         HookedPassThroughPipe.__init__(self, input = input)
 
-        Junction.__init__(self, components = components)
-        # self.components = {}
+        Junction.__init__(self)
         self.init_default_components()
         self.update_components(components)
+        self.update_components()
         # self.components.update(components) # Overwrite and/or adds params in the argument.
         self.check_components()
         self.update_hook = self.update
@@ -60,6 +62,8 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
                 # For example, it could be a Pipe or Junction that the model can call upon.
                     pass
             setattr(self, key, component)
+
+        self.components = {**self.components, **self._modules, **self._parameters}
 
     def check_components(self, components = None):
         """
@@ -159,12 +163,54 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
 
         return HookedPassThroughPipe.__call__(self, *args, **kwargs)
 
-    def __getattribute__(self, *args, **kwargs): #TODO: Test this
+    # def __getattribute__(self, *args, **kwargs): #TODO: Test this
+    #
+    #     try:
+    #         return object.__getattribute__(self, *args, **kwargs)
+    #     except:
+    #         if self.__flag == 0:
+    #             try:
+    #                 return HookedPassThroughPipe.__getattr__(self, *args, **kwargs)
+    #             except:
+    #                 self.__flag = 1
+    #
+    #         else:
+    #             self.__flag = 0
+    #             raise
+    #
+    def __getattr__(self, name):
 
+        if '_parameters' in self.__dict__:
+            _parameters = self.__dict__['_parameters']
+            if name in _parameters:
+                return _parameters[name]
+        if '_buffers' in self.__dict__:
+            _buffers = self.__dict__['_buffers']
+            if name in _buffers:
+                return _buffers[name]
+        if '_modules' in self.__dict__:
+            modules = self.__dict__['_modules']
+            if name in modules:
+                return modules[name]
         try:
-            return object.__getattribute__(self, *args, **kwargs)
-        except AttributeError:
-            return HookedPassThroughPipe.__getattr__(self, *args, **kwargs)
+            return HookedPassThroughPipe.__getattr__(self, name)
+        except:
+            pass
+
+        raise AttributeError("'{}' object has no attribute '{}'".format(
+            type(self).__name__, name))
+
+        # try:
+        #     return Module.__getattr__(self, *args, **kwargs)
+        # except:
+        #     try:
+        #         return HookedPassThroughPipe.__getattr__(self, *args, **kwargs)
+        #     except:
+        #         pass
+        #     raise
+            # except:
+            #     return object.__getattribute__(self, *args, **kwargs)
+
 
     def enable_inference(self):
         self.forward_hook = self.forward
