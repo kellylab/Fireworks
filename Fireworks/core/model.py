@@ -24,14 +24,13 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         Args:
             components: A dict of components that the model can call on.
         """
-        self.__flag = 0
+        self._flags = {'recursive_get': 1, 'components_initialized': 0} # Used for controlling recursion. Don't mess with this.
+        self.components = {}
 
         if not skip_module_init: # This is so the ModelFromModule Class can work.
             Module.__init__(self)
-
         HookedPassThroughPipe.__init__(self, input = input)
 
-        Junction.__init__(self)
         self.init_default_components()
         self.update_components(components)
         self.update_components()
@@ -39,6 +38,8 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         self.check_components()
         self.update_hook = self.update
         self.forward_hook = self.forward
+        Junction.__init__(self, components=self.components)
+        self._flags['components_initialized'] = 1
 
     def init_default_components(self):
         """
@@ -49,6 +50,7 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
 
     def update_components(self, components = None):
 
+        self._flags['components_initialized'] = 0
         self.components = {**self.components, **self._modules, **self._parameters}
 
         if components is None:
@@ -61,9 +63,11 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
                 except: # If the component is not a tensor-like, Parameter, or Module, then it is some other object that we simply attach to the model
                 # For example, it could be a Pipe or Junction that the model can call upon.
                     pass
+            self.components[key] = component
             setattr(self, key, component)
 
         self.components = {**self.components, **self._modules, **self._parameters}
+        self._flags['components_initialized'] = 1
 
     def check_components(self, components = None):
         """
@@ -163,22 +167,11 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
 
         return HookedPassThroughPipe.__call__(self, *args, **kwargs)
 
-    # def __getattribute__(self, *args, **kwargs): #TODO: Test this
-    #
-    #     try:
-    #         return object.__getattribute__(self, *args, **kwargs)
-    #     except:
-    #         if self.__flag == 0:
-    #             try:
-    #                 return HookedPassThroughPipe.__getattr__(self, *args, **kwargs)
-    #             except:
-    #                 self.__flag = 1
-    #
-    #         else:
-    #             self.__flag = 0
-    #             raise
-    #
     def __getattr__(self, name):
+
+    #     return self._recursed_getattr(name)
+    #
+    # def _recursed_getattr(self, name):
 
         if '_parameters' in self.__dict__:
             _parameters = self.__dict__['_parameters']
@@ -192,25 +185,29 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
             modules = self.__dict__['_modules']
             if name in modules:
                 return modules[name]
-        try:
-            return HookedPassThroughPipe.__getattr__(self, name)
-        except:
-            pass
+
+        if self._flags['recursive_get']:
+            try:
+                return HookedPassThroughPipe.__getattr__(self, name)
+            except:
+                pass
 
         raise AttributeError("'{}' object has no attribute '{}'".format(
             type(self).__name__, name))
 
-        # try:
-        #     return Module.__getattr__(self, *args, **kwargs)
-        # except:
-        #     try:
-        #         return HookedPassThroughPipe.__getattr__(self, *args, **kwargs)
-        #     except:
-        #         pass
-        #     raise
-            # except:
-            #     return object.__getattribute__(self, *args, **kwargs)
+    def __setattr__(self, name, value):
+        """
+        Attribute modifications ignore the recursive aspect of Pipes.
+        """
 
+        if name == '_flags':
+            object.__setattr__(self, name, value)
+        else:
+            self._flags['recursive_get'] = 0
+            Module.__setattr__(self, name, value)
+            self._flags['recursive_get'] = 1
+            if self._flags['components_initialized']:
+                self.update_components()
 
     def enable_inference(self):
         self.forward_hook = self.forward
@@ -277,6 +274,7 @@ def model_from_module(module_class):
     class ModelFromModule(module_class, Model):
 
         def __init__(self, components={}, *args, input=None, **kwargs):
+            self._flags = {'recursive_get': 1, 'components_initialized': 0}
             module_class.__init__(self, *args, **kwargs)
             Model.__init__(self, components, input=input, skip_module_init=True)
 

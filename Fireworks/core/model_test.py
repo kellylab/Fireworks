@@ -283,6 +283,24 @@ def test_multiple_Models_training():
     assert (A.b == 0).all()
     assert (C.m == 0.).all()
 
+def test_setattr_in_pipeline():
+    """
+    Setattribute should not trigger any recursive actions.
+    """
+    A = DummyModel({'m': [3.]}, out_column='y1')
+    B = DummyModel({'m': [1.], 'b': [2.]}, input=A, in_column='y1', out_column='y')
+    A.ok = 0
+    B.ok = 1
+    assert A.ok == 0
+    assert B.ok == 1
+    assert (A.m == 3.).all()
+    assert (B.m == 1.).all()
+    # Test that Parameters and subModules automatically get added as components.
+    A.yes = Parameter(torch.Tensor([3.,4.]))
+    assert 'yes' in A.components
+    assert 'yes' not in B.components
+    assert B.yes is A.yes
+
 def test_multiple_Models_training_in_pipeline():
     """
     Here, model A pipes its output into B

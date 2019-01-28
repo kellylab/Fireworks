@@ -85,7 +85,7 @@ def test_Experiment():
     # Clean up
     all_xmen = [x for x in dirs if x.startswith('xmen')]
     for man in all_xmen:
-        rmtree(man)
+        rmtree(man, ignore_errors=True)
 
 def test_paths():
     """
