@@ -1,4 +1,3 @@
-import os
 from .pipe import Pipe, HookedPassThroughPipe
 from .message import Message
 from Fireworks.utils import index_to_list
@@ -8,14 +7,14 @@ import itertools
 
 test_dir = Fireworks.test_dir
 
-def conforms_to_spec(pipe):
-
-    assert hasattr(pipe, '__iter__')
-    assert hasattr(pipe, '__next__')
-
-    return True
-
-def test_pipe(): pass
+# def conforms_to_spec(pipe):
+#
+#     assert hasattr(pipe, '__iter__')
+#     assert hasattr(pipe, '__next__')
+#
+#     return True
+#
+# def test_pipe(): pass
 
 def test_PassThroughPipe():
 

@@ -12,8 +12,9 @@ This is analogous to a pandas dataframe, except the elements of the table are te
 a message is just a dictionary, it can be converted to a dataframe. The inverse will only be possible if every element
 of the dataframe can be tensorized (strings can't be converted to tensors.)
 
-This file contains utility functions for working with messages. In order to avoid coupling this framework to a message class,
-messages are represented as standard python dicts and are assumed to conform the necessary interface.
+This file contains utility functions for working with messages. In order to simplify usage,
+messages have a similar interface to dictionaries and dataframes, and you can often use these interchangeably
+or convert these objects on the fly.
 """
 
 class Message:
