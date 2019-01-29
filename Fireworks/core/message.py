@@ -17,6 +17,8 @@ messages have a similar interface to dictionaries and dataframes, and you can of
 or convert these objects on the fly.
 """
 
+to_methods = ['json', 'dict', 'html', 'feather', 'latex', 'stata', 'msgpack', 'gbq', 'records', 'sparse', 'dense', 'string', 'clipboard']
+
 class Message:
     """
     A Message is a class for representing data in a way that can be consumed by different analysis pipelines in python. It does this by
@@ -312,8 +314,46 @@ class Message:
         else:
             return False
 
+    def __getattr__(self, name):
+
+        if name in self.df.keys():
+            return self.df.__getattribute__(name)
+        elif name in self.tensor_message.keys():
+            return self.tensor_dict.__getattr__(name)
+        else:
+            raise AttributeError("This message has no attribute or column named {0}.".format(name))
+
     def __repr__(self):
         return "Message with \n Tensors: \n {0} \n Metadata: \n {1}".format(self.tensor_message, self.df)
+
+    def to(self, method, *args, **kwargs):
+        """
+        Converts all elements of Message to dataframe and then calls df.to_x based on the given method
+        This can be used to serialize and save Messages or convert them into a different format
+        """
+        # The conversion to dataframe is essential, because that enforces that all of the data being serialized
+        # is on the CPU.
+        if method in to_methods:
+            tensor_message = deepcopy(self.tensor_message) # This is copied so that the original message is not perturbed by serialization.
+            to_serialize = Message(tensor_message, self.df)
+            to_serialize = to_serialize.to_dataframe().df # Convert everything to dataframe
+            return getattr(to_serialize, 'to_{0}'.format(method))(*args, **kwargs)
+        else:
+            raise ValueError("Method {0} is not a valid method for Message serialization. Valid methods include {1}.".format(method, to_methods))
+
+    def to_csv(self, *args, **kwargs): return self.to('csv', *args, **kwargs)
+    def to_pickle(self, *args, **kwargs): return self.to('pickle', *args, **kwargs)
+    def to_sql(self, *args, **kwargs): return self.to('sql', *args, **kwargs)
+    def to_dict(self, *args, **kwargs):
+        if 'orient' not in kwargs:
+            kwargs['orient']  = 'list'
+        return self.to('dict', *args, **kwargs)
+    def to_excel(self, *args, **kwargs): return self.to('excel', *args, **kwargs)
+    def to_json(self, *args, **kwargs):
+        if 'orient' not in kwargs:
+            kwargs['orient']  = 'list'
+        return self.to('json', *args, **kwargs)
+    def to_string(self, *args, **kwargs): return self.to('string', *args, **kwargs)
 
     @property
     def columns(self):
@@ -739,8 +779,8 @@ class TensorMessage:
         else:
             return False
 
-    def __getattr__(self, *args, **kwargs):
-        return self.tensor_dict.__getattribute__(*args, **kwargs)
+    def __getattr__(self, name):
+        return self.tensor_dict.__getattribute__(name)
 
     def keys(self,*args, **kwargs):
         return self.tensor_dict.keys(*args, **kwargs)

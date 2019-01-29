@@ -581,3 +581,36 @@ def test_permute():
     assert gmail == Message({'c': np.array([9,8,7]), 'd': np.array([12,11,10])})
     gmail = email.permute([0,0,0])
     assert gmail == Message({'c': np.array([7,7,7]), 'd': np.array([10,10,10])})
+
+def test_to_csv():
+    m = Message(tensors, vectors)
+    pass #TODO: Implement
+
+def test_to_pickle():
+    m = Message(tensors, vectors)
+    pass #TODO: Implement
+
+def test_to_sql():
+    m = Message(tensors, vectors)
+    pass #TODO: Implement
+
+def test_to_dict():
+    m = Message(tensors, vectors)
+    md = m.to_dict()
+    assert type(md) is dict
+    assert (md['c'] == md['c'])
+    assert (md['d'] == md['d'])
+    assert (md['a'] == np.array(md['a'])).all()
+    assert (md['b'] == np.array(md['b'])).all()
+
+def test_to_excel():
+    m = Message(tensors, vectors)
+    pass #TODO: Implement
+
+def test_to_json():
+    m = Message(tensors, vectors)
+    pass #TODO: Implement
+
+def test_to_string():
+    m = Message(tensors, vectors)
+    pass #TODO: Implement

@@ -326,7 +326,8 @@ def test_multiple_Models_training_in_pipeline():
     assert (B.b != 2).all()
     assert (B.m == 1).all()
     assert (A.b == 0).all()
-
+    assert False
+    
 def test_multiple_Models_training_in_junction():
     """
     Here, model A is provided as a component of B
