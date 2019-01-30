@@ -101,6 +101,15 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         """
         pass
 
+    def save(self, method='json', path=None, **kwargs):
+        """
+        Aggregates this model's components into a single Message and saves them using the chosen method.
+        You can use any method that Messages support writing to via the to_ method, and you can
+        provide additional key-word arguments as needed to support this.
+        """
+
+        # Convert to Message of length 1 
+
     def update(self, batch, method=None): pass
 
     def compile(self): pass
