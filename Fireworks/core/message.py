@@ -78,11 +78,6 @@ class Message:
             tensors = {}
             df = {}
 
-        if 'tensors' in kwargs:
-            tensors = kwargs['tensors']
-        if 'df' in kwargs:
-            df = kwargs['df']
-
         if len(args) == 2:
             tensors = args[0]
             df = args[1]
@@ -102,6 +97,11 @@ class Message:
             else:
                 tensors, df = extract_tensors(args[0])
 
+        if 'tensors' in kwargs:
+            tensors = kwargs['tensors']
+        if 'df' in kwargs:
+            df = kwargs['df']
+
         self.tensor_message = TensorMessage(tensors) # The TensorMessage constructor will handle type conversions as needed.
 
         if type(df) is Message:
@@ -114,6 +114,42 @@ class Message:
             self.check_length()
         else:
             self.length = length
+
+    @classmethod
+    def from_objects(cls, *args, **kwargs):
+        """
+        Returns a message by treating all of the provided values as atomic elments and ignoring length differences. This results in a Message
+        of length 1.
+        """
+
+        if len(args) == 0:
+            tensors = {}
+            df = {}
+
+        if len(args) == 2:
+
+            tensors = {key: value.reshape(1,*value.shape) for key, value in args[0].items()}
+            df = {key: [value] for key, value in args[1].items()}
+
+        if len(args) == 1:
+            if type(args[0]) is Message:
+                tensors = {key: value.reshape(1,*value.shape) for key, value in args[0].tensor_message.items()}
+                df = {key: [value] for key, value in args[1].df.items()}
+            else:
+                tensors = {}
+                df = {}
+                for key, value in args[0].items():
+                    if type(value) is torch.Tensor or type(value) is torch.Parameter:
+                        tensors[key] = value.reshape(1,*value.shape)
+                    else:
+                        df[key] = [value]
+
+        if 'tensors' in kwargs:
+            tensors = {key: value.reshape(1,*value.shape) for key, value in kwargs['tensors'].items()}
+        if 'df' in kwargs:
+            df = {key: [value] for key, value in kwargs['df'].items()}
+
+        return cls(tensors, df)
 
     def check_length(self):
         """

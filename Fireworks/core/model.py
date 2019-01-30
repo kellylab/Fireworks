@@ -101,14 +101,53 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         """
         pass
 
-    def save(self, method='json', path=None, **kwargs):
+    def save(self, *args, method='json', **kwargs):
         """
         Aggregates this model's components into a single Message and saves them using the chosen method.
         You can use any method that Messages support writing to via the to_ method, and you can
         provide additional key-word arguments as needed to support this.
+        If the save method involves a path, then the path will be modified for each component and the state_dict.
+        For the state_dict, the path will be torch_{name}-{path}, and for each component it will be {key}_{path}
+        where name is either the name of the class or self.__name__ if it is defined. key is the value of the key in
+        the components dictionary.
         """
+        if 'path' in kwargs:
+            kwargs = kwargs.copy()
+            path = kwargs['path']
+            paths = path.split('/')
+            paths[-1]="{0}-{1}".format(name, paths[-1])
 
-        # Convert to Message of length 1 
+        # Get params
+        pytorch_components = self.state_dict() # Modules and parameters
+        other_keys = self.components.keys() - self._modules.keys() - self._parameters.key()
+        other_components = {key: self.components[key] for key in other_keys}
+
+        if hasattr(self, '__name__'):
+            name = self.__name__
+        else:
+            name = type(self).__name__
+
+
+        # Save pytorch state_dict
+        if 'path' in kwargs:
+            kwargs['path'] = os.path.join(paths[:-1], 'torch_'+paths[-1])
+
+        pytorch_as_message = Message.from_objects(pytorch_components)
+        pytorch_as_message.to(method=method, **kwargs)
+
+        # Save other components. This should recursively trigger the same action on the components if necesssary.
+        for key, component in other_components.items():
+            if hasattr(component, 'save'):
+                if 'path' in kwargs:
+                    kwargs['path'] = os.path.join(paths[:-1], key+'_'+paths[-1])
+                component.save(method=method, **kwargs)
+
+        # Save inputs. This is done by default and can be disabled by providing 'recursive=False' as an argument.
+        if ('recursive' in kwargs and kwargs['recursive']) or 'recursive' not in kwargs:
+            try:
+                self.recursive_call('save',method=method, **kwargs)
+            except: #TODO: Make a custom RecursionEnd error to indicate that the recursion has ended in order to provide tighter error checking.
+                pass
 
     def update(self, batch, method=None): pass
 

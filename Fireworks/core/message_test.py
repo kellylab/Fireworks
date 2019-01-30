@@ -116,6 +116,23 @@ def test_Message():
     m = Message(everything)
     attribute_test(m)
 
+def test_Message_from_objects():
+
+    v = vectors.copy()
+    t = tensors.copy()
+    v['c'] = np.array([1.,2.])
+    v['r'] = 'howdy'
+    t['a'] = torch.randn(5)
+    t['q'] = torch.randn([4,3])
+    combined = {**t, **v}
+
+    m = Message.from_objects(t, v)
+    assert (set(m.keys()) == set(['c','d','r','b','a','q']))
+    for key in ['c','d','b','a','q']:
+        assert (m[key][0] == combined[key]).all()
+    assert m['r'][0] == combined['r']
+    assert len(m) == 1
+
 def test_getitem():
 
     m = Message(tensors, vectors)

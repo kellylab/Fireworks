@@ -152,6 +152,14 @@ def test_Model_init():
     assert (damura.m == 4.).all()
     assert (damura.b == 5.).all()
 
+def test_Model_save():
+
+    # Construct model with inputs and components.
+
+    # Test different save methods.
+
+    pass
+
 def test_Model_inferencing():
 
     damura = DummyModel({'m': [2.]})
@@ -179,6 +187,11 @@ def test_ModelFromModule():
     assert (x == result['x']).all()
     assert (y == result['y']).all()
     assert 'y' in result and 'x' in result and 'z' in result
+
+def test_save_model():
+
+    A = DummyModel({'m': [0.], 'ok': torch.nn.Conv2d(1,20,5), 'c': 'yes'})
+    A.save()
 
 def test_freeze_and_unfreeze():
 
@@ -327,7 +340,7 @@ def test_multiple_Models_training_in_pipeline():
     assert (B.m == 1).all()
     assert (A.b == 0).all()
     assert False
-    
+
 def test_multiple_Models_training_in_junction():
     """
     Here, model A is provided as a component of B
