@@ -1,9 +1,3 @@
-#TODO: Test the following scenarios: hardcoded params, GUI params, database params, params from a pipe, from another model, and param updating
-
-#TODO: Test that gradients and updates behave correctly when multiple models are linked together
-
-#TODO: Demonstrate the following applications: training and inferencing models, interactive models, auto-generated models
-
 from .model import Model, model_from_module
 from Fireworks.utils.exceptions import ParameterizationError
 from Fireworks.toolbox.pipes import BatchingPipe, LoopingPipe, ShufflerPipe, RepeaterPipe
@@ -13,6 +7,8 @@ import torch
 from torch.nn import Parameter
 from random import randint
 import numpy as np
+import os
+import shutil
 
 loss = torch.nn.MSELoss()
 
@@ -155,9 +151,24 @@ def test_Model_init():
 def test_Model_save():
 
     # Construct model with inputs and components.
+    sabura = DummyModel({'m': [0.]})
+    sabura.__name__ = 'sabura'
+    damura = DummyModel({'m': [2.]})
+    damura.__name__ = 'damura'
+    babura = DummyModel({'m': damura.m, 'b': [4.], 'c': sabura, 'd': torch.nn.Conv2d}, input=damura)
+    babura.__name__ = 'babura'
 
+    if not os.path.isdir('save_test'):
+        os.mkdir('save_test')
+    else:
+        shutil.rmtree('save_test')
+        os.mkdir('save_test')
+    babura.save(path='save_test/test.json')
+    files = os.walk('save_test/.').__next__()[2]
+    assert len(files) == 3
     # Test different save methods.
 
+    shutil.rmtree('save_test')
     pass
 
 def test_Model_inferencing():
@@ -334,12 +345,11 @@ def test_multiple_Models_training_in_pipeline():
     batch = minibatcher.__next__()
     batch.to_tensors()
     A(batch)
-    train_model(B, minibatcher, models = [B])
+    train_model(B, minibatcher, models = [A, B])
     assert (A.m - m < .4).all()
     assert (B.b != 2).all()
     assert (B.m == 1).all()
     assert (A.b == 0).all()
-    assert False
 
 def test_multiple_Models_training_in_junction():
     """

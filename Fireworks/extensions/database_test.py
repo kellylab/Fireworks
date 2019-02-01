@@ -125,6 +125,7 @@ def test_TablePipe_implicit():
 
     # Test updates
     batch = ts.query().all()
+    # assert False
     new_batch = copy.deepcopy(batch)
     new_batch['values'] = [10,11,12,13,14]
     ts.update('id', new_batch)

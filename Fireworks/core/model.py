@@ -3,8 +3,10 @@ import torch
 from torch.nn import Module, Parameter
 from abc import abstractmethod
 from Fireworks.utils.exceptions import ParameterizationError
+from .message import Message
 from .junction import Junction
 from .pipe import HookedPassThroughPipe
+import os
 
 class Model(Module, HookedPassThroughPipe, Junction, ABC):
     """
@@ -111,6 +113,13 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         where name is either the name of the class or self.__name__ if it is defined. key is the value of the key in
         the components dictionary.
         """
+        # Get name of Model
+        if hasattr(self, '__name__'):
+            name = self.__name__
+        else:
+            name = type(self).__name__
+
+        # Parse save path if provided
         if 'path' in kwargs:
             kwargs = kwargs.copy()
             path = kwargs['path']
@@ -119,18 +128,12 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
 
         # Get params
         pytorch_components = self.state_dict() # Modules and parameters
-        other_keys = self.components.keys() - self._modules.keys() - self._parameters.key()
+        other_keys = self.components.keys() - self._parameters.keys()
         other_components = {key: self.components[key] for key in other_keys}
-
-        if hasattr(self, '__name__'):
-            name = self.__name__
-        else:
-            name = type(self).__name__
-
 
         # Save pytorch state_dict
         if 'path' in kwargs:
-            kwargs['path'] = os.path.join(paths[:-1], 'torch_'+paths[-1])
+            kwargs['path'] = os.path.join(*paths[:-1], 'torch_'+paths[-1])
 
         pytorch_as_message = Message.from_objects(pytorch_components)
         pytorch_as_message.to(method=method, **kwargs)
@@ -139,7 +142,7 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         for key, component in other_components.items():
             if hasattr(component, 'save'):
                 if 'path' in kwargs:
-                    kwargs['path'] = os.path.join(paths[:-1], key+'_'+paths[-1])
+                    kwargs['path'] = os.path.join(*paths[:-1], key+'_'+paths[-1])
                 component.save(method=method, **kwargs)
 
         # Save inputs. This is done by default and can be disabled by providing 'recursive=False' as an argument.
@@ -248,7 +251,7 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         Attribute modifications ignore the recursive aspect of Pipes.
         """
 
-        if name == '_flags':
+        if name in ['_flags', 'input']:
             object.__setattr__(self, name, value)
         else:
             self._flags['recursive_get'] = 0

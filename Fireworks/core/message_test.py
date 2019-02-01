@@ -14,6 +14,10 @@ vectors = {
     'c': np.array([7,8,9]),
     'd': np.array([10,11,12]),
 }
+dtensors = {
+    'a': torch.Tensor([[1,2,3],[4,5,6],[7,8,9]]),
+    'b': torch.Tensor([[-1,-2,-3],[-4,-5,-6], [-7,-8,-9]]),
+}
 
 def test_compute_length():
 
@@ -169,7 +173,22 @@ def test_df():
     df = m.dataframe(keys=['c'])
     assert df.equals(pd.DataFrame({'c': vectors['c']}))
     df = m.dataframe(keys=['c','a'])
-    assert df.equals(pd.DataFrame({'c': vectors['c'], 'a': np.array(tensors['a'])}))
+    assert (df == (pd.DataFrame({'c': vectors['c'], 'a': np.array(tensors['a'])}))).all().all()
+
+def test_to_dataframe():
+
+    mo = Message(tensors,vectors)
+    # no = mo.to_dataframe()
+    # assert no.tensor_message == {}
+    # assert (no['a'] == mo['a']).all()
+    # assert (no['b'] == mo['b']).all()
+    # for letter in ['a','b','c','d']:
+    #     assert letter in no.df
+    lo = Message(dtensors, vectors)
+    ok = lo.to_dataframe()
+    for i in range(3):
+        assert (ok['a'][i] == dtensors['a'][i].numpy()).all()
+        assert (ok['b'][i] == dtensors['b'][i].numpy()).all()
 
 def test_cpu_gpu():
     m = Message(tensors, vectors)
@@ -429,15 +448,6 @@ def test_Message_del():
     assert set(m.columns)== set(['b','c','d'])
     del m['c']
     assert set(m.columns) == set(['b','d'])
-
-def test_to_dataframe():
-
-    m = Message(tensors,vectors)
-    n = m.to_dataframe()
-    assert m == n
-    assert m.tensor_message == {}
-    for letter in ['a','b','c','d']:
-        assert letter in m.df
 
 def test_Message_iter():
 

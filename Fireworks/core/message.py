@@ -252,6 +252,9 @@ class Message:
             else:
                 if len(value) == self.length: # Check value before updating df
                     self.df[index] = value
+                elif self.length == 0: # Inserting into empty Message is allowed
+                    self.df[index] = value
+                    self.check_length()
                 else:
                     raise ValueError("Cannot set value {0} of length {1} to column name {2} for message with length {3}. Lengths of all columns \
                 must be the same.".format(value, len(value), index, self.length))
@@ -352,6 +355,8 @@ class Message:
 
     def __getattr__(self, name):
 
+        if name == 'df':
+            assert False
         if name in self.df.keys():
             return self.df.__getattribute__(name)
         elif name in self.tensor_message.keys():
@@ -373,6 +378,9 @@ class Message:
             tensor_message = deepcopy(self.tensor_message) # This is copied so that the original message is not perturbed by serialization.
             to_serialize = Message(tensor_message, self.df)
             to_serialize = to_serialize.to_dataframe().df # Convert everything to dataframe
+            if 'path' in kwargs:
+                kwargs['path_or_buf'] = kwargs['path']
+                del kwargs['path']
             return getattr(to_serialize, 'to_{0}'.format(method))(*args, **kwargs)
         else:
             raise ValueError("Method {0} is not a valid method for Message serialization. Valid methods include {1}.".format(method, to_methods))
@@ -386,6 +394,7 @@ class Message:
         return self.to('dict', *args, **kwargs)
     def to_excel(self, *args, **kwargs): return self.to('excel', *args, **kwargs)
     def to_json(self, *args, **kwargs):
+        assert False
         if 'orient' not in kwargs:
             kwargs['orient']  = 'list'
         return self.to('json', *args, **kwargs)
@@ -491,7 +500,25 @@ class Message:
         if keys is None:
             return self.tensor_message
         else:
-            return TensorMessage({key:self[key] for key in keys})
+            return Message(TensorMessage({key:self[key] for key in keys}))
+
+    def to_tensors(self, keys=None): # TODO: Test
+        """
+        Returns message with columns indicated by keys converted to Tensors. If keys is None, all columns are converted.
+
+        Args:
+            keys: Keys to get. Default = None, in which case all columns are mapped to Tensor.
+
+        Returns:
+            message: A Message in which the desired columns are Tensors.
+        """
+        if keys is None:
+            keys = list(self.df.keys())
+
+        tensor_message = Message(TensorMessage({key:self[key] for key in keys}))
+        self[keys] = tensor_message
+
+        return self
 
     def dataframe(self, keys = None):
         """
@@ -508,7 +535,7 @@ class Message:
         if keys is None:
             return self.df
         else:
-            return pd.DataFrame({key: np.array(self[key]) for key in keys})
+            return pd.DataFrame({key: np.array(self[key]).tolist() for key in keys})
 
     def to_dataframe(self, keys = None):
         """
@@ -523,28 +550,16 @@ class Message:
         if keys is None:
             keys = list(self.tensor_message.keys())
 
-        df = self.dataframe(keys=keys)
-        self[keys] = df
+        df = pd.DataFrame({key: np.array(self[key]).tolist() for key in keys})
+        new = Message(self.df)
+        still_tensors = list(self.tensor_message.keys() - df.keys())
+        if still_tensors:
+            new[still_tensors] = self[still_tensors]
+        new_df_keys = list(set(df.keys()) - set(self.df.keys()))
+        if new_df_keys:
+            new[new_df_keys] = df[new_df_keys]
 
-        return self
-
-    def to_tensors(self, keys=None): # TODO: Test
-        """
-        Returns message with columns indicated by keys converted to Tensors. If keys is None, all columns are converted.
-
-        Args:
-            keys: Keys to get. Default = None, in which case all columns are mapped to Tensor.
-
-        Returns:
-            message: A Message in which the desired columns are Tensors.
-        """
-        if keys is None:
-            keys = list(self.df.keys())
-
-        tensor_message = self.tensors(keys=keys)
-        self[keys] = tensor_message
-
-        return self
+        return new
 
     def permute(self, index):
         """
@@ -686,6 +701,9 @@ class TensorMessage:
             if not type(value) is torch.Tensor:
                 value = torch.Tensor(value)
             self.tensor_dict[index] = value
+            if self.length == 0: # Update length if inserting into empty TensorMessage
+                self.length = len(value)
+
         elif t is int or t is slice:
             value = TensorMessage(value)
             for key in self.tensor_dict:
@@ -839,6 +857,14 @@ class TensorMessage:
 
     def __repr__(self):
         return "TensorMessage: {0}".format(self.tensor_dict)
+
+    @property
+    def tensor_message(self):
+        return self
+
+    @property
+    def df(self):
+        return pd.DataFrame()
 
     @property
     def columns(self):
