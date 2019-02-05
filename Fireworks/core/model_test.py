@@ -148,14 +148,14 @@ def test_Model_init():
     assert (damura.m == 4.).all()
     assert (damura.b == 5.).all()
 
-def test_Model_save():
+def test_Model_save_load():
 
     # Construct model with inputs and components.
     sabura = DummyModel({'m': [0.]})
     sabura.__name__ = 'sabura'
     damura = DummyModel({'m': [2.]})
     damura.__name__ = 'damura'
-    babura = DummyModel({'m': damura.m, 'b': [4.], 'c': sabura, 'd': torch.nn.Conv2d}, input=damura)
+    babura = DummyModel({'m': damura.m, 'b': [4.], 'c': sabura, 'd': torch.nn.Conv2d(4,5,4)}, input=damura)
     babura.__name__ = 'babura'
 
     if not os.path.isdir('save_test'):
@@ -167,9 +167,15 @@ def test_Model_save():
     files = os.walk('save_test/.').__next__()[2]
     assert len(files) == 3
     # Test different save methods.
-
+    newone = DummyModel({'m': [5.], 'd': torch.nn.Conv2d(4,5,4)})
+    assert (newone.m == 5.).all()
+    old = newone.state_dict()['d.bias'].clone().detach().numpy()
+    newone.load_state_dict('save_test/torch_babura-test.json')
+    assert (newone.m == 2.).all()
+    new = newone.state_dict()['d.bias'].clone().detach().numpy()
+    assert (old != new).any()
+    newone = DummyModel({'m': [5.]})
     shutil.rmtree('save_test')
-    pass
 
 def test_Model_inferencing():
 

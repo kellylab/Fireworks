@@ -139,7 +139,7 @@ class Message:
                 tensors = {}
                 df = {}
                 for key, value in args[0].items():
-                    if type(value) is torch.Tensor or type(value) is torch.Parameter:
+                    if type(value) is torch.Tensor or type(value) is torch.nn.Parameter:
                         tensors[key] = value.reshape(1,*value.shape)
                     else:
                         df[key] = [value]
@@ -355,11 +355,9 @@ class Message:
 
     def __getattr__(self, name):
 
-        if name == 'df':
-            assert False
-        if name in self.df.keys():
+        if name in self.__getattribute__('df').keys():
             return self.df.__getattribute__(name)
-        elif name in self.tensor_message.keys():
+        elif name in self.__getattribute__('tensor_message').keys():
             return self.tensor_dict.__getattr__(name)
         else:
             raise AttributeError("This message has no attribute or column named {0}.".format(name))
@@ -394,7 +392,6 @@ class Message:
         return self.to('dict', *args, **kwargs)
     def to_excel(self, *args, **kwargs): return self.to('excel', *args, **kwargs)
     def to_json(self, *args, **kwargs):
-        assert False
         if 'orient' not in kwargs:
             kwargs['orient']  = 'list'
         return self.to('json', *args, **kwargs)

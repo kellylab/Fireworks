@@ -7,6 +7,7 @@ from .message import Message
 from .junction import Junction
 from .pipe import HookedPassThroughPipe
 import os
+import pandas as pd
 
 class Model(Module, HookedPassThroughPipe, Junction, ABC):
     """
@@ -127,9 +128,32 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
             paths[-1]="{0}-{1}".format(name, paths[-1])
 
         # Get params
-        pytorch_components = self.state_dict() # Modules and parameters
-        other_keys = self.components.keys() - self._parameters.keys()
-        other_components = {key: self.components[key] for key in other_keys}
+        pytorch_parameters = {
+            key: value.clone().detach() for key, value in self.components.items() if
+            isinstance(value, torch.nn.Parameter) or isinstance(value, torch.Tensor)
+            }
+        pytorch_modules = [
+            {key: value.state_dict()} for key, value in self.components.items() if
+            isinstance(value, torch.nn.Module) and not isinstance(value, Model)
+            ]
+        pytorch_modules = {
+            "{0}.{1}".format(outerkey, innerkey): value.clone().detach()
+            for outerdict in pytorch_modules
+            for outerkey, innerdict in outerdict.items()
+            for innerkey, value in innerdict.items()
+            }
+        pytorch_components = {**pytorch_parameters, **pytorch_modules}
+        # pytorch_components = self.state_dict() # Modules and parameters
+
+        # other_keys = self.components.keys() - self._parameters.keys()
+        # other_components = {key: self.components[key] for key in other_keys}
+        other_components = {
+            key: value for key, value in self.components.items() if
+            not isinstance(value, torch.nn.Parameter) and
+            not isinstance(value, torch.Tensor) and
+            not isinstance(value, torch.nn.Module) or
+            isinstance(value, Model)
+        }
 
         # Save pytorch state_dict
         if 'path' in kwargs:
@@ -151,6 +175,36 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
                 self.recursive_call('save',method=method, **kwargs)
             except: #TODO: Make a custom RecursionEnd error to indicate that the recursion has ended in order to provide tighter error checking.
                 pass
+
+    def load(self, *args, **kwargs):
+
+        # Determine file access scheme for inputs/components
+
+        # Load state_dict for this object
+
+        # Recurse
+
+        pass
+
+    def load_state_dict(self, *args, method='json', **kwargs):
+        """
+        Loads the data in the given save file into the state dict.
+        """
+        if 'path' in kwargs:
+            kwargs = kwargs.copy()
+            kwargs['filepath'] = kwargs['path']
+            del kwargs['path']
+
+        methods = {
+            'json': pd.read_json,
+            'pickle': pd.read_pickle,
+            'csv': pd.read_csv,
+        }
+
+        df = methods[method](*args, **kwargs) # Load parameters in
+        state_dict = dict(Message(df).to_tensors()) # Convert to tensors
+        state_dict = {key: value.reshape(*value.shape[1:]) for key, value in state_dict.items()} # Unflatten
+        Module.load_state_dict(self, state_dict)
 
     def update(self, batch, method=None): pass
 
