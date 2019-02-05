@@ -32,3 +32,22 @@ class Junction:
             self.components = {}
         else:
             raise TypeError("Inputs must be a dict of sources, which can be pipes, junctions, or some other object.")
+
+    def save(self, *args, **kwargs):
+
+            save_dict = self._save_hook(*args, **kwargs)
+            if save_dict == {}:
+                pass
+            else:
+                save_df = Message.from_objects(save_dict).to_dataframe().df
+                # Save the df using the given method and arguments
+                # TODO: Implement
+
+                # Save input
+
+            for name, component in self.components.items():
+                component.save(*args, **kwargs)
+
+    def _save_hook(self):
+
+        return {}

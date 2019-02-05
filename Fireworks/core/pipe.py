@@ -116,6 +116,24 @@ class Pipe(ABC):
         response = self.input.recursive_call(attribute, *args, ignore_first=False, **kwargs)
         return response
 
+    def _save_hook(self):
+
+        return {}
+
+    def save(self, *args, **kwargs):
+
+        save_dict = self._save_hook(*args, **kwargs)
+        if save_dict == {}:
+            pass
+        else:
+            save_df = Message.from_objects(save_dict).to_dataframe().df
+            # Save the df using the given method and arguments
+            # TODO: Implement
+
+            # Save input
+
+        self.input.save(*args, **kwargs)
+
     # class recursive_decorator:
     #     """
     #     Decorator that labels a Pipe method as recursive. This means, that method func will first be called on
