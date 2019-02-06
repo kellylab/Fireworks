@@ -41,7 +41,6 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         self.check_components()
         self.update_hook = self.update
         self.forward_hook = self.forward
-        Junction.__init__(self, components=self.components)
         self._flags['components_initialized'] = 1
 
     def init_default_components(self):
@@ -71,30 +70,6 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
 
         self.components = {**self.components, **self._modules, **self._parameters}
         self._flags['components_initialized'] = 1
-
-    def check_components(self, components = None):
-        """
-        Checks to see if the provided components dict provides all necessary params for this model to run.
-        """
-        if components is None:
-            components = self.components
-        missing_components = []
-        error = False
-        # missing_junctions = []
-        for key in self.required_components:
-            if key not in components:
-                missing_components.append(key)
-                error = True
-        if error:
-            raise ParameterizationError("Missing required components {0}".format(missing_components))
-
-    @property
-    def required_components(self):
-        """
-        This should be overridden by a subclass in order to specify components that should be provided during initialization. Otherwise,
-        this will default to just return the components already present within the Model.
-        """
-        return self.components
 
     @abstractmethod
     def forward(self, message):
@@ -227,6 +202,30 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
                 getattr(self,component)._change_temperature(boo) # Recursively freezes Models
             elif isinstance(getattr(self,component), Module): # Is a PyTorch module but not a model.
                 _change_temperature(boo, getattr(self,component))
+
+    def all_parameters(self):
+        """
+        Returns a list of every parameter that this Model depends on that is unfrozen. This is useful for providing a parameters list to
+        an optimizer.
+        """
+        all_params = []
+        # Get parameters
+        all_params.extend([param for param in self.parameters() if param.requires_grad])
+        # Get submodules
+        all_params.extend([list(module.parameters()) for module in self.modules()])
+        # Get components
+        for component in self.components.values():
+            try:
+                all_params.extend(component.all_parameters())
+            except AttributeError:
+                pass
+        # Get from input
+        try:
+            all_params.extend(self.input.all_parameters())
+        except AttributeError:
+            pass
+
+        return all_params
 
     def freeze(self, components = None):
         """

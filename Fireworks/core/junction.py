@@ -26,12 +26,53 @@ class Junction:
 
         if type(components) is dict:
             self.components = components
-        # elif isinstance(inputs, Pipe): # Can give just one pipe as input without having to type out an entire dict
-        #     self.input_sources = {'data': inputs}
         elif components is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
             self.components = {}
         else:
-            raise TypeError("Inputs must be a dict of sources, which can be pipes, junctions, or some other object.")
+            raise TypeError("Inputs must be a dict which can contain pipes, junctions, or some other object.")
+        self.check_components()
+        self.update_components()
+
+    def check_components(self, components = None):
+        """
+        Checks to see if the provided components dict provides all necessary params for this model to run.
+        """
+        if components is None:
+            components = self.components
+        missing_components = []
+        error = False
+        # missing_junctions = []
+        for key in self.required_components:
+            if key not in components:
+                missing_components.append(key)
+                error = True
+        if error:
+            raise ParameterizationError("Missing required components {0}".format(missing_components))
+
+    def type_check(self, key, components):
+
+        if type(self.required_components) is dict:
+            if not isinstance(components[key], self.required_components[key]):
+                # raise ValueError("Component {0} with value {1} is not the correct type. Must be an instance of {2}".format(key, components[key], self.required_components[key))
+                raise ValueError
+        else:
+            return
+
+    def update_components(self, components=None):
+
+        if components is None:
+            components = self.components
+
+        for name in components:
+            self.type_check(name, components)
+
+    @property
+    def required_components(self):
+        """
+        This should be overridden by a subclass in order to specify components that should be provided during initialization. Otherwise,
+        this will default to just return the components already present within the Model.
+        """
+        return self.components.keys()
 
     def save(self, *args, **kwargs):
 

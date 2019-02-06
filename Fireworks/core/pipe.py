@@ -4,6 +4,8 @@ from Fireworks.utils import index_to_list
 from .cache import LRUCache, LFUCache, UnlimitedCache
 from abc import ABC, abstractmethod
 
+#TODO: Make methods/attributes beginning with underscore exempt from recursion in order to simplify namespace issues
+
 class Pipe(ABC):
     """
     The core data structure in fireworks.

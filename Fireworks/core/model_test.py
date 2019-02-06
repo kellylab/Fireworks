@@ -331,6 +331,8 @@ def test_setattr_in_pipeline():
     assert 'yes' not in B.components
     assert B.yes is A.yes
 
+def test_all_parameters(): assert False
+
 def test_multiple_Models_training_in_pipeline():
     """
     Here, model A pipes its output into B

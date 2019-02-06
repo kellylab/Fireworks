@@ -1,20 +1,25 @@
 import abc
-from Fireworks import Message
+from Fireworks import Message, Junction
+from .training import IgniteJunction
 from Fireworks.utils.exceptions import EndHyperparameterOptimization
 from .database import create_table, TablePipe
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import Column
 from sqlalchemy_utils import JSONType as JSON
 from collections import defaultdict
+import types
 
-class Factory:
+class Factory(Junction):
     """
     Base class for parallel hyperparameter optimization in pytorch using queues.
     """
     # NOTE: This is currently not parallelized yet
 
+    required_components = {'trainer': types.FunctionType, 'eval_set': object, 'parameterizer': types.FunctionType}
+
     def __init__(self, trainer, metrics_dict, generator, eval_dataloader, *args, **kwargs):
 
+        Junction.__init__(self)
         self.trainer = trainer
         self.metrics_dict = metrics_dict
         self.generator = generator
