@@ -3,6 +3,7 @@ from Bio import SeqIO
 import pandas as pd
 from .message import Message
 from Fireworks.utils import index_to_list
+from Fireworks.utils.exceptions import ParameterizationError
 from .cache import LRUCache, LFUCache, UnlimitedCache
 from abc import ABC, abstractmethod
 from itertools import count
@@ -65,6 +66,7 @@ class Junction:
 
         for name in components:
             self.type_check(name, components)
+            setattr(self, name, self.components[name])
 
     @property
     def required_components(self):

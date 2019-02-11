@@ -13,13 +13,17 @@ import types
 def default_training_closure(model, optimizer, loss_fn):
 
     def update_function(engine, batch):
+        batch = batch.to_tensors() # TODO: Don't do this
         model.train()
         optimizer.zero_grad()
         output = model(batch)
-        loss = loss_fn(batch)
+        loss = loss_fn(output)
+        loss.backward()
         optimizer.step()
 
         return {'loss': loss, 'optimizer': optimizer.state_dict(), 'output': output}
+
+    return update_function
 
 class IgniteJunction(Junction):
 
@@ -67,28 +71,27 @@ class IgniteJunction(Junction):
 
     def __init__(self, components, loss, optimizer, scheduler=None, update_function=default_training_closure, **kwargs):
 
-        Junction.__init__(self, components)
-
+        Junction.__init__(self, components = components)
         # Initialize engine
-        self.optimizer = optimizers[optimizer](self.model.all_parameters(), **subset_dict(kwargs, optimzer_kwargs[optimizer]))
+        self.optimizer = self.optimizers[optimizer](self.model.all_parameters(), **subset_dict(kwargs, self.optimizer_kwargs[optimizer]))
         if scheduler is not None:
-            self.optimizer = schedulers[scheduler](self.optimizer, **subset_dict(kwargs, scheduler_kwargs[scheduler]))
-        self.loss = loss_fn
+            self.optimizer = self.schedulers[scheduler](self.optimizer, **subset_dict(kwargs, self.scheduler_kwargs[scheduler]))
+        self.loss = loss
         self.update_function = update_function(self.model, self.optimizer, self.loss)
         self.engine = Engine(self.update_function)
 
         # Configure metrics and events
-        self.attach_events()
+        # self.attach_events(environment='default', description='')
 
-    def train(self, dataset = None):
+    def train(self, dataset = None, max_epochs=10):
 
         dataset = dataset or self.dataset
-        self.engine.run(dataset)
+        self.engine.run(dataset, max_epochs=max_epochs)
 
-    def attach_events(self):
+    def attach_events(self, environment, description, save_file = None):
 
         tim = Timer()
-        tim.attach( trainer,
+        tim.attach( self.engine,
                     start=Events.STARTED,
                     step=Events.ITERATION_COMPLETED,
         )
@@ -101,7 +104,7 @@ class IgniteJunction(Junction):
         train_loss_window = create_plot_window(vis, '#Iterations', 'Loss', 'Training Loss {0}'.format(description))
         log_interval = 100
 
-        @self.trainer.on(Events.ITERATION_COMPLETED)
+        @self.engine.on(Events.ITERATION_COMPLETED)
         def plot_training_loss(engine):
             iter = (engine.state.iteration -1)
             if iter % log_interval == 0:
@@ -116,4 +119,4 @@ class IgniteJunction(Junction):
         if save_file is not None:
             save_interval = 50
             handler = ModelCheckpoint('/tmp/models', save_file, save_interval = save_interval, n_saved=5, create_dir=True, require_empty=False)
-            self.trainer.add_event_handler(Events.ITERATION_COMPLETED, handler, {'model': model})
+            self.engine.add_event_handler(Events.ITERATION_COMPLETED, handler, {'model': model})

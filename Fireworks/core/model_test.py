@@ -1,6 +1,7 @@
 from .model import Model, model_from_module
 from Fireworks.utils.exceptions import ParameterizationError
 from Fireworks.toolbox.pipes import BatchingPipe, LoopingPipe, ShufflerPipe, RepeaterPipe
+from Fireworks.utils.test_helpers import DummyModel, DummyMultilinearModel, LinearJunctionModel, LinearModule, RandomJunction, generate_linear_model_data, generate_multilinear_model_data
 from Fireworks import Message, Junction
 import random
 import torch
@@ -11,103 +12,6 @@ import os
 import shutil
 
 loss = torch.nn.MSELoss()
-
-class DummyModel(Model):
-    """ Implements y = m*x + b """
-    required_components = ['m', 'b']
-
-    def __init__(self, components = {}, input = None, in_column = 'x', out_column = 'y'):
-        Model.__init__(self, components, input = input)
-        self.in_column = in_column
-        self.out_column = out_column
-
-    def init_default_components(self):
-        """ Default y-intercept to 0 """
-        self.components['b'] = Parameter(torch.Tensor([0.]))
-
-    def forward(self, message):
-
-        y = self.m*message[self.in_column]+self.b
-        message[self.out_column] = y
-
-        return message
-
-class DummyMultilinearModel(Model):
-    """ Implements y = m1*x1 +m2*x1 + b """
-    required_components = ['m1', 'm2', 'b']
-
-    def init_default_components(self):
-        """ Default y-intercept to 0 """
-        self.components['b'] = Parameter(torch.Tensor([0.]))
-
-    def forward(self, message):
-
-        y = self.m1*message['x1']+ self.m2*message['x2'] + self.b
-        message['y'] = y
-        return message
-
-class LinearJunctionModel(Model):
-    """ Implements y = f(x) + b, where the function f(x) is provided as a junction input. """
-
-    required_components = ['b', 'f']
-
-    def init_default_components(self):
-        """ Default y-intercept to 0 """
-        self.components['b'] = Parameter(torch.Tensor([0.]))
-
-    def forward(self, message):
-
-        y = self.f(message)['z'] + self.b
-        message['y'] = y
-        return message
-
-class LinearModule(torch.nn.Module):
-    """ Dummy PyTorch Module. """
-    def __init__(self):
-        torch.nn.Module.__init__(self)
-        self.m = Parameter(torch.randn(1))
-        self.b = Parameter(torch.randn(1))
-        self.conv1 = torch.nn.Conv2d(1, 20, 5)
-
-    def forward(self, message):
-
-        message['y'] = self.m*message['x']+self.b
-
-        return message
-
-class RandomJunction(Junction):
-
-    def __call__(self, *args, **kwargs):
-
-        target = random.sample(self.components.keys(),1)[0]
-        return self.components[target](*args, **kwargs)
-
-def generate_linear_model_data(n=300):
-    """
-    Generates n samples from a linear model with a small variability.
-    """
-    m = randint(-3,3)
-    b = randint(-10,10)
-    x = np.random.rand(n)*100
-    errors = np.random.normal(0, .4, n) # Gaussian samples for errors
-    y = m*x+b + errors
-
-    return Message({'x':x, 'y_true':y}), {'m': m, 'b': b, 'errors': errors} # Second dict is for debugging
-
-def generate_multilinear_model_data(n=550):
-    """
-    Generates n samples from a multilinear model y = m1*x1 + m2*x2 +b with a small variability.
-    """
-
-    m1 = randint(-5,5)
-    m2 = randint(-5,5)
-    b = randint(-10,10)
-    x1 = np.random.rand(n)*100
-    x2 = np.random.rand(n)*100
-    errors = np.random.normal(0,.1,n) # Gaussian samples for errors
-    y = m1*x1 + m2*x2 + b + errors
-
-    return Message({'x1':x1, 'x2': x2, 'y_true':y}), {'m1': m1, 'm2':m2, 'b': b, 'errors': errors} # Second dict is for debugging
 
 def train_model(model, data, models = None, predicted='y', label='y_true'):
 

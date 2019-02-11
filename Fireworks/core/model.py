@@ -212,7 +212,7 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         # Get parameters
         all_params.extend([param for param in self.parameters() if param.requires_grad])
         # Get submodules
-        all_params.extend([list(module.parameters()) for module in self.modules()])
+        all_params.extend([list(module.parameters()) for module in self.modules() if module is not self]) # TODO: Test this
         # Get components
         for component in self.components.values():
             try:
