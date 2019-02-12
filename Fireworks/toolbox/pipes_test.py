@@ -5,6 +5,7 @@ from Fireworks.toolbox import pipes as pl
 from Fireworks import Message
 from Fireworks.utils import index_to_list
 from Fireworks.utils.test_helpers import *
+import torch
 import numpy as np
 import itertools
 
@@ -207,3 +208,12 @@ def test_FunctionPipe():
     sobby = smart_dummy()
     for single, double in zip(sobby, functron): # We can't iterate through bobby, since that would increment functron as well
         assert double == single.append(single)
+
+def test_TensorPipe():
+
+    bobby = smart_dummy()
+    tensors = pl.TensorPipe(bobby)
+    assert type(tensors[2]['values']) is torch.Tensor
+    assert type(bobby[2]['values']) is pd.Series
+    for x in tensors:
+        assert type(x['values']) is torch.Tensor

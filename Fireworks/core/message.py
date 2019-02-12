@@ -614,6 +614,8 @@ class Message:
         """
         self.tensor_message = self.tensor_message.cuda(device, keys)
 
+        return self
+
 class TensorMessage:
     """
     A TensorMessage is a class for representing data meant for consumption by pytorch as a dictionary of tensors.

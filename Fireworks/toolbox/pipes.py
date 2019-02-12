@@ -620,3 +620,27 @@ class FunctionPipe(HookedPassThroughPipe):
     def _next_hook(self, message): return self._function(message)
 
     def _getitem_hook(self, message): return self._function(message)
+
+class TensorPipe(HookedPassThroughPipe):
+    """
+    This Pipe converts Messages to tensors. You can specify which columns should be converted.
+    """
+    def __init__(self, *args, columns=None, cuda=True, device=0, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self._columns = columns
+        self._cuda = cuda and torch.cuda.is_available()
+        self._device = device
+
+    def _hook(self, message):
+
+        if self._cuda:
+            return message.to_tensors(self._columns).cuda(device=self._device, keys=self._columns)
+        else:
+            return message.to_tensors(self._columns)
+
+    def _call_hook(self, message): return self._hook(message)
+
+    def _next_hook(self, message): return self._hook(message)
+
+    def _getitem_hook(self, message): return self._hook(message)
