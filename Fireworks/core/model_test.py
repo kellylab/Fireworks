@@ -13,6 +13,35 @@ import shutil
 
 loss = torch.nn.MSELoss()
 
+def match(A, B):
+    """
+    Returns all elements of A that are exactly the same as an element of B. ie. a is b for some b in B
+    """
+    matches = []
+    for a in A:
+        for b in B:
+            if a is b:
+                matches.append(a)
+                break
+    return matches
+
+def unique(A):
+    """
+    Returns elements of A that are unique as defined by 'is' an equivalence relation.
+    """
+    unique = []
+    for a1 in A:
+        count = 0
+        for a2 in A:
+            if a1 is a2:
+                count +=1
+                if count > 1:
+                    break
+        if count == 1:
+            unique.append(a1)
+
+    return unique
+
 def train_model(model, data, models = None, predicted='y', label='y_true'):
 
     # Initialize model for training
@@ -235,7 +264,39 @@ def test_setattr_in_pipeline():
     assert 'yes' not in B.components
     assert B.yes is A.yes
 
-def test_all_parameters(): assert False
+def test_all_parameters():
+
+    # Pipe layout
+    A = DummyModel({'m': [3.]}, out_column='y1')
+    B = DummyModel({'m': [1.], 'b': [2.]}, input=A, in_column='y1', out_column='y')
+    assert len(unique(B.all_parameters())) == len(B.all_parameters())
+    matches = match(B.all_parameters(), [B.m, B.b, A.m, A.b])
+    assert len(matches) == 4
+
+    # Component layout
+    A = DummyModel({'m': [0.]})
+    B = model_from_module(LinearModule)()
+    C = DummyModel({'m': [0.]})
+    multilinear = DummyMultilinearModel({'m1':A.m, 'm2': B.m, 'b': C.b})
+    assert len(unique(multilinear.all_parameters())) == len(multilinear.all_parameters())
+    matches = match(multilinear.all_parameters(), [A.m, B.m, C.b])
+    assert len(matches) == 3
+
+    # Component layout
+    A = DummyModel({'m': [1.],'b':[3.]}, out_column='z')
+    B = LinearJunctionModel(components={'b':[.5], 'f':A})
+    assert len(unique(B.all_parameters())) == len(B.all_parameters())
+    matches = match(B.all_parameters(), [A.m, A.b, B.b])
+    assert len(matches) == 3
+
+    # Pipes and components
+    A = DummyModel({'m': [1.],'b':[3.]}, out_column='z')
+    C = DummyModel({'m': [0.]})
+    B = LinearJunctionModel(components={'b':[.5], 'f':A}, input=C)
+
+    assert len(unique(B.all_parameters())) == len(B.all_parameters())
+    matches = match(B.all_parameters(), [A.m, A.b, B.b, C.m, C.b])
+    assert len(matches) == 5
 
 def test_multiple_Models_training_in_pipeline():
     """

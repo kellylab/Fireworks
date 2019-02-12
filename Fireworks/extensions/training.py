@@ -13,7 +13,7 @@ import types
 def default_training_closure(model, optimizer, loss_fn):
 
     def update_function(engine, batch):
-        batch = batch.to_tensors() # TODO: Don't do this
+
         model.train()
         optimizer.zero_grad()
         output = model(batch)
@@ -28,6 +28,10 @@ def default_training_closure(model, optimizer, loss_fn):
 class IgniteJunction(Junction):
 
     required_components = {'model': Model, 'dataset': object}
+
+    # These dictionaries describe the allowed optimizers and learning rate schedulers, along with the keyword arguments that each can accept.
+    # These are all the optimizers/schedulers that PyTorch includes.
+
     optimizers = {
         'Adadelta':  optim.Adadelta,
         'Adagrad': optim.Adagrad,
@@ -81,7 +85,7 @@ class IgniteJunction(Junction):
         self.engine = Engine(self.update_function)
 
         # Configure metrics and events
-        # self.attach_events(environment='default', description='')
+        self.attach_events(environment='default', description='')
 
     def train(self, dataset = None, max_epochs=10):
 
@@ -96,7 +100,7 @@ class IgniteJunction(Junction):
                     step=Events.ITERATION_COMPLETED,
         )
 
-        vis = visdom.Visdom(env=environment) # TODO: Specify which workspace
+        vis = visdom.Visdom(env=environment)
 
         def create_plot_window(vis, xlabel, ylabel, title):
             return vis.line(X=np.array([1]), Y=np.array([np.nan]), opts=dict(xlabel=xlabel, ylabel=ylabel, title=title))

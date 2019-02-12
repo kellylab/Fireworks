@@ -41,6 +41,8 @@ def dummy_dataloader():
 
     return [1,2,3,4]
 
+def test_update(): pass
+
 def test_LocalMemoryFactory():
 
     trainer = dummy_trainer()
@@ -48,7 +50,7 @@ def test_LocalMemoryFactory():
     generator = dummy_generator()
     dataloader = dummy_dataloader()
 
-    memfactory = factory.LocalMemoryFactory(trainer, metrics_dict, generator, dataloader)
+    memfactory = factory.LocalMemoryFactory(components={"trainer": trainer, "metrics": metrics_dict, 'parameterizer': generator, 'eval_set': dataloader})
     memfactory.run()
     params, metrics = memfactory.read()
     assert type(params) is Message
@@ -69,7 +71,7 @@ def test_SQLFactory():
     metrics_table = {'metric': create_table('metrics', columns=[Column('metric', String)])}
 
     engine = create_engine('sqlite:///:memory:')
-    sequel = factory.SQLFactory(trainer, metrics_dict, generator, dataloader, params_table = params_table, metrics_tables = metrics_table, engine=engine)
+    sequel = factory.SQLFactory(components={'trainer':trainer, 'metrics': metrics_dict, 'parameterizer': generator, 'eval_set': dataloader}, params_table = params_table, metrics_tables = metrics_table, engine=engine)
     sequel.run()
     params, metrics = sequel.read()
 

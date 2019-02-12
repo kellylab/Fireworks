@@ -189,3 +189,21 @@ def test_ShufflingPipe():
         if shu['values'][0] != i:
             shuffled = True
     assert shuffled
+
+def test_FunctionPipe():
+
+    bobby = smart_dummy()
+    f = lambda m: m.append(m)
+    functron = pl.FunctionPipe(input=bobby, function=f)
+    # Test call
+    single = bobby()
+    double = functron()
+
+    # Test getitem
+    single = bobby[3:5]
+    double = functron[3:5]
+    assert double == single.append(single)
+    # Test iteration
+    sobby = smart_dummy()
+    for single, double in zip(sobby, functron): # We can't iterate through bobby, since that would increment functron as well
+        assert double == single.append(single)

@@ -1,5 +1,5 @@
 from Fireworks.extensions import training
-from Fireworks.toolbox.pipes import BatchingPipe, ShufflerPipe
+from Fireworks.toolbox.pipes import BatchingPipe, ShufflerPipe, FunctionPipe
 from Fireworks.utils.test_helpers import DummyModel, generate_linear_model_data
 import torch
 
@@ -12,7 +12,13 @@ def test_IgniteJunction():
     model = DummyModel({'m': [1.]})
     # Instantiate dataste
     data, labels = generate_linear_model_data()
-    batcher = BatchingPipe(ShufflerPipe(data), batch_size=50)
+    to_tensor = lambda m: m.to_tensors()
+    batcher = \
+        FunctionPipe(
+            BatchingPipe(
+                ShufflerPipe(data),
+            batch_size=50),
+        function=to_tensor)
     # Instantiate engine
     junkie = training.IgniteJunction({'model': model, 'dataset': batcher}, loss=loss, optimizer='Adam')
     # Train and test that changes took place

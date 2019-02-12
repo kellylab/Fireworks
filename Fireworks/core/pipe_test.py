@@ -33,6 +33,14 @@ def test_PassThroughPipe():
 
     assert Message(i) == Message({'values': [19]})
 
+    # Test private attributes
+    dumbo._hii = 2
+    dumbo.bye = 3
+    assert hasattr(dumbo, '_hii')
+    assert hasattr(dumbo, 'bye')
+    assert not hasattr(pishpish, '_hii')
+    assert hasattr(pishpish, 'bye')
+
 def test_HookedPassThroughPipe():
 
     dumbo = smart_dummy()

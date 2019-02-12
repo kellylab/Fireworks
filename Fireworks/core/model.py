@@ -210,9 +210,9 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         """
         all_params = []
         # Get parameters
-        all_params.extend([param for param in self.parameters() if param.requires_grad])
+        all_params.extend([param for param in self._parameters.values() if param.requires_grad])
         # Get submodules
-        all_params.extend([list(module.parameters()) for module in self.modules() if module is not self]) # TODO: Test this
+        all_params.extend([list(module.parameters()) for module in self._modules.values() if module is not self and not isinstance(module, Model)]) # TODO: Test this
         # Get components
         for component in self.components.values():
             try:
@@ -290,7 +290,7 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
             if name in modules:
                 return modules[name]
 
-        if self._flags['recursive_get']:
+        if not name.startswith('_') and self._flags['recursive_get']:
             try:
                 return HookedPassThroughPipe.__getattr__(self, name)
             except:

@@ -122,6 +122,10 @@ class smart_dummy(Pipe):
         else:
             raise IndexError("Out of bounds for dummy pipe with length {0}.".format(self.length))
 
+    def __call__(self, *args, **kwargs):
+
+        return Message({'values': np.array([1,2,3])})
+
     def reset(self):
         self.count = 0
         return self

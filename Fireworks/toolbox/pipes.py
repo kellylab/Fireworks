@@ -605,3 +605,18 @@ class BatchingPipe(Pipe):
             return batch
         except IndexError:
             raise StopIteration
+
+class FunctionPipe(HookedPassThroughPipe):
+    """
+    This Pipe is initialized with a function that is applied to all instances of __getitem__, __next__, and __call__.
+    This can be useful for quickly inserting a function into the middle of a pipeline.
+    """
+    def __init__(self, *args, function, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._function = function
+
+    def _call_hook(self, message): return self._function(message)
+
+    def _next_hook(self, message): return self._function(message)
+
+    def _getitem_hook(self, message): return self._function(message)

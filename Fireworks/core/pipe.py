@@ -57,16 +57,23 @@ class Pipe(ABC):
         return self.input.__call__(*args, **kwargs)
 
     def __iter__(self, *args, **kwargs):
-        return self.input.__iter__(*args, **kwargs)
 
-    def __getattr__(self, *args, **kwargs):
+        self.input = self.input.__iter__(*args, **kwargs)
+        return self
+
+    def __getattr__(self, name):
         """
         If the current pipe does not have the given attribute, this will recursively
         attempt to get the attribute from the input pipe.
+        This will also not apply to attributes beginning with underscore. This way, Pipes can have local attributes and methods that do
+        not clog up the pipeline namespace.
         This does not intercept special methods (__x__ methods)
         """
 
-        return self.recursive_call(*args, **kwargs) #self.input.__getattribute__(*args, **kwargs)
+        if not name.startswith('_'):
+            return self.recursive_call(name) #self.input.__getattribute__(*args, **kwargs)
+        else:
+            raise AttributeError("Pipe {0} has no attribute called {1}".format(self, name))
 
     def recursive_call(self, attribute, *args, ignore_first = True, **kwargs):
         """
@@ -185,7 +192,7 @@ class HookedPassThroughPipe(Pipe): # BUG NOTE: Methods that return self will bre
 
     def _getitem_hook(self, message): return message
 
-    def _call_hook(self, messsage): return message
+    def _call_hook(self, message): return message
 
     def _next_hook(self, message): return message
 
@@ -203,10 +210,10 @@ class HookedPassThroughPipe(Pipe): # BUG NOTE: Methods that return self will bre
         else:
             return self._call_hook(*args, **kwargs)
 
-    def __iter__(self, *args, **kwargs):
-
-        self.input = self.input.__iter__(*args, **kwargs)
-        return self
+    # def __iter__(self, *args, **kwargs):
+    #
+    #     self.input = self.input.__iter__(*args, **kwargs)
+    #     return self
 
 # def recursive(pipin, target=None, accumulate=False):
 #     """
