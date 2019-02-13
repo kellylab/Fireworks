@@ -39,8 +39,8 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
         self.update_components()
         # self.components.update(components) # Overwrite and/or adds params in the argument.
         self.check_components()
-        self.update_hook = self.update
-        self.forward_hook = self.forward
+        self.enable_updates()
+        self.enable_inference()
         self._flags['components_initialized'] = 1
 
     def init_default_components(self):
@@ -313,21 +313,29 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
             if self._flags['components_initialized']:
                 self.update_components()
 
+    #TODO: Recursify this
+    
     def enable_inference(self):
+
         self.forward_hook = self.forward
+        self.inference_enabled = True
         try:
             self.recursive_call('enable_inference')
         except AttributeError:
             pass
 
     def disable_inference(self): #TODO: test this
+
         self.forward_hook = identity
+        self.inference_enabled = False
         try:
             self.recursive_call('disable_inference')
         except AttributeError:
             pass
 
     def enable_updates(self):
+
+        self.updates_enabled = True
         self.update_hook = self.update
         try:
             self.recursive_call('enable_updates')
@@ -335,15 +343,17 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
             pass
 
     def disable_updates(self):
+
+        self.updates_enabled = True
         self.update_hook = identity
         try:
             self.recursive_call('disable_updates')
         except AttributeError:
             pass
 
-def identity(*args, **kwargs):
+def identity(message, *args, **kwargs):
 
-    return args, kwargs
+    return message
 
 def freeze_module(module, parameters = None, submodules = None):
     """

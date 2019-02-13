@@ -2,9 +2,36 @@ from abc import ABC
 from .message import Message
 from Fireworks.utils import index_to_list
 from .cache import LRUCache, LFUCache, UnlimitedCache
+from types import MethodType
 from abc import ABC, abstractmethod
 
 #TODO: Make methods/attributes beginning with underscore exempt from recursion in order to simplify namespace issues
+
+def recursive(accumulate=False):
+    """
+    Decorator that labels a Pipe method as recursive. This means, that method func will first be called on
+    the Pipe's inputs and then on the Pipe itself.
+    If accumulate is set to True, then the result from calling the method on a given Pipe will be
+    used as input to the next one. If False, then the original arguments will be used when calling
+    the method each time.
+    """
+    def outer(func):
+
+        def wrapper(obj, *args, **kwargs):
+
+            try:
+                response = obj.input.__getattribute__(func.__name__)(*args, **kwargs)
+            except AttributeError:
+                response = None
+
+            if accumulate:
+                return func(obj, response)
+            else:
+                return func(obj, *args, **kwargs)
+
+        return wrapper
+
+    return outer
 
 class Pipe(ABC):
     """
@@ -39,6 +66,7 @@ class Pipe(ABC):
         self.input = input
 
     def __getitem__(self, *args, **kwargs):
+
         return self.input.__getitem__(*args, **kwargs)
 
     def __setitem__(self, *args, **kwargs):
@@ -54,7 +82,7 @@ class Pipe(ABC):
         return self.input.__next__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        return self.input.__call__(*args, **kwargs)
+        return self.recursive_call('__call__', *args, **kwargs)
 
     def __iter__(self, *args, **kwargs):
 
@@ -71,11 +99,11 @@ class Pipe(ABC):
         """
 
         if not name.startswith('_'):
-            return self.recursive_call(name) #self.input.__getattribute__(*args, **kwargs)
+            return self.recursive_call(name, call=False) #self.input.__getattribute__(*args, **kwargs)
         else:
             raise AttributeError("Pipe {0} has no attribute called {1}".format(self, name))
 
-    def recursive_call(self, attribute, *args, ignore_first = True, **kwargs):
+    def recursive_call(self, attribute, *args, ignore_first = True, call=True,  **kwargs):
         """
         Recursively calls method/attribute on input until reaching an upstream Pipe that implements the method and
         returns the response as a message (empty if response is None).
@@ -87,6 +115,7 @@ class Pipe(ABC):
             args: The arguments if this is a recursive method call.
             ignore_first: If True, then ignore whether or not the target attribute is implemented by self. This can be useful if a Pipe
                 implements a method and wants to use an upstream call of the same method as well.
+            call: If True, and the attribute is a method, the method will be called. Otherwise, it will be returned as is.
             kwargs: The kwargs is this is a recursive method call.
 
         Returns:
@@ -95,20 +124,30 @@ class Pipe(ABC):
 
         if not ignore_first:
             if hasattr(self, attribute):
-                if args or kwargs: # Is a method call
-                    return self.__getattribute__(attribute)(*args,**kwargs)
+                try:
+                    attr = self.__getattribute__(attribute)
+                    if type(attr) is MethodType and call:
+                        return attr(*args, **kwargs)
+                    else:
+                        return attr
 
-                else: # Is an attribute
-                    try:
-                        return self.__getattribute__(attribute)
-                    except AttributeError:
-                        return self.__getattr__(attribute)
+                except AttributeError:
+                    return self.__getattr__(attribute)
+
+                # if args or kwargs: # Is a method call
+                #     return self.__getattribute__(attribute)(*args,**kwargs)
+                #
+                # else: # Is an attribute
+                #     try:
+                #         return self.__getattribute__(attribute)
+                #     except AttributeError:
+                #         return self.__getattr__(attribute)
 
         if not hasattr(self, 'input') or self.input is None:
             raise AttributeError("Pipe {0} does not have method/attribute {1}.".format(self.name, str(attribute)))
 
         if not isinstance(self.input, Pipe): # If input is not a pipe, just attempt a non-recursive method/attribute call on input.
-            if args or kwargs: # Is a method call
+            if args or kwargs and call: # Is a method call
                 try:
                     return self.input.__getattribute__(attribute)(*args, **kwargs)
                 except AttributeError:
@@ -122,7 +161,8 @@ class Pipe(ABC):
                     except AttributeError:
                         raise AttributeError("Pipe {0} does not have attribute {1}".format(self.name, str(attribute)))
 
-        response = self.input.recursive_call(attribute, *args, ignore_first=False, **kwargs)
+        response = self.input.recursive_call(attribute, *args, ignore_first=False, call=call, **kwargs)
+
         return response
 
     def _save_hook(self):
@@ -156,12 +196,12 @@ class Pipe(ABC):
     #
     #     def __call__(self, accumulate=True):
     #         def wrapper(func, *args, **kwargs):
-    #             response = self.outer.recursive_call(func.__name__, *args, **kwargs)
-    #             if accumulate:
-    #                 return func(response)
-    #             else:
-    #                 return func(*args, **kwargs)
-    #         return wrapper
+            #     response = self.outer.recursive_call(func.__name__, *args, **kwargs)
+            #     if accumulate:
+            #         return func(response)
+            #     else:
+            #         return func(*args, **kwargs)
+            # return wrapper
 
         # if response:
         #     if isinstance(responses[0], Pipe):
@@ -170,17 +210,6 @@ class Pipe(ABC):
         #         return responses[0]
         #     else:
         #         return {key: response for key, respone in zip(self.inputs.keys(), responses)}
-
-# @deprecated(version='0.2.8', reason="Use Pipe instead.")
-# class PassThroughPipe(Pipe):
-#     """
-#     This Pipe passes through data access calls and methods to its (single) input Pipe except for whatever is overridden by subclasses.
-#     NOTE: Only the special methods explicitly defined here (getitem, len, delitem, setitem, next, iter) are passed through.
-#     Non-special methods are passed through normally.
-#     """
-#
-#     # TODO: Make every Pipe passthrough.
-#     name = 'Passthrough Pipe'
 
 class HookedPassThroughPipe(Pipe): # BUG NOTE: Methods that return self will break the passthrough at the moment
     """
@@ -196,18 +225,22 @@ class HookedPassThroughPipe(Pipe): # BUG NOTE: Methods that return self will bre
 
     def _next_hook(self, message): return message
 
-    def __getitem__(self, *args, **kwargs): # TODO: wrap access methods in try/catch statements
+    def __getitem__(self, item): # TODO: wrap access methods in try/catch statements
 
-        return self._getitem_hook(Message(self.input.__getitem__(*args, **kwargs))) #self.input.__getitem__(*args, **kwargs))
+        return self._getitem_hook(Message(self.input.__getitem__(item))) #self.input.__getitem__(*args, **kwargs))
 
-    def __next__(self, *args, **kwargs):
-        return self._next_hook(Message(self.input.__next__(*args, **kwargs)))
+    def __next__(self):
+        return self._next_hook(Message(self.input.__next__()))
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs): # TODO: Test these hooks more thoroughly.
 
-        if hasattr(self, 'input') and hasattr(self.input, '__call__'):
-            return self._call_hook(self.input.__call__(*args, **kwargs))
-        else:
+        # if hasattr(self, 'input') and hasattr(self.input, '__call__'):
+        #     return self._call_hook(self.recursive_call('__call__', *args, **kwargs))
+        # else:
+        #     return self._call_hook(*args, **kwargs)
+        try:
+            return self._call_hook(self.recursive_call('__call__', *args, **kwargs))
+        except AttributeError:
             return self._call_hook(*args, **kwargs)
 
     # def __iter__(self, *args, **kwargs):

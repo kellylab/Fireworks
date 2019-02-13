@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from Bio import SeqIO
 import pandas as pd
 import Fireworks
-from Fireworks import Pipe, HookedPassThroughPipe
+from Fireworks import Pipe, HookedPassThroughPipe, recursive
 from Fireworks import Message
 from Fireworks.utils import index_to_list
 from Fireworks.core.cache import LRUCache, LFUCache, UnlimitedCache
@@ -38,12 +38,12 @@ class BioSeqPipe(Pipe):
         self.kwargs = kwargs
         self.seq = SeqIO.parse(self.path, self.filetype, **self.kwargs)
 
+    @recursive
     def reset(self):
         """
         Resets the iterator to the beginning of the file. Specifically, it calls SeqIO.parse again as if reinstantiating the object.
         """
         self.seq = SeqIO.parse(self.path, self.filetype, **self.kwargs)
-        return self
 
     def __next__(self):
         """
@@ -63,7 +63,9 @@ class BioSeqPipe(Pipe):
             raise StopIteration
 
     def __iter__(self):
-        return self.reset()
+
+        self.reset()
+        return self
 
 class LoopingPipe(Pipe):
     """
@@ -159,16 +161,21 @@ class LoopingPipe(Pipe):
         if not (hasattr(pipe, '__next__') and hasattr(pipe, 'reset')):
             raise TypeError('Pipe {0} does not have __next__ and reset methods.'.format(name))
 
+    # def reset(self):
+    #     """
+    #     Calls reset on input Pipes and sets position to 0.
+    #     """
+    #     # # for pipe in self.inputs.values():
+    #     #     pipe.reset()
+    #     try:
+    #         self.input.reset()
+    #     except: # TODO: Do proper error catching here
+    #         pass
+    #     self.position = 0
+
+    @recursive()
     def reset(self):
-        """
-        Calls reset on input Pipes and sets position to 0.
-        """
-        # # for pipe in self.inputs.values():
-        #     pipe.reset()
-        try:
-            self.input.reset()
-        except: # TODO: Do proper error catching here
-            pass
+
         self.position = 0
 
     def compute_length(self):
@@ -457,18 +464,26 @@ class RepeaterPipe(Pipe):
         if not isinstance(self.input, Pipe): # TODO: Test this scenario
             self.iterator = iter(input)
 
+    # def reset(self):
+    #     self.iteration = 0
+    #     if not isinstance(self.input, Pipe):
+    #         self.iterator = iter(self.input)
+    #     else:
+    #         try:
+    #             self.recursive_call('reset')
+    #         except:
+    #             pass
+    #         return self
+
+    @recursive()
     def reset(self):
         self.iteration = 0
+
         if not isinstance(self.input, Pipe):
             self.iterator = iter(self.input)
-        else:
-            try:
-                self.recursive_call('reset',)()
-            except:
-                pass
-            return self
 
     def __iter__(self):
+
         self.reset()
         return self
 
@@ -478,13 +493,13 @@ class RepeaterPipe(Pipe):
             return self.iterator.__next__()
         else:
             try:
-                return self.recursive_call('__next__')()
+                return self.recursive_call('__next__')
             except StopIteration:
                 self.iteration += 1
                 if self.iteration >= self.repetitions:
                     raise StopIteration
                 else:
-                    self.recursive_call('reset')()
+                    self.recursive_call('reset')
                     return self.__next__()
 
 class ShufflerPipe(Pipe):
@@ -512,9 +527,8 @@ class ShufflerPipe(Pipe):
             raise TypeError('Pipe {0} does not have __len__ method.'.format(name))
 
     def __getitem__(self, index):
-
         new_index = self.shuffle_indices[index]
-        return self.recursive_call('__getitem__')(new_index.tolist())
+        return self.recursive_call('__getitem__', new_index.tolist())
 
     def __next__(self):
 
@@ -529,17 +543,23 @@ class ShufflerPipe(Pipe):
 
         np.random.shuffle(self.shuffle_indices)
 
+    # def reset(self):
+    #     """
+    #     Triggers a shuffle on reset.
+    #     """
+    #     self.shuffle()
+    #     self.current_index = 0
+    #     try:
+    #         self.recursive_call('reset')
+    #     except AttributeError:
+    #         pass
+    #     return self
+
+    @recursive()
     def reset(self):
-        """
-        Triggers a shuffle on reset.
-        """
+
         self.shuffle()
         self.current_index = 0
-        try:
-            self.recursive_call('reset')()
-        except AttributeError:
-            pass
-        return self
 
     def __iter__(self):
         self.reset()
@@ -590,6 +610,7 @@ class BatchingPipe(Pipe):
         self.reset()
         return self
 
+    @recursive()
     def reset(self):
 
         self.current_index = 0

@@ -1,6 +1,7 @@
 import Fireworks
 import os
 import pandas as pd
+from Fireworks.core.pipe import recursive
 from Fireworks import Message, Junction, Pipe, Model, model_from_module
 from Fireworks.utils import index_to_list
 import numpy as np
@@ -80,26 +81,28 @@ class getitem_dummy(Pipe):
     def __len__(self):
         return self.length
 
-# class recursion_dummy(Pipe):
-#
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.height = 0
-#         self.depth = 0
-#
-#     @self.recursive
-#     def jump(self):
-#         self.height += 1
-#
-#     @self.recursive
-#     def somersault(self, x):
-#
-#         y = x+1
-#         self.depth = y
-#         return y
-#
-#     def poop(self):
-#         return 3
+class recursion_dummy(Pipe):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.height = 0
+        self.depth = 0
+
+    @recursive()
+    def jump(self, n=1):
+        self.height += n
+        return self.height
+
+    @recursive(accumulate=True)
+    def somersault(self, x):
+
+        x = x or 0
+        y = x+1
+        self.depth += y
+        return y
+
+    def poop(self):
+        return 3
 
 class smart_dummy(Pipe):
     """

@@ -31,7 +31,7 @@ class NonlinearModel(Model):
 
         return message
 
-# Construct data, split into train/eval/test, and get get_minibatcher
+# Construct data, split into train/eval/test, and get get_minibatches
 data, params = generate_data(n=1000)
 training = data[0:800]
 evaluation = data[800:900]
