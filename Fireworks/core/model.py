@@ -5,7 +5,7 @@ from abc import abstractmethod
 from Fireworks.utils.exceptions import ParameterizationError
 from .message import Message
 from .junction import Junction
-from .pipe import HookedPassThroughPipe
+from .pipe import HookedPassThroughPipe, recursive
 import os
 import pandas as pd
 
@@ -314,42 +314,58 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
                 self.update_components()
 
     #TODO: Recursify this
-    
+
     def enable_inference(self):
 
         self.forward_hook = self.forward
         self.inference_enabled = True
-        try:
-            self.recursive_call('enable_inference')
-        except AttributeError:
-            pass
+        # try:
+        #     self.recursive_call('enable_inference')
+        # except AttributeError:
+        #     pass
+
+    @recursive()
+    def enable_inference_all(self):
+        self.enable_inference()
 
     def disable_inference(self): #TODO: test this
 
         self.forward_hook = identity
         self.inference_enabled = False
-        try:
-            self.recursive_call('disable_inference')
-        except AttributeError:
-            pass
+        # try:
+        #     self.recursive_call('disable_inference')
+        # except AttributeError:
+        #     pass
+
+    @recursive()
+    def disable_inference_all(self):
+        self.disable_inference()
 
     def enable_updates(self):
 
         self.updates_enabled = True
         self.update_hook = self.update
-        try:
-            self.recursive_call('enable_updates')
-        except AttributeError:
-            pass
+        # try:
+        #     self.recursive_call('enable_updates')
+        # except AttributeError:
+        #     pass
+
+    @recursive()
+    def enable_updates_all(self):
+        self.enable_updates()
 
     def disable_updates(self):
 
         self.updates_enabled = True
         self.update_hook = identity
-        try:
-            self.recursive_call('disable_updates')
-        except AttributeError:
-            pass
+        # try:
+        #     self.recursive_call('disable_updates')
+        # except AttributeError:
+        #     pass
+
+    @recursive()
+    def disable_updates_all(self):
+        self.disable_updates()
 
 def identity(message, *args, **kwargs):
 

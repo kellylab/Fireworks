@@ -209,6 +209,20 @@ class LinearModule(torch.nn.Module):
 
         return message
 
+class DummyUpdateModel(Model):
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self._count = 0
+
+    def update(self, batch, **kwargs):
+
+        self._count += len(batch)
+
+    def forward(self, batch):
+        return batch.append(batch)
+
 class RandomJunction(Junction):
 
     def __call__(self, *args, **kwargs):

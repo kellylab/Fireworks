@@ -1,7 +1,7 @@
 from .model import Model, model_from_module
 from Fireworks.utils.exceptions import ParameterizationError
 from Fireworks.toolbox.pipes import BatchingPipe, LoopingPipe, ShufflerPipe, RepeaterPipe
-from Fireworks.utils.test_helpers import DummyModel, DummyMultilinearModel, LinearJunctionModel, LinearModule, RandomJunction, generate_linear_model_data, generate_multilinear_model_data
+from Fireworks.utils.test_helpers import DummyModel, DummyMultilinearModel, LinearJunctionModel, LinearModule, RandomJunction, generate_linear_model_data, generate_multilinear_model_data, DummyUpdateModel
 from Fireworks import Message, Junction
 import random
 import torch
@@ -378,3 +378,90 @@ def test_multiple_Models_training_via_junction():
     assert (C.m != D.m).all()
     assert (D.m != E.m).all()
     assert (E.m != C.m).all()
+
+def test_enable_disable():
+
+    def get_dummys():
+        """
+        This Model increments it's internal _count variable by the length of the Message being accessed on update.
+        On inference, it simply appends the input to itself and returns that.
+        """
+        dummy = DummyUpdateModel()
+        tummy = DummyUpdateModel(input=dummy)
+        assert dummy._count == 0
+        assert tummy._count == 0
+        return dummy, tummy
+
+    data, meta = generate_linear_model_data()
+    batch = data[2:10]
+    l = len(batch)
+
+    # Test updates and inference for one model
+    dummy, tummy = get_dummys()
+    out = dummy(batch)
+    assert dummy._count == l
+    assert tummy._count == 0
+    assert out == batch.append(batch)
+
+    # Test updates and inference for multiple Models
+    dummy, tummy = get_dummys()
+    out = tummy(batch)
+    assert dummy._count == l
+    assert tummy._count == 2*l
+    assert out == batch.append(batch).append(batch).append(batch) # 4x
+
+    # Test disable updates for one Model
+    dummy, tummy = get_dummys()
+    tummy.disable_updates()
+    out = tummy(batch)
+    assert dummy._count == l
+    assert tummy._count == 0
+    assert out == batch.append(batch).append(batch).append(batch) # 4x
+
+    # Test disable updates for all Models recursively
+    dummy, tummy = get_dummys()
+    tummy.disable_updates_all()
+    out = tummy(batch)
+    assert dummy._count == 0
+    assert tummy._count == 0
+    assert out == batch.append(batch).append(batch).append(batch) # 4x
+    # Test reenabling updates for one Model
+    tummy.enable_updates()
+    out = tummy(batch)
+    assert dummy._count == 0
+    assert tummy._count == 2*l
+    assert out == batch.append(batch).append(batch).append(batch) # 4x
+    # Test reenabling updates for all Models
+    tummy.enable_updates_all()
+    out = tummy(batch)
+    assert dummy._count == l
+    assert tummy._count == 4*l
+    assert out == batch.append(batch).append(batch).append(batch) # 4x
+
+    # Test disable inference for one Model
+    dummy, tummy = get_dummys()
+    tummy.disable_inference()
+    out = tummy(batch)
+    assert dummy._count == l
+    assert tummy._count == 2*l
+    assert out == batch.append(batch) # 2x from the first one
+
+    # Test disable inference for all Models recursively
+    dummy, tummy = get_dummys()
+    tummy.disable_inference_all()
+    out = tummy(batch)
+    assert dummy._count == l
+    assert tummy._count == l
+    assert out == batch # Identity
+    # Test renabling inference for one Model
+    tummy.enable_inference()
+    out = tummy(batch)
+    assert dummy._count == 2*l
+    assert tummy._count == 2*l
+    assert out == batch.append(batch) # 2x from the first one
+    # Test renabling inference for all Models
+    tummy.enable_inference_all()
+    out = tummy(batch)
+    assert dummy._count == 3*l
+    assert tummy._count == 4*l
+    assert out == batch.append(batch).append(batch).append(batch) # 4x from the first one
