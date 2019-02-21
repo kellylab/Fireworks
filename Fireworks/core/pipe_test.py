@@ -100,3 +100,28 @@ def test_recursive_decorator():
     balto.somersault(1)
     assert alto.depth == 2
     assert balto.depth == 4
+
+def test_setstate_getstate():
+
+    dumbo = smart_dummy()
+    dumbo.stateful_attributes = ['length', 'count']
+    for i in range(10):
+        next(dumbo)
+    assert dumbo.count == 10
+    assert dumbo.length == 20
+    state = dumbo.get_state()
+    assert state['internal']['count'] == 10
+    assert state['internal']['length'] == 20
+    new_state = {'internal': {'count': 15, 'length': 30}}
+    dumbo.set_state(new_state)
+    assert dumbo.count == 15
+    assert dumbo.length == 30
+    i = 15
+    while True:
+        try:
+            dumbo.__next__()
+            i += 1
+        except StopIteration:
+            break
+    assert dumbo.count == 31
+    assert i == 30

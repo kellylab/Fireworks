@@ -4,6 +4,7 @@ import pandas as pd
 from .message import Message
 from Fireworks.utils import index_to_list
 from Fireworks.utils.exceptions import ParameterizationError
+from .component_map import Component_Map, PyTorch_Component_Map
 from .cache import LRUCache, LFUCache, UnlimitedCache
 from abc import ABC, abstractmethod
 from itertools import count
@@ -25,7 +26,7 @@ class Junction:
 
     def __init__(self, *args, components=None, **kwargs):
 
-        self.components = Component_Map(self, components)
+        self.components = Component_Map(components)
         self.check_components()
         # self.update_components()
 
@@ -64,8 +65,8 @@ class Junction:
 
     def __setattr__(self, name, value):
 
-        if name.startswith('__'):
-            obj.__setattr__(name, value)
+        if name.startswith('__') or name == 'components':
+            object.__setattr__(self, name, value)
         else:
             self.type_check(name, value)
             self.components[name] = value
@@ -107,3 +108,9 @@ class Junction:
     def _save_hook(self):
 
         return {}
+
+class PyTorch_Junction(Junction):
+
+    def __init__(self, *args, components=None, **kwargs):
+        self.components = PyTorch_Component_Map(components)
+        self.check_components()

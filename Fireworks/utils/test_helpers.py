@@ -2,7 +2,7 @@ import Fireworks
 import os
 import pandas as pd
 from Fireworks.core.pipe import recursive
-from Fireworks import Message, Junction, Pipe, Model, model_from_module
+from Fireworks import Message, Junction, Pipe, Model, PyTorch_Model, model_from_module
 from Fireworks.utils import index_to_list
 import numpy as np
 import math
@@ -135,7 +135,7 @@ class smart_dummy(Pipe):
 
     def __next__(self):
         self.count += 1
-        if self.count <= 20:
+        if self.count <= self.length:
             return Message({'values': np.array([self.count-1])})
         else:
             raise StopIteration# This will trigger StopIteration
@@ -146,12 +146,12 @@ class smart_dummy(Pipe):
     def __iter__(self):
         return self.reset()
 
-class DummyModel(Model):
+class DummyModel(PyTorch_Model):
     """ Implements y = m*x + b """
     required_components = ['m', 'b']
 
     def __init__(self, components = {}, input = None, in_column = 'x', out_column = 'y'):
-        Model.__init__(self, components, input = input)
+        PyTorch_Model.__init__(self, components, input = input)
         self.in_column = in_column
         self.out_column = out_column
 
@@ -166,7 +166,7 @@ class DummyModel(Model):
 
         return message
 
-class DummyMultilinearModel(Model):
+class DummyMultilinearModel(PyTorch_Model):
     """ Implements y = m1*x1 +m2*x1 + b """
     required_components = ['m1', 'm2', 'b']
 
@@ -180,7 +180,7 @@ class DummyMultilinearModel(Model):
         message['y'] = y
         return message
 
-class LinearJunctionModel(Model):
+class LinearJunctionModel(PyTorch_Model):
     """ Implements y = f(x) + b, where the function f(x) is provided as a junction input. """
 
     required_components = ['b', 'f']
@@ -209,7 +209,7 @@ class LinearModule(torch.nn.Module):
 
         return message
 
-class DummyUpdateModel(Model):
+class DummyUpdateModel(PyTorch_Model):
 
     def __init__(self, *args, **kwargs):
 

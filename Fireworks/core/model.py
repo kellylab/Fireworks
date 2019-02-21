@@ -4,14 +4,13 @@ from torch.nn import Module, Parameter
 from abc import abstractmethod
 from Fireworks.utils.exceptions import ParameterizationError
 from .message import Message
-from .junction import Junction
+from .junction import Junction, PyTorch_Junction
+from .component_map import Component_Map, PyTorch_Component_Map
 from .pipe import HookedPassThroughPipe, recursive
 import os
 import pandas as pd
 
-class Model(HookedPassThroughPipe, Junction, ABC): pass
-
-class PyTorchModel(Module, Model):
+class Model(HookedPassThroughPipe, Junction, ABC):
     """
     Represents a statistical model which has a set of components, and a
     means for converting inputs into outputs. The model functions like a Pipe
@@ -24,7 +23,7 @@ class PyTorchModel(Module, Model):
 
     # TODO: Add methods to move model components to and from GPU
 
-    def __init__(self, components = {}, *args, input = None, skip_module_init=False, **kwargs):
+    def __init__(self, components = {}, *args, input = None, **kwargs):
         """
         Args:
             components: A dict of components that the model can call on.
@@ -33,14 +32,14 @@ class PyTorchModel(Module, Model):
         # self._public_components = {}
         # self._private_components = {}
         # self._private_submodules = {}
-        self.components = Component_Map(self, components)
-
-        if not skip_module_init: # This is so the ModelFromModule Class can work.
-            Module.__init__(self)
+        # self.components = Component_Map(self, components)
+        self.components = Component_Map(components, owner=self)
+        # if not skip_module_init: # This is so the ModelFromModule Class can work.
+        #     Module.__init__(self)
         HookedPassThroughPipe.__init__(self, input = input)
 
         self.init_default_components()
-        self.update_components(components)
+        # self.update_components(components)
         # self.update_components()
         # self.components.update(components) # Overwrite and/or adds params in the argument.
         # self.check_components()
@@ -55,30 +54,30 @@ class PyTorchModel(Module, Model):
         """
         pass
 
-    def update_components(self, components = None):
-
-        self._flags['components_initialized'] = 0
-        self.components = {**self.components, **self._public_components, **self._private_components, **self._modules, **self._parameters}
-
-        if components is None:
-            components = self.components
-
-        for key, component in components.items():
-
-            if linker(component):
-                # Update private attributes if the component is part of another Model.
-                model, key = component
-                value = to_parameter(getattr(model, key))
-                self._private_components[key] = value
-                self._private_models[key] = model
-                setattr(self, key, value)
-                # Update public attributes if the component is natively part of this Model.
-            else:
-                self._public_components[key] = component
-                setattr(self, key, component)
-
-        self.components = {**self._public_components, **self._private_components, **self._modules, **self._parameters}
-        self._flags['components_initialized'] = 1
+    # def update_components(self, components = None):
+    #
+    #     self._flags['components_initialized'] = 0
+    #     self.components = {**self.components, **self._public_components, **self._private_components, **self._modules, **self._parameters}
+    #
+    #     if components is None:
+    #         components = self.components
+    #
+    #     for key, component in components.items():
+    #
+    #         if linker(component):
+    #             # Update private attributes if the component is part of another Model.
+    #             model, key = component
+    #             value = to_parameter(getattr(model, key))
+    #             self._private_components[key] = value
+    #             self._private_models[key] = model
+    #             setattr(self, key, value)
+    #             # Update public attributes if the component is natively part of this Model.
+    #         else:
+    #             self._public_components[key] = component
+    #             setattr(self, key, component)
+    #
+    #     self.components = {**self._public_components, **self._private_components, **self._modules, **self._parameters}
+    #     self._flags['components_initialized'] = 1
 
     @abstractmethod
     def forward(self, message):
@@ -88,59 +87,59 @@ class PyTorchModel(Module, Model):
         """
         pass
 
-    def get_state(self):
+    # def get_state(self):
+    #
+    #     # Get params
+    #     pytorch_parameters = {
+    #         key: value.clone().detach() for key, value in self._public_components.items() if
+    #         isinstance(value, torch.nn.Parameter) or isinstance(value, torch.Tensor)
+    #         }
+    #     pytorch_modules = [
+    #         {key: value.state_dict()} for key, value in self._public_components.items() if
+    #         isinstance(value, torch.nn.Module) and not isinstance(value, Model)
+    #         ]
+    #     pytorch_modules = { # Unwrap all parameters associated with pytorch modules
+    #         "{0}.{1}".format(outerkey, innerkey): value.clone().detach()
+    #         for outerdict in pytorch_modules
+    #         for outerkey, innerdict in outerdict.items()
+    #         for innerkey, value in innerdict.items()
+    #         }
+    #     pytorch_components = {**pytorch_parameters, **pytorch_modules}
+    #
+    #     other_components = {
+    #         key: value for key, value in self._public_components.items() if
+    #         not isinstance(value, torch.nn.Parameter) and
+    #         not isinstance(value, torch.Tensor) and
+    #         not isinstance(value, torch.nn.Module) or
+    #         isinstance(value, Model)
+    #     }
+    #
+    #     extrinsic_models = self._private_models
+    #
+    #     return pytorch_parameters, pytorch_modules, other_components, extrinsic_models
 
-        # Get params
-        pytorch_parameters = {
-            key: value.clone().detach() for key, value in self._public_components.items() if
-            isinstance(value, torch.nn.Parameter) or isinstance(value, torch.Tensor)
-            }
-        pytorch_modules = [
-            {key: value.state_dict()} for key, value in self._public_components.items() if
-            isinstance(value, torch.nn.Module) and not isinstance(value, Model)
-            ]
-        pytorch_modules = { # Unwrap all parameters associated with pytorch modules
-            "{0}.{1}".format(outerkey, innerkey): value.clone().detach()
-            for outerdict in pytorch_modules
-            for outerkey, innerdict in outerdict.items()
-            for innerkey, value in innerdict.items()
-            }
-        pytorch_components = {**pytorch_parameters, **pytorch_modules}
-
-        other_components = {
-            key: value for key, value in self._public_components.items() if
-            not isinstance(value, torch.nn.Parameter) and
-            not isinstance(value, torch.Tensor) and
-            not isinstance(value, torch.nn.Module) or
-            isinstance(value, Model)
-        }
-
-        extrinsic_models = self._private_models
-
-        return pytorch_parameters, pytorch_modules, other_components, extrinsic_models
-
-    def set_state(self, state, reset=False):
-
-        components = {}
-        # Set parameters
-        if 'parameters' in state:
-            components = {**components, **state['parameters']}
-        # Set modules
-        if 'modules' in state:
-            components = {**components, **state['modules']}
-        # Set other components
-        if 'components' in state:
-            components = {**components, **state['components']}
-        # Set extrinsic models
-        if 'extrinsic' in state:
-            components = {**components, **state['extrinsic']}
-
-        if reset:
-            self._flags['components_initialized'] = 0
-            self.components = {}
-            self._flags['components_initialized'] = 1
-
-        self.update_components(state)
+    # def set_state(self, state, reset=False):
+    #
+    #     components = {}
+    #     # Set parameters
+    #     if 'parameters' in state:
+    #         components = {**components, **state['parameters']}
+    #     # Set modules
+    #     if 'modules' in state:
+    #         components = {**components, **state['modules']}
+    #     # Set other components
+    #     if 'components' in state:
+    #         components = {**components, **state['components']}
+    #     # Set extrinsic models
+    #     if 'extrinsic' in state:
+    #         components = {**components, **state['extrinsic']}
+    #
+    #     if reset:
+    #         self._flags['components_initialized'] = 0
+    #         self.components = {}
+    #         self._flags['components_initialized'] = 1
+    #
+    #     self.update_components(state)
 
     def save(self, *args, method='json', **kwargs):
         """
@@ -250,80 +249,22 @@ class PyTorchModel(Module, Model):
 
     def compile(self): pass
 
-    def _change_temperature(self, boo, components = None):
-
-        self.update_components() # This is here so that the model checks to see if Parameters/Modules have changed before freezing/unfreezing
-
-        if isinstance(components, str): # eg. a single component is provided as a string
-            components = [components]
-
-        if components is None:
-            components = self.components
-
-        for component in components:
-            if isinstance(getattr(self, component), Parameter):
-                getattr(self, component).requires_grad = boo
-            elif isinstance(getattr(self,component), Model):
-                getattr(self,component)._change_temperature(boo) # Recursively freezes Models
-            elif isinstance(getattr(self,component), Module): # Is a PyTorch module but not a model.
-                _change_temperature(boo, getattr(self,component))
-
-    def all_parameters(self):
-        """
-        Returns a list of every parameter that this Model depends on that is unfrozen. This is useful for providing a parameters list to
-        an optimizer.
-        """
-        all_params = []
-        # Get parameters
-        all_params.extend([param for param in self._parameters.values() if param.requires_grad])
-        # Get submodules
-        all_params.extend([list(module.parameters()) for module in self._modules.values() if module is not self and not isinstance(module, Model)]) # TODO: Test this
-        # Get components
-        for component in self.components.values():
-            try:
-                all_params.extend(component.all_parameters())
-            except AttributeError:
-                pass
-        # Get from input
-        try:
-            all_params.extend(self.input.all_parameters())
-        except AttributeError:
-            pass
-
-        return all_params
-
-    def freeze(self, components = None):
-        """
-        Freezes the given components of the model (or all of them if none are specified) in order to prevent gradient updates.
-        This means setting requires_grad to false for specified components so that these components
-        are not updated during training.
-        """
-        self._change_temperature(False, components)
-
-    def unfreeze(self, components = None):
-        """
-        Unfreezes the given components of the model (or all of them if none are specified) in order to prevent gradient updates.
-        This means setting requires_grad to true for specified components so that these components
-        are updated during training.
-        """
-        self._change_temperature(True, components)
-
     # TODO: Figure out model i/o
     # TODO: Implement description methods
 
     def _getitem_hook(self, message):
 
-        self.update_hook(message, method='get')
+        self.__update_hook(message, method='get')
         return self.forward_hook(message)
 
     def _next_hook(self, message):
 
-        self.update_hook(message, method='next')
+        self.__update_hook(message, method='next')
         return self.forward_hook(message)
 
     def _call_hook(self, message, *args, **kwargs):
 
-        self.update_hook(message, method='call')
+        self.__update_hook(message, method='call')
         return self.forward_hook(message, *args, **kwargs)
         # try: # This will trigger a recursive call if possible.
         #     message = self.recursive_call('__call__')(message, *args, **kwargs)
@@ -338,7 +279,7 @@ class PyTorchModel(Module, Model):
 
     def __getattr__(self, name):
 
-        if name in self.components:
+        if self._flags['components_initialized'] and name in self.components:
             return self.components[name]
 
         # if '_parameters' in self.__dict__:
@@ -363,20 +304,20 @@ class PyTorchModel(Module, Model):
         raise AttributeError("'{}' object has no attribute '{}'".format(
             type(self).__name__, name))
 
-    def __setattr__(self, name, value):
-        """
-        Attribute modifications ignore the recursive aspect of Pipes.
-        """
-
-        if name in ['_flags', 'input']:
-            object.__setattr__(self, name, value)
-        else:
-            self._flags['recursive_get'] = 0
-            Module.__setattr__(self, name, value)
-            self._flags['recursive_get'] = 1
-            if self._flags['components_initialized']:
-                # self.update_components()
-                self.components[name] = value
+    # def __setattr__(self, name, value):
+    #     """
+    #     Attribute modifications ignore the recursive aspect of Pipes.
+    #     """
+    #
+    #     if name in ['_flags', 'input']:
+    #         object.__setattr__(self, name, value)
+    #     else:
+    #         self._flags['recursive_get'] = 0
+    #         Module.__setattr__(self, name, value)
+    #         self._flags['recursive_get'] = 1
+    #         if self._flags['components_initialized']:
+    #             # self.update_components()
+    #             self.components[name] = value
 
     def enable_inference(self):
 
@@ -452,7 +393,7 @@ def model_from_module(module_class):
     Given the class definition for a pytorch module, returns a model that
     encapsulates that module.
     """
-    class ModelFromModule(module_class, Model):
+    class ModelFromModule(module_class, PyTorch_Model):
 
         def __init__(self, components={}, *args, input=None, **kwargs):
             self._flags = {'recursive_get': 1, 'components_initialized': 0}
@@ -482,9 +423,132 @@ def to_parameter(component):
             pass
     return component
 
-def linker(component):
-    """
-    Returns true if the component is actually part of another model. This is used by the update_components method in Model to determine if
-    a component should be considered part of the Model or part of another existing Model. Currently, this just checks if the argument is a tuple.
-    """
-    return type(component) is tuple and len(component) == 2
+# def linker(component):
+#     """
+#     Returns true if the component is actually part of another model. This is used by the update_components method in Model to determine if
+#     a component should be considered part of the Model or part of another existing Model. Currently, this just checks if the argument is a tuple.
+#     """
+#     return type(component) is tuple and len(component) == 2
+
+class PyTorch_Model(Module, Model, PyTorch_Junction ):
+
+    def __init__(self, components={}, *args, input=None, skip_module_init=False, **kwargs):
+        self._flags = {'recursive_get': 1, 'components_initialized': 0} # Used for controlling recursion. Don't mess with this.
+        # self._public_components = {}
+        # self._private_components = {}
+        # self._private_submodules = {}
+        # self.components = Component_Map(self, components
+        if not skip_module_init: # This is so the ModelFromModule Class can work.
+            Module.__init__(self)
+        self.components = PyTorch_Component_Map(components, model=self)
+        HookedPassThroughPipe.__init__(self, input = input)
+
+        self.init_default_components()
+        # self.update_components(components)
+        # self.update_components()
+        # self.components.update(components) # Overwrite and/or adds params in the argument.
+        # self.check_components()
+        self.enable_updates()
+        self.enable_inference()
+        self._flags['components_initialized'] = 1
+
+    def __setattr__(self, name, value):
+        """
+        Attribute modifications ignore the recursive aspect of Pipes.
+        """
+
+        if name in ['_flags', 'input']:
+            object.__setattr__(self, name, value)
+        else:
+            if self._flags['components_initialized']:
+                # self.update_components()
+                self.components[name] = value
+            self._flags['recursive_get'] = 0
+            Module.__setattr__(self, name, value)
+            self._flags['recursive_get'] = 1
+
+    def __getattr__(self, name):
+
+        return Model.__getattr__(self, name)
+
+    def all_parameters(self):
+        """
+        Returns a list of every parameter that this Model depends on that is unfrozen. This is useful for providing a parameters list to
+        an optimizer.
+        """
+        assert False
+        all_params = []
+        # Get parameters
+        all_params.extend([param for param in self._parameters.values() if param.requires_grad])
+        # Get submodules
+        all_params.extend([list(module.parameters()) for module in self._modules.values() if module is not self and not isinstance(module, Model)]) # TODO: Test this
+        # Get components
+        for component in self.components.values():
+            try:
+                all_params.extend(component.all_parameters())
+            except AttributeError:
+                pass
+        # Get from input
+        try:
+            all_params.extend(self.input.all_parameters())
+        except AttributeError:
+            pass
+
+        return all_params
+
+    # def parameters(self):
+    #     """
+    #     Returns a list of every parameter that is internal to this Model along
+    #     with every parameter associated with Modules internal to this Model.
+    #     """
+    #     pass
+    #
+    # @property
+    # def _parameters(self):
+    #     """
+    #     Returns a list of every parameter that is internal to this Model.
+    #     """
+    #     return {
+    #         key: value for key, value in self.components._internal_components.items()
+    #         if isinstance(value, Parameter)
+    #         }
+    #
+    # @property
+    # def _modules(self):
+    #     """
+    #     Returns an OrderedDict of every parameter that is part of a Module internal
+    #     to this Model.
+    #     """
+    #     pass
+
+    def freeze(self, components = None):
+        """
+        Freezes the given components of the model (or all of them if none are specified) in order to prevent gradient updates.
+        This means setting requires_grad to false for specified components so that these components
+        are not updated during training.
+        """
+        self._change_temperature(False, components)
+
+    def unfreeze(self, components = None):
+        """
+        Unfreezes the given components of the model (or all of them if none are specified) in order to prevent gradient updates.
+        This means setting requires_grad to true for specified components so that these components
+        are updated during training.
+        """
+        self._change_temperature(True, components)
+
+    def _change_temperature(self, boo, components = None):
+
+        if isinstance(components, str): # eg. a single component is provided as a string
+            components = [components]
+
+        if components is None:
+            components = self.components
+
+        for component in components:
+            if isinstance(getattr(self, component), Parameter):
+                getattr(self, component).requires_grad = boo
+            elif isinstance(getattr(self,component), Model):
+                getattr(self,component)._change_temperature(boo) # Recursively freezes Models
+            elif isinstance(getattr(self,component), Module): # Is a PyTorch module but not a model.
+                _change_temperature(boo, getattr(self,component))

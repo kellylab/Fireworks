@@ -1,13 +1,19 @@
+import torch
+from torch.nn import Parameter, Module
 
 class Component_Map(dict):
     """
     This is a bank.
     """
 
-    def __init__(self, kwargs):
+    def __init__(self, components, owner=None):
 
         dict.__init__(self)
-        for key, value in kwargs.items():
+        self._external_modules = {}
+        self._external_attribute_names = {}
+        self._internal_components = {}
+        # self.owner = owner
+        for key, value in components.items():
             self[key] = value
 
     def __setitem__(self, key, val):
@@ -15,6 +21,9 @@ class Component_Map(dict):
         if type(val) is tuple and len(val) is 2 and type(val[1]) is str and hasattr(val[0], val[1]):
             # Very specific test to check if the intention is to link an attribute inside of another
             # object to this Component Map rather than simply set the value of the key to a tuple.
+            if key in self._internal_components:
+                # Delete from internal components if this key already exists
+                del self[key]
             obj, attribute = val
             value = getattr(obj, attribute)
             # key, value = self.setitem_hook(key, value)
@@ -22,6 +31,9 @@ class Component_Map(dict):
             self._external_modules[key] = obj
             self._external_attribute_names[key] = attribute
         else:
+            if key in self._external_modules:
+                # Deelte from external components if this key already exists.
+                del self[key]
             value = val
             key, value = self.setitem_hook(key, value)
             self._internal_components[key] = value
@@ -35,7 +47,7 @@ class Component_Map(dict):
 
         try:
             dict.__delitem__(self, key)
-            for d in [self._external_attribute_names, self._extrnal_modules, self._internal_components]:
+            for d in [self._external_attribute_names, self._external_modules, self._internal_components]:
                 if key in d:
                     del d[key]
         except KeyError:
@@ -57,6 +69,18 @@ class Component_Map(dict):
         """
         return key, value
 
+    def set_state(self, state):
+
+        for key, value in {**state['internal'], **state['external']}.items():
+            self[key] = value
+
+    def get_state(self):
+
+        internal = self._internal_components
+        external = {key: (self._external_modules[key], self._external_attribute_names[key]) for key in self._external_modules}
+
+        return {'internal': internal, 'external': external}
+
     # def getitem_hook(self, value):
     #     """
     #     This can be overridden by a subclass in order to implement specific actions
@@ -66,9 +90,23 @@ class Component_Map(dict):
 
 class PyTorch_Component_Map(Component_Map):
 
+    def __init__(self, components, model=None):
+        self.model = model
+        Component_Map.__init__(self, components)
+
+    def __setitem__(self, key, val):
+        Component_Map.__setitem__(self, key, val)
+        # This allows the Module superclass to register the parameters.
+        if self.model is not None and key in self._internal_components:
+            val = self[key]
+            i = self.model._flags['components_initialized']
+            self.model._flags['components_initialized'] = 0
+            setattr(self.model, key, val)
+            self.model._flags['components_initialized'] = i
+
     def hook(self, key, value):
 
-        if not isinstance(value, Parameter) and not isinstance(value, Module): # Convert to Parameter
+        if not isinstance(value, Parameter) and not isinstance(value, Module) and hasattr(value, '__len__'): # Convert to Parameter
             try:
                 value = Parameter(torch.Tensor(value))
             except:
