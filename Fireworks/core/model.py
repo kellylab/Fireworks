@@ -9,7 +9,9 @@ from .pipe import HookedPassThroughPipe, recursive
 import os
 import pandas as pd
 
-class Model(Module, HookedPassThroughPipe, Junction, ABC):
+class Model(HookedPassThroughPipe, Junction, ABC): pass
+
+class PyTorchModel(Module, Model):
     """
     Represents a statistical model which has a set of components, and a
     means for converting inputs into outputs. The model functions like a Pipe
@@ -28,9 +30,10 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
             components: A dict of components that the model can call on.
         """
         self._flags = {'recursive_get': 1, 'components_initialized': 0} # Used for controlling recursion. Don't mess with this.
-        self._public_components = {}
-        self._private_components = {}
-        self._private_submodules = {}
+        # self._public_components = {}
+        # self._private_components = {}
+        # self._private_submodules = {}
+        self.components = Component_Map(self, components)
 
         if not skip_module_init: # This is so the ModelFromModule Class can work.
             Module.__init__(self)
@@ -38,9 +41,9 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
 
         self.init_default_components()
         self.update_components(components)
-        self.update_components()
+        # self.update_components()
         # self.components.update(components) # Overwrite and/or adds params in the argument.
-        self.check_components()
+        # self.check_components()
         self.enable_updates()
         self.enable_inference()
         self._flags['components_initialized'] = 1
@@ -335,18 +338,21 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
 
     def __getattr__(self, name):
 
-        if '_parameters' in self.__dict__:
-            _parameters = self.__dict__['_parameters']
-            if name in _parameters:
-                return _parameters[name]
-        if '_buffers' in self.__dict__:
-            _buffers = self.__dict__['_buffers']
-            if name in _buffers:
-                return _buffers[name]
-        if '_modules' in self.__dict__:
-            modules = self.__dict__['_modules']
-            if name in modules:
-                return modules[name]
+        if name in self.components:
+            return self.components[name]
+
+        # if '_parameters' in self.__dict__:
+        #     _parameters = self.__dict__['_parameters']
+        #     if name in _parameters:
+        #         return _parameters[name]
+        # if '_buffers' in self.__dict__:
+        #     _buffers = self.__dict__['_buffers']
+        #     if name in _buffers:
+        #         return _buffers[name]
+        # if '_modules' in self.__dict__:
+        #     modules = self.__dict__['_modules']
+        #     if name in modules:
+        #         return modules[name]
 
         if not name.startswith('_') and self._flags['recursive_get']:
             try:
@@ -369,18 +375,13 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
             Module.__setattr__(self, name, value)
             self._flags['recursive_get'] = 1
             if self._flags['components_initialized']:
-                self.update_components()
-
-    #TODO: Recursify this
+                # self.update_components()
+                self.components[name] = value
 
     def enable_inference(self):
 
         self.forward_hook = self.forward
         self.inference_enabled = True
-        # try:
-        #     self.recursive_call('enable_inference')
-        # except AttributeError:
-        #     pass
 
     @recursive()
     def enable_inference_all(self):
@@ -388,12 +389,8 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
 
     def disable_inference(self): #TODO: test this
 
-        self.forward_hook = identity
-        self.inference_enabled = False
-        # try:
-        #     self.recursive_call('disable_inference')
-        # except AttributeError:
-        #     pass
+        self.__forward_hook = identity
+        self.__inference_enabled = False
 
     @recursive()
     def disable_inference_all(self):
@@ -401,12 +398,8 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
 
     def enable_updates(self):
 
-        self.updates_enabled = True
-        self.update_hook = self.update
-        # try:
-        #     self.recursive_call('enable_updates')
-        # except AttributeError:
-        #     pass
+        self.__updates_enabled = True
+        self.__update_hook = self.update
 
     @recursive()
     def enable_updates_all(self):
@@ -414,8 +407,8 @@ class Model(Module, HookedPassThroughPipe, Junction, ABC):
 
     def disable_updates(self):
 
-        self.updates_enabled = True
-        self.update_hook = identity
+        self.__updates_enabled = True
+        self.__update_hook = identity
         # try:
         #     self.recursive_call('disable_updates')
         # except AttributeError:

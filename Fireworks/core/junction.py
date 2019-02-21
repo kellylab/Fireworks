@@ -25,14 +25,9 @@ class Junction:
 
     def __init__(self, *args, components=None, **kwargs):
 
-        if type(components) is dict:
-            self.components = components
-        elif components is None: # Subclasses can have their own method for creating an inputs_dict and just leave this argument blank
-            self.components = {}
-        else:
-            raise TypeError("Inputs must be a dict which can contain pipes, junctions, or some other object.")
+        self.components = Component_Map(self, components)
         self.check_components()
-        self.update_components()
+        # self.update_components()
 
     def check_components(self, components = None):
         """
@@ -42,7 +37,6 @@ class Junction:
             components = self.components
         missing_components = []
         error = False
-        # missing_junctions = []
         for key in self.required_components:
             if key not in components:
                 missing_components.append(key)
@@ -59,14 +53,29 @@ class Junction:
         else:
             return
 
-    def update_components(self, components=None):
+    # def update_components(self, components=None):
+    #
+    #     if components is None:
+    #         components = self.components
+    #
+    #     for name in components:
+    #         self.type_check(name, components)
+    #         setattr(self, name, self.components[name])
 
-        if components is None:
-            components = self.components
+    def __setattr__(self, name, value):
 
-        for name in components:
-            self.type_check(name, components)
-            setattr(self, name, self.components[name])
+        if name.startswith('__'):
+            obj.__setattr__(name, value)
+        else:
+            self.type_check(name, value)
+            self.components[name] = value
+
+    def __getattr__(self, name):
+
+        if name in self.components:
+            return self.components[name]
+        else:
+            raise AttributeError
 
     @property
     def required_components(self):
@@ -75,6 +84,10 @@ class Junction:
         this will default to just return the components already present within the Model.
         """
         return self.components.keys()
+
+    def set_state(self, state): self.components.set_state(state)
+
+    def get_state(self, state): return self.components.get_state()
 
     def save(self, *args, **kwargs):
 

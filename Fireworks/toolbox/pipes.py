@@ -650,13 +650,13 @@ class TensorPipe(HookedPassThroughPipe):
 
         super().__init__(*args, **kwargs)
         self._columns = columns
-        self._cuda = cuda and torch.cuda.is_available()
-        self._device = device
+        self.__cuda = cuda and torch.cuda.is_available()
+        self.__device = device
 
     def _hook(self, message):
 
         if self._cuda:
-            return message.to_tensors(self._columns).cuda(device=self._device, keys=self._columns)
+            return message.to_tensors(self._columns).cuda(device=self.__device, keys=self._columns)
         else:
             return message.to_tensors(self._columns)
 

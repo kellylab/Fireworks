@@ -64,6 +64,7 @@ class Pipe(ABC):
     def __init__(self, input = None, *args, **kwargs):
 
         self.input = input
+        self.state = Component_Map()
 
     def __getitem__(self, *args, **kwargs):
 
@@ -102,6 +103,18 @@ class Pipe(ABC):
             return self.recursive_call(name, call=False) #self.input.__getattribute__(*args, **kwargs)
         else:
             raise AttributeError("Pipe {0} has no attribute called {1}".format(self, name))
+
+    def __setattr__(self, name, value):
+
+        if not name.startswith('__'):
+            self.state[name] = value
+        object.__setattr__(name, value)
+
+    def get_state(self):
+        return self.state.get_state()
+
+    def set_state(self, state):
+        self.state.set_state(state)
 
     def recursive_call(self, attribute, *args, ignore_first = True, call=True,  **kwargs):
         """
