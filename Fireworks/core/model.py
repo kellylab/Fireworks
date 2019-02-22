@@ -245,7 +245,14 @@ class Model(HookedPassThroughPipe, Junction, ABC):
         state_dict = {key: value.reshape(*value.shape[1:]) for key, value in state_dict.items()} # Unflatten
         Module.load_state_dict(self, state_dict)
 
-    def update(self, batch, method=None): pass
+    def get_state(self):
+        return self.components.get_state()
+
+    def set_state(self, state, reset=True):
+        # self.components =
+        pass
+
+    def update(self): pass
 
     def compile(self): pass
 
@@ -398,7 +405,8 @@ def model_from_module(module_class):
         def __init__(self, components={}, *args, input=None, **kwargs):
             self._flags = {'recursive_get': 1, 'components_initialized': 0}
             module_class.__init__(self, *args, **kwargs)
-            Model.__init__(self, components, input=input, skip_module_init=True)
+            PyTorch_Model.__init__(self, components, input=input, skip_module_init=True)
+            PyTorch_Model._sync_parameters(self)
 
         def __call__(self, message, *args, **kwargs):
             try: # This will trigger a recursive call if possible.
@@ -440,10 +448,13 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
         # self.components = Component_Map(self, components
         if not skip_module_init: # This is so the ModelFromModule Class can work.
             Module.__init__(self)
-        self.components = PyTorch_Component_Map(components, model=self)
+        self.components = PyTorch_Component_Map({}, model=self)
+        self.init_default_components()
+        for key, value in components.items():
+            self.components[key] = value
         HookedPassThroughPipe.__init__(self, input = input)
 
-        self.init_default_components()
+
         # self.update_components(components)
         # self.update_components()
         # self.components.update(components) # Overwrite and/or adds params in the argument.
@@ -496,6 +507,14 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
 
         return all_params
 
+    def _sync_parameters(self): # TODO: Test this.
+        """
+        Syncs the Parameters and Modules associated with this object with the component map.
+        """
+        for key, value in self._parameters.items():
+            self.components[key] = value
+        for key, value in self._modules.items():
+            self.components[key] = value
     # def parameters(self):
     #     """
     #     Returns a list of every parameter that is internal to this Model along
