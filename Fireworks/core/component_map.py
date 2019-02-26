@@ -6,13 +6,13 @@ class Component_Map(dict):
     This is a bank.
     """
 
-    def __init__(self, components, owner=None):
+    def __init__(self, components):
 
         dict.__init__(self)
         self._external_modules = {}
         self._external_attribute_names = {}
         self._internal_components = {}
-        # self.owner = owner
+
         for key, value in components.items():
             self[key] = value
 

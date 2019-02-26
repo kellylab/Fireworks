@@ -249,8 +249,11 @@ class Model(HookedPassThroughPipe, Junction, ABC):
         return self.components.get_state()
 
     def set_state(self, state, reset=True):
-        # self.components =
-        pass
+
+        if reset:
+            self.components = Component_Map({}, owner=self)
+            self.init_default_components()
+        self.components.set_state(state)
 
     def update(self): pass
 
@@ -515,6 +518,14 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
             self.components[key] = value
         for key, value in self._modules.items():
             self.components[key] = value
+
+    def set_state(self, state, reset=True):
+
+        if reset:
+            self.components = PyTorch_Component_Map({}, model=self)
+            self.init_default_components()
+        self.components.set_state(state)
+
     # def parameters(self):
     #     """
     #     Returns a list of every parameter that is internal to this Model along

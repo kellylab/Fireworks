@@ -81,6 +81,29 @@ def test_Model_init():
     assert (damura.m == 4.).all()
     assert (damura.b == 5.).all()
 
+def test_Model_get_set_state():
+    sabura = DummyModel({'m': [2.], 'b': [3.]})
+    mabura = DummyModel({'m': (sabura, 'm')})
+    state1 = sabura.get_state()
+    assert state1['external'] == {}
+    assert (state1['internal'].keys()) == set(['out_column', 'in_column', 'b', 'm'])
+    assert state1['internal']['b'] == 3.
+    state2 = mabura.get_state()
+    assert state2['external']['m'] == (sabura, 'm')
+    assert (state2['internal'].keys()) == set(['out_column', 'in_column', 'b'])
+    assert state2['internal']['b'] == 0.
+    cabura = DummyModel()
+    cabura.set_state(state1)
+    cstate1 = cabura.get_state()
+    assert cstate1['external'] == {}
+    assert (cstate1['internal'].keys()) == set(['out_column', 'in_column', 'b', 'm'])
+    assert cstate1['internal']['b'] == 3.
+    cabura.set_state(state2)
+    cstate2 = cabura.get_state()
+    assert cstate2['external']['m'] == (sabura, 'm')
+    assert (cstate2['internal'].keys()) == set(['out_column', 'in_column', 'b'])
+    assert cstate2['internal']['b'] == 0.
+
 def test_Model_save_load():
 
     # Construct model with inputs and components.
