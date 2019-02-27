@@ -192,6 +192,7 @@ class Model(HookedPassThroughPipe, Junction, ABC):
         #     isinstance(value, Model)
         # }
 
+        assert False
         pytorch_parameters, pytorch_modules, other_components, extrinsic_components = self.get_state()
 
         # Save pytorch state_dict
@@ -488,6 +489,15 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
 
         return Model.__call__(self, *args, **kwargs)
 
+    def state_dict(self):
+
+        state_dict = {
+            key: value for key, value in Module.state_dict(self).items()
+            if key not in self.components._external_attribute_names.keys()
+            }
+
+        return state_dict
+
     def all_parameters(self):
         """
         Returns a list of every PyTorch parameter that this Model depends on that is unfrozen.
@@ -495,47 +505,76 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
         """
 
         all_params = []
-        # Get parameters
-        all_params.extend([param for param in self._parameters.values() if param.requires_grad])
-        # Get submodules
-        all_params.extend([list(module.parameters()) for module in self._modules.values() if module is not self and not isinstance(module, Model)]) # TODO: Test this
-        # Get components
-        for component in self.components.values():
+        for param in self.components.values():
+            if type(param) is Parameter:
+                all_params.append(param)
+            elif isinstance(param,Module):
+                all_params.extend(list(param.parameters()))
+            # elif type(param) is PyTorch_Model:
+            #     all_params.extend(list(param.all_parameters)) # NOTE: This could cause recursion loops.
+
+        if hasattr(self, 'input') and self.input is not None:
             try:
-                all_params.extend(component.all_parameters())
+                all_params.extend(self.input.all_parameters())
             except AttributeError:
                 pass
-        # Get from input
-        try:
-            all_params.extend(self.input.all_parameters())
-        except AttributeError:
-            pass
-
-        assert False
-
+            
         return all_params
 
-    def internal_parameters(self):
-        """
-        Returns a list of every PyTorch parameter internal to this Model that is
-        unfrozen. This includes submodules that are not linked.
-        """
-        internals = self.get_state()['internal']
-        all_internals = [x for x in internals.values() if isinstance(x, Parameter)]
-        return all_internals
+        # # Get parameters
+        # all_params = {**all_params, **{key: param for key, param in self._parameters.items() if param.requires_grad}}
+        # # Get submodules
+        # # all_params = {**all_params, **list(module.parameters()) for module in self._modules.values() if module is not self and not isinstance(module, Model)]) # TODO: Test this
+        # # Get components
+        # for component in self.components.values():
+        #     try:
+        #         all_params.extend(component.all_parameters())
+        #     except AttributeError:
+        #         pass
+        # # Get from input
+        # try:
+        #     all_params.extend(self.input.all_parameters())
+        # except AttributeError:
+        #     pass
+        #
+        # assert False
+        #
+        # return all_params
 
-    def external_parameters(self):
-        """
-        Returns a dict of every PyTorch parameter external to this Model that
-        this Model depends on and is unfrozen. The keys are the linking tuples
-        and the values are the Parameters.
-        """
-        externals = self.get_state()['external']
-        all_externals = {
-            tuple: getattr(tuple[0],tuple[1]) for tuple in externals
-            if isinstance(getattr(tuple[0],tuple[1]), Parameter)
-            }
-        return all_externals
+    # def internal_parameters(self):
+    #     """
+    #     Returns a list of every PyTorch parameter internal to this Model that is
+    #     unfrozen. This includes submodules that are not linked.
+    #     """
+    #
+    #     state_dict = {
+    #         key: value for key, value in self.components._internal_components.items()
+    #         if key not in self.components._external_attribute_names.keys()
+    #         }
+    #
+    #     return state_dict
+    #     # internals = self.get_state()['internal']
+    #     # all_internals = [x for x in internals.values() if isinstance(x, Parameter)]
+    #     # return all_internals
+    #
+    # def external_parameters(self):
+    #     """
+    #     Returns a dict of every PyTorch parameter external to this Model that
+    #     this Model depends on and is unfrozen. The keys are the linking tuples
+    #     and the values are the Parameters.
+    #     """
+    #     # externals = self.get_state()['external']
+    #     # all_externals = {
+    #     #     tuple: getattr(tuple[0],tuple[1]) for tuple in externals
+    #     #     if isinstance(getattr(tuple[0],tuple[1]), Parameter)
+    #     #     }
+    #     externals = {}
+    #     for name, module in self.components._external_modules.items():
+    #         externals = {**externals, **{
+    #             {"{0}.{1}".format(name, attr): value for attr, value in module().items()}
+    #             }
+    #         }
+    #     return externals
 
     def _sync_parameters(self): # TODO: Test this.
         """
@@ -552,6 +591,23 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
             self.components = PyTorch_Component_Map({}, model=self)
             self.init_default_components()
         self.components.set_state(state)
+
+    def get_state(self):
+        """
+        Returns state after serializing internal state.
+        """
+        state = self.components.get_state()
+        serialized_state = {'external': state['external'], 'internal': {}}
+
+        for key, value in state['internal'].items():
+            if isinstance(value, Model): # Serialize the Model recursively and use that as the value.
+                serialized_state['internal'][key] = value.get_state()
+            elif isinstance(value, Module): # Serialize the submodule and use that as the value.
+                serialized_state['internal'][key] = value.state_dict()
+            else:
+                serialized_state['internal'][key] = value
+
+        return serialized_state
 
     # def parameters(self):
     #     """

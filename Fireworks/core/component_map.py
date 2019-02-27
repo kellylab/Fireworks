@@ -95,14 +95,22 @@ class PyTorch_Component_Map(Component_Map):
         Component_Map.__init__(self, components)
 
     def __setitem__(self, key, val):
-        Component_Map.__setitem__(self, key, val)
+
         # This allows the Module superclass to register the parameters.
-        if self.model is not None and key in self._internal_components:
-            val = self[key]
-            i = self.model._flags['components_initialized']
-            self.model._flags['components_initialized'] = 0
-            setattr(self.model, key, val)
-            self.model._flags['components_initialized'] = i
+        if self.model is not None and key != 'components' and hasattr(self.model, key) and isinstance(val, dict): # If setting the state dict for a submodule.
+                submodule = getattr(self.model, key)
+                if hasattr(submodule, 'set_state'): # Is a Model
+                    submodule.set_state(val)
+                elif isinstance(submodule, Module):
+                    submodule.load_state_dict(val)
+        else:
+            Component_Map.__setitem__(self, key, val)
+            if self.model is not None:
+                val = self[key]
+                i = self.model._flags['components_initialized']
+                self.model._flags['components_initialized'] = 0
+                setattr(self.model, key, val)
+                self.model._flags['components_initialized'] = i
 
     def hook(self, key, value):
 
