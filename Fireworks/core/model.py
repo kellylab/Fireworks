@@ -255,7 +255,7 @@ class Model(HookedPassThroughPipe, Junction, ABC):
             self.init_default_components()
         self.components.set_state(state)
 
-    def update(self): pass
+    def update(self, message, **kwargs): pass
 
     def compile(self): pass
 
@@ -457,7 +457,6 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
             self.components[key] = value
         HookedPassThroughPipe.__init__(self, input = input)
 
-
         # self.update_components(components)
         # self.update_components()
         # self.components.update(components) # Overwrite and/or adds params in the argument.
@@ -485,12 +484,16 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
 
         return Model.__getattr__(self, name)
 
+    def __call__(self, *args, **kwargs):
+
+        return Model.__call__(self, *args, **kwargs)
+
     def all_parameters(self):
         """
-        Returns a list of every parameter that this Model depends on that is unfrozen. This is useful for providing a parameters list to
-        an optimizer.
+        Returns a list of every PyTorch parameter that this Model depends on that is unfrozen.
+        This is useful for providing a parameters list to an optimizer.
         """
-        assert False
+
         all_params = []
         # Get parameters
         all_params.extend([param for param in self._parameters.values() if param.requires_grad])
@@ -508,7 +511,31 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
         except AttributeError:
             pass
 
+        assert False
+
         return all_params
+
+    def internal_parameters(self):
+        """
+        Returns a list of every PyTorch parameter internal to this Model that is
+        unfrozen. This includes submodules that are not linked.
+        """
+        internals = self.get_state()['internal']
+        all_internals = [x for x in internals.values() if isinstance(x, Parameter)]
+        return all_internals
+
+    def external_parameters(self):
+        """
+        Returns a dict of every PyTorch parameter external to this Model that
+        this Model depends on and is unfrozen. The keys are the linking tuples
+        and the values are the Parameters.
+        """
+        externals = self.get_state()['external']
+        all_externals = {
+            tuple: getattr(tuple[0],tuple[1]) for tuple in externals
+            if isinstance(getattr(tuple[0],tuple[1]), Parameter)
+            }
+        return all_externals
 
     def _sync_parameters(self): # TODO: Test this.
         """
