@@ -1,0 +1,706 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Fireworks.toolbox.pipes &#8212; Fireworks 0.2.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Fireworks</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Project.html">Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../License.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Fireworks.html">API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for Fireworks.toolbox.pipes</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">Bio</span> <span class="k">import</span> <span class="n">SeqIO</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">Fireworks</span>
+<span class="kn">from</span> <span class="nn">Fireworks</span> <span class="k">import</span> <span class="n">Pipe</span><span class="p">,</span> <span class="n">HookedPassThroughPipe</span>
+<span class="kn">from</span> <span class="nn">Fireworks</span> <span class="k">import</span> <span class="n">Message</span>
+<span class="kn">from</span> <span class="nn">Fireworks.utils</span> <span class="k">import</span> <span class="n">index_to_list</span>
+<span class="kn">from</span> <span class="nn">Fireworks.core.cache</span> <span class="k">import</span> <span class="n">LRUCache</span><span class="p">,</span> <span class="n">LFUCache</span><span class="p">,</span> <span class="n">UnlimitedCache</span>
+<span class="kn">from</span> <span class="nn">Fireworks.utils</span> <span class="k">import</span> <span class="n">one_hot</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">count</span>
+<span class="kn">import</span> <span class="nn">types</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">bidict</span> <span class="k">import</span> <span class="n">bidict</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<div class="viewcode-block" id="BioSeqPipe"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.BioSeqPipe">[docs]</a><span class="k">class</span> <span class="nc">BioSeqPipe</span><span class="p">(</span><span class="n">Pipe</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class for representing biosequence data.</span>
+<span class="sd">    Specifically, this class can read biological data files (such as fasta) and iterate throug them as a Pipe.</span>
+<span class="sd">    This can serve as the first Pipe in a pipeline for analyzing genomic data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;BioSeqPipe&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="nb">input</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">filetype</span> <span class="o">=</span> <span class="s1">&#39;fasta&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            path: Path on disk where file is located; will be supplied to the SeqIO.parse function.</span>
+<span class="sd">            inputs: Input Pipes. Default is None.</span>
+<span class="sd">            filetype: Type of file that will be supplied to the SeqIO.parse function. Default is &#39;fasta&#39;</span>
+<span class="sd">            kwargs: Optional key word arguments that will be supplied to the SeqIO.parse function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Pipe</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="nb">input</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filetype</span> <span class="o">=</span> <span class="n">filetype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seq</span> <span class="o">=</span> <span class="n">SeqIO</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filetype</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BioSeqPipe.reset"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.BioSeqPipe.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resets the iterator to the beginning of the file. Specifically, it calls SeqIO.parse again as if reinstantiating the object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seq</span> <span class="o">=</span> <span class="n">SeqIO</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filetype</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Each iteration through a SeqIO object will produce a named tuple. This Pipe converts that tuple to a Message and produces the result.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">gene</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq</span><span class="o">.</span><span class="fm">__next__</span><span class="p">()</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Message</span><span class="p">({</span>
+                <span class="s1">&#39;sequences&#39;</span><span class="p">:</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">gene</span><span class="o">.</span><span class="n">seq</span><span class="p">)],</span>
+                <span class="s1">&#39;ids&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">gene</span><span class="o">.</span><span class="n">id</span><span class="p">],</span>
+                <span class="s1">&#39;names&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">gene</span><span class="o">.</span><span class="n">name</span><span class="p">],</span>
+                <span class="s1">&#39;descriptions&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">gene</span><span class="o">.</span><span class="n">description</span><span class="p">],</span>
+                <span class="s1">&#39;dbxrefs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">gene</span><span class="o">.</span><span class="n">dbxrefs</span><span class="p">],</span>
+            <span class="p">})</span>
+        <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">StopIteration</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="LoopingPipe"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.LoopingPipe">[docs]</a><span class="k">class</span> <span class="nc">LoopingPipe</span><span class="p">(</span><span class="n">Pipe</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This Pipe can take any iterator and make it appear to be indexable by iterating through the input</span>
+<span class="sd">    as needed to reach any given index.</span>
+
+<span class="sd">    The input Pipe must implement __next__ and reset (to be repeatable),</span>
+<span class="sd">    and this will simulate __getitem__ by repeatedly looping through the iterator as needed.</span>
+
+<span class="sd">    For example, say we have a Pipe that iterates through the lines of a FASTA file:</span>
+<span class="sd">    ::</span>
+
+<span class="sd">        fasta = BioSeqPipe(&#39;genes.fasta&#39;)</span>
+
+<span class="sd">    This Pipe can only iterate through the file in one direciton. If we want to access arbitrary elements,</span>
+<span class="sd">    we can do this:</span>
+<span class="sd">    ::</span>
+
+<span class="sd">        clock = LoopingPipe(inputs=fasta)</span>
+<span class="sd">        clock[10]</span>
+<span class="sd">        clock[2:6]</span>
+<span class="sd">        len(clock)</span>
+
+<span class="sd">    All of these actions are now possible. Note that this is in general an expensive process, because the Pipe</span>
+<span class="sd">    has to iterate one at a time to get to the index it needs. In practice, this Pipe should pipe its output</span>
+<span class="sd">    to a CachingPipe that can store values in memory. This approach enables you to process datasets that don&#39;t</span>
+<span class="sd">    entirely fit in memory; you can stream in what you need and cache portions. From the perspective of the downstream</span>
+<span class="sd">    Pipes, every element of the dataset is accessible as if it were in memory.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;LoopingPipe&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_input</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retreives items in index by looping through inputs as many times as needed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># TODO: Check if index exceeds length, either explicitly or implicitly.</span>
+
+        <span class="c1"># Sort index</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">index_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">))</span>
+        <span class="n">above</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">]</span> <span class="c1"># Go forward to reach these</span>
+        <span class="n">below</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">]</span> <span class="c1"># Will have to reset the loop to reach these</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">above</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">above_values</span> <span class="o">=</span> <span class="n">Fireworks</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">step_forward</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">above</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">above_values</span> <span class="o">=</span> <span class="n">Message</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">below</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span> <span class="c1"># Position will now be reset to 0</span>
+            <span class="n">below_values</span> <span class="o">=</span> <span class="n">Fireworks</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">step_forward</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">below</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">below_values</span> <span class="o">=</span> <span class="n">Message</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">below_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">above_values</span><span class="p">)</span> <span class="c1"># TODO: Resort this message so values are in the order requested by index</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Length is also calculated implicitly as items are accessed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">compute_length</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
+
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1"># QUESTION: Should __next__ calls be supported for this Pipe?</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Go forward one step. This can be used to loop over the inputs while automatically recording</span>
+<span class="sd">        length once one cycle has been performed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_forward</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">p</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+
+<div class="viewcode-block" id="LoopingPipe.check_input"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.LoopingPipe.check_input">[docs]</a>    <span class="k">def</span> <span class="nf">check_input</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks input to determine if it implements __next__ and reset methods.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># for name, pipe in self.inputs.items():</span>
+        <span class="n">pipe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span>
+
+        <span class="k">if</span> <span class="n">pipe</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;This pipe has no inputs.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="s1">&#39;__next__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="s1">&#39;reset&#39;</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Pipe </span><span class="si">{0}</span><span class="s1"> does not have __next__ and reset methods.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="LoopingPipe.reset"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.LoopingPipe.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calls reset on input Pipes and sets position to 0.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># # for pipe in self.inputs.values():</span>
+        <span class="c1">#     pipe.reset()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span> <span class="c1"># TODO: Do proper error catching here</span>
+            <span class="k">pass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="LoopingPipe.compute_length"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.LoopingPipe.compute_length">[docs]</a>    <span class="k">def</span> <span class="nf">compute_length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Step forward as far as the inputs will allow and compute length.</span>
+
+<span class="sd">        Length is also calculated implicitly as items are accessed.</span>
+
+<span class="sd">        Note: If the inputs are infinite, then this will go on forever.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">step_forward</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">StopIteration</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+                <span class="k">break</span></div>
+
+<div class="viewcode-block" id="LoopingPipe.step_forward"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.LoopingPipe.step_forward">[docs]</a>    <span class="k">def</span> <span class="nf">step_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Steps forward through inputs until position = n and then returns that value.</span>
+
+<span class="sd">        This also updates the internal length variable if the iterator ends due to this method call.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;Requested index is out of bounds for inputs with length </span><span class="si">{0}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;Can only step forward to a value higher than current position.&quot;</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">Message</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># x = x.append(Fireworks.merge([Pipe.__next__() for Pipe in self.inputs.values()]))</span>
+                <span class="c1"># x = Fireworks.merge([pipe.__next__() for pipe in self.inputs.values()])</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="fm">__next__</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;Requested index is out of bounds for inputs with length </span><span class="si">{0}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">x</span></div></div>
+
+<div class="viewcode-block" id="CachingPipe"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.CachingPipe">[docs]</a><span class="k">class</span> <span class="nc">CachingPipe</span><span class="p">(</span><span class="n">Pipe</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This Pipe can be used to dynamically cache elements from upstream Pipes.</span>
+<span class="sd">    Whenever data is requested by index, this Pipe will intercept the request and add that message alongside</span>
+<span class="sd">    the index to its internal cache.</span>
+<span class="sd">    This can be useful for dealing with datasets that don&#39;t fit in memory or are streamed in. You can cache portions</span>
+<span class="sd">    of the dataset as you use them. By combining this with a LoopingPipe, you can create the illusion of making</span>
+<span class="sd">    the entire dataset available to downstream Pipes regardless of the type and size of the original data.</span>
+
+<span class="sd">    More specifically, fiven input Pipes that implement __getitem__, will store all calls to __getitem__ into</span>
+<span class="sd">    an internal cache and therafter __getitem__ calls will either access from the cache or trigger __getitem__ calls</span>
+<span class="sd">    on the input and an update to the cache.</span>
+
+<span class="sd">    For example,</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        fasta = BioSeqPipe(path=&#39;genes.fasta&#39;)</span>
+<span class="sd">        clock = LoopingPipe(inputs=fasta)</span>
+<span class="sd">        cache = CachingPipe(inputs=clock, cache_size=100) # cache_size is optional; default=100</span>
+
+<span class="sd">    Will set up a pipeline that reads lines from a FASTA file and acessess and caches elements as requests are made</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        cache[20:40] # This will be cached</span>
+<span class="sd">        cache[25:30] # This will read from the cache</span>
+<span class="sd">        cache[44] # This will update the cache</span>
+<span class="sd">        cache[40:140] # This will fill the cache, flushing out old elements</span>
+<span class="sd">        cache[25:30] # This will read from the dataset and update the cache again</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">cache_size</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">buffer_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">cache_type</span> <span class="o">=</span> <span class="s1">&#39;LRU&#39;</span><span class="p">,</span> <span class="n">infinite</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            args: Positional arguments for superclass initialization.</span>
+<span class="sd">            cache_size (int): Number of elements to hold in cache. Default = 100</span>
+<span class="sd">            buffer_size (int): Number of elements to clear once cache is full. This is useful if you expect frequent cache misses and</span>
+<span class="sd">                don&#39;t expect to reuse previous cached elements. Default = 0</span>
+<span class="sd">            cache_type (str): Type of cache. Choices are &#39;LRU&#39; (least-recently-used) and &#39;LFU&#39; (least-frequently-used). Default = &#39;LRU&#39;</span>
+<span class="sd">            infinite (bool): If set to true, the cache will have no upper limit on size and will never clear itself.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_input</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">upper_bound</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infinite</span> <span class="o">=</span> <span class="n">infinite</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_size</span> <span class="o">=</span> <span class="n">cache_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_type</span> <span class="o">=</span> <span class="n">cache_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer_size</span> <span class="o">=</span> <span class="n">buffer_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_cache</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># @abstractmethod # TODO: Make different types of caches implementable via subclasses</span>
+<div class="viewcode-block" id="CachingPipe.init_cache"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.CachingPipe.init_cache">[docs]</a>    <span class="k">def</span> <span class="nf">init_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This should initialize a cache object called self.cache</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">choices</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;LRU&#39;</span><span class="p">:</span> <span class="n">LRUCache</span><span class="p">,</span> <span class="s1">&#39;LFU&#39;</span><span class="p">:</span> <span class="n">LFUCache</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="n">choices</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_type</span><span class="p">](</span><span class="n">max_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_size</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer_size</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CachingPipe.check_input"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.CachingPipe.check_input">[docs]</a>    <span class="k">def</span> <span class="nf">check_input</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks inputs to determine if they implement __getitem__.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># for name, pipe in self.inputs.items():</span>
+        <span class="n">pipe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span>
+        <span class="k">if</span> <span class="n">pipe</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;This pipe has no inputs.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="s1">&#39;__getitem__&#39;</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Pipe </span><span class="si">{0}</span><span class="s1"> does not have __getitem__ method.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+
+        <span class="n">index</span> <span class="o">=</span> <span class="n">index_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">):</span> <span class="c1"># Implicit length check if length is known</span>
+            <span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;Requested index is out of bounds for inputs with length </span><span class="si">{0}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">))</span>
+        <span class="c1"># Identify what is in the cache and what isn&#39;t.</span>
+        <span class="n">in_cache</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">pointers</span><span class="p">]</span> <span class="c1"># Elements of index corresponding to in_cache elements</span>
+        <span class="n">in_cache_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">count</span><span class="p">())</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">pointers</span><span class="p">]</span> <span class="c1"># Indices in index corresponding to in_cache elements</span>
+        <span class="n">not_in_cache</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">pointers</span><span class="p">]</span> <span class="c1"># Elements of index corresponding to not_in_cache elements</span>
+        <span class="n">not_in_cache_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">count</span><span class="p">())</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">pointers</span><span class="p">]</span> <span class="c1"># Indices in index corresponding to not_in_cache elements</span>
+
+        <span class="c1"># Retrieve from cache existing elements</span>
+        <span class="n">in_cache_elements</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">in_cache</span><span class="p">]</span> <span class="c1"># elements in cache corresponding to indices in cache</span>
+        <span class="c1"># Update cache to have other elements</span>
+        <span class="c1"># not_in_cache_elements = Fireworks.merge([pipe[not_in_cache] for pipe in self.inputs.values()])</span>
+        <span class="n">not_in_cache_elements</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="n">not_in_cache</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">not_in_cache</span><span class="p">]</span> <span class="o">=</span> <span class="n">not_in_cache_elements</span>
+        <span class="c1"># Reorder and merge requested elements</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="n">in_cache_elements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">not_in_cache_elements</span><span class="p">)</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">in_cache_indices</span>
+        <span class="n">indices</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">not_in_cache_indices</span><span class="p">)</span>
+        <span class="c1"># Elements must be reordered based on their order in index</span>
+        <span class="n">permutation</span> <span class="o">=</span> <span class="n">indices</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">count</span><span class="p">()):</span>
+            <span class="n">permutation</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">j</span>
+        <span class="c1"># permutation = in_cache_indices.extend(not_in_cache_indices)</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="n">permutation</span><span class="p">)</span>
+
+        <span class="c1"># Implicit update of internal knowledge of length</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">infinite</span><span class="p">:</span>
+            <span class="n">l</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">l</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">lower_bound</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">=</span> <span class="n">l</span>
+
+        <span class="k">return</span> <span class="n">message</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Length is computed implicitly and lazily. If any operation causes the Pipe</span>
+<span class="sd">        to reach the end of it&#39;s inputs, that position is stored as the length.</span>
+<span class="sd">        Alternatively, if this method is called before that happens, the Pipe will attempt to</span>
+<span class="sd">        loop to the end and calculate the length.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">infinite</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Pipe is labelled as having infinite length (ie. yields items indefinitely).&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">compute_length</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
+
+<div class="viewcode-block" id="CachingPipe.compute_length"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.CachingPipe.compute_length">[docs]</a>    <span class="k">def</span> <span class="nf">compute_length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Step forward as far as the inputs will allow and compute length.</span>
+<span class="sd">        Note: If the inputs are infinite, then this will go on forever.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">infinite</span><span class="p">:</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="p">[</span><span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lower_bound</span><span class="p">]</span> <span class="c1"># Use knowledge of lower bound from previous getitem calls to accelerate this process</span>
+                <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lower_bound</span>
+                    <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Pipe is labelled as having infinite length (ie. yields items indefinitely).&quot;</span><span class="p">)</span></div></div>
+
+
+
+<div class="viewcode-block" id="Title2LabelPipe"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.Title2LabelPipe">[docs]</a><span class="k">class</span> <span class="nc">Title2LabelPipe</span><span class="p">(</span><span class="n">HookedPassThroughPipe</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This Pipe takes one Pipe as input and inserts a column called &#39;label&#39;</span>
+<span class="sd">    containing the provided title of the input Pipe to to all outputs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">labels_column</span> <span class="o">=</span> <span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels_column</span> <span class="o">=</span> <span class="n">labels_column</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">title</span>
+
+    <span class="k">def</span> <span class="nf">_get_item_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">insert_labels</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_next_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">insert_labels</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    NOTE: Explore using the below code as an approach to make a general purpose wrapper Pipes,</span>
+<span class="sd">    ie. Pipes that modify all function calls from their input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># def __getattr__(self, *args, **kwargs):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Pass through all methods of the input pipe while adding labels.</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     output = self.input.__getattribute__(*args, **kwargs)</span>
+    <span class="c1">#     if type(output) is types.MethodType: # Wrap the method in a converter</span>
+    <span class="c1">#         return self.method_wrapper(output)</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         return self.attribute_wrapper(output)</span>
+    <span class="c1">#</span>
+    <span class="c1"># def method_wrapper(self, function):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Wraps method with a label attacher such that whenever the method is called, the output is modified</span>
+    <span class="c1">#     by adding the label.</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#</span>
+    <span class="c1">#     def new_function(*args, **kwargs):</span>
+    <span class="c1">#</span>
+    <span class="c1">#         output = function(*args, **kwargs)</span>
+    <span class="c1">#         try:</span>
+    <span class="c1">#             output = Message(output)</span>
+    <span class="c1">#         except:</span>
+    <span class="c1">#             return output</span>
+    <span class="c1">#</span>
+    <span class="c1">#         return self.insert_labels(output)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     return new_function</span>
+    <span class="c1">#</span>
+    <span class="c1"># def attribute_wrapper(self, attribute):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Wraps attribute with new label if attribute returns a message.</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     try:</span>
+    <span class="c1">#         output = Message(attribute)</span>
+    <span class="c1">#     except:</span>
+    <span class="c1">#         return attribute</span>
+    <span class="c1">#</span>
+    <span class="c1">#     return self.insert_labels(output)</span>
+
+<div class="viewcode-block" id="Title2LabelPipe.insert_labels"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.Title2LabelPipe.insert_labels">[docs]</a>    <span class="k">def</span> <span class="nf">insert_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+
+        <span class="n">l</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="n">message</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">labels_column</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">l</span><span class="p">)]</span>
+
+        <span class="k">return</span> <span class="n">message</span></div></div>
+
+<div class="viewcode-block" id="LabelerPipe"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.LabelerPipe">[docs]</a><span class="k">class</span> <span class="nc">LabelerPipe</span><span class="p">(</span><span class="n">Pipe</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This Pipe implements a to_tensor function that converts labels contained in messages to tensors based on an internal labels dict.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels_dict</span> <span class="o">=</span> <span class="n">bidict</span><span class="p">({</span><span class="n">label</span><span class="p">:</span><span class="n">i</span> <span class="k">for</span> <span class="n">label</span><span class="p">,</span><span class="n">i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span><span class="n">count</span><span class="p">())})</span>
+
+<div class="viewcode-block" id="LabelerPipe.to_tensor"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.LabelerPipe.to_tensor">[docs]</a>    <span class="k">def</span> <span class="nf">to_tensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">labels_column</span> <span class="o">=</span> <span class="s1">&#39;labels&#39;</span><span class="p">):</span>
+
+        <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;labels_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="n">labels_column</span><span class="p">]</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="n">labels_column</span><span class="p">]</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">labels_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">]</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="n">one_hot</span><span class="p">(</span><span class="n">label</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels_dict</span><span class="p">))</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">])</span>
+        <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;labels&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">labels</span>
+        <span class="k">try</span><span class="p">:</span> <span class="c1"># Allow an upstream Pipe to attempt to perform to_tensor if it can</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recursive_call</span><span class="p">(</span><span class="s1">&#39;to_tensor&#39;</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">batch</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">batch</span></div></div>
+
+<div class="viewcode-block" id="RepeaterPipe"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.RepeaterPipe">[docs]</a><span class="k">class</span> <span class="nc">RepeaterPipe</span><span class="p">(</span><span class="n">Pipe</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given an input Pipe that is iterable, enables repeat iteration.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="n">repetitions</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">repetitions</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of repetitions must be provided as an integer.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">repetitions</span> <span class="o">=</span> <span class="n">repetitions</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">Pipe</span><span class="p">):</span> <span class="c1"># TODO: Test this scenario</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RepeaterPipe.reset"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.RepeaterPipe.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">Pipe</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">recursive_call</span><span class="p">(</span><span class="s1">&#39;reset&#39;</span><span class="p">,)()</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">return</span> <span class="bp">self</span></div>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">Pipe</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="fm">__next__</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">recursive_call</span><span class="p">(</span><span class="s1">&#39;__next__&#39;</span><span class="p">)()</span>
+            <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">repetitions</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">StopIteration</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">recursive_call</span><span class="p">(</span><span class="s1">&#39;reset&#39;</span><span class="p">)()</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__next__</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ShufflerPipe"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.ShufflerPipe">[docs]</a><span class="k">class</span> <span class="nc">ShufflerPipe</span><span class="p">(</span><span class="n">Pipe</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given input Pipes that implement __getitem__ and __len__, will shuffle the indices so that iterating through</span>
+<span class="sd">    the Pipe or calling __getitem__ will return different values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_input</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shuffle_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))])</span>
+
+<div class="viewcode-block" id="ShufflerPipe.check_input"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.ShufflerPipe.check_input">[docs]</a>    <span class="k">def</span> <span class="nf">check_input</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check inputs to see if they implement __getitem__ and __len__</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># for name, pipe in self.inputs.items():</span>
+        <span class="n">pipe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span>
+        <span class="k">if</span> <span class="n">pipe</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;This Pipe has no inputs.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="s1">&#39;__getitem__&#39;</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Pipe </span><span class="si">{0}</span><span class="s1"> does not have __getitem__ method.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span><span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="s1">&#39;__len__&#39;</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Pipe </span><span class="si">{0}</span><span class="s1"> does not have __len__ method.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+
+        <span class="n">new_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shuffle_indices</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">recursive_call</span><span class="p">(</span><span class="s1">&#39;__getitem__&#39;</span><span class="p">)(</span><span class="n">new_index</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">StopIteration</span>
+
+        <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">message</span>
+
+<div class="viewcode-block" id="ShufflerPipe.shuffle"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.ShufflerPipe.shuffle">[docs]</a>    <span class="k">def</span> <span class="nf">shuffle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="c1"># TODO: Add support for ordering</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shuffle_indices</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ShufflerPipe.reset"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.ShufflerPipe.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Triggers a shuffle on reset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shuffle</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">recursive_call</span><span class="p">(</span><span class="s1">&#39;reset&#39;</span><span class="p">)()</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="IndexMapperPipe"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.IndexMapperPipe">[docs]</a><span class="k">class</span> <span class="nc">IndexMapperPipe</span><span class="p">(</span><span class="n">Pipe</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given input Pipes that implement __getitem__, returns a Pipe that maps indices in input_indices to output_indices via __getitem__</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_indices</span><span class="p">,</span> <span class="n">output_indices</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_input</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_indices</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_indices</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The number of input indices does not match the number of output indices.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span> <span class="o">=</span> <span class="n">UnlimitedCache</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">[</span><span class="n">input_indices</span><span class="p">]</span> <span class="o">=</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;output&#39;</span><span class="p">:</span><span class="n">output_indices</span><span class="p">})</span>
+
+<div class="viewcode-block" id="IndexMapperPipe.check_input"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.IndexMapperPipe.check_input">[docs]</a>    <span class="k">def</span> <span class="nf">check_input</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># for name, pipe in self.inputs.items():</span>
+        <span class="n">pipe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span>
+        <span class="k">if</span> <span class="n">pipe</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;This Pipe has no inputs.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="s1">&#39;__getitem__&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Input Pipes must be indexable.&quot;</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+
+        <span class="n">index</span> <span class="o">=</span> <span class="n">index_to_list</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="c1"># return Fireworks.merge([pipe[self.pointers[index][&#39;output&#39;].values] for pipe in self.inputs.values()])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;output&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pointers</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BatchingPipe"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.BatchingPipe">[docs]</a><span class="k">class</span> <span class="nc">BatchingPipe</span><span class="p">(</span><span class="n">Pipe</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generates minibatches.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+<div class="viewcode-block" id="BatchingPipe.reset"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.BatchingPipe.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">StopIteration</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span>
+            <span class="k">return</span> <span class="n">batch</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">StopIteration</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;2018, Saad Khan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
