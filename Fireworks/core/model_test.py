@@ -321,6 +321,7 @@ def test_all_parameters():
     multilinear2 = DummyMultilinearModel()
     multilinear2.hi = torch.nn.Conv2d(4,4,4)
     state = multilinear.get_state()
+    assert False
     multilinear2.set_state(state, reset=False)
     matches = match(multilinear.all_parameters(), multilinear2.all_parameters(), equivalence = lambda a,b: (a==b).all())
     assert len(matches) == 6

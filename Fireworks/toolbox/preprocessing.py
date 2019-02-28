@@ -2,7 +2,7 @@ from functools import lru_cache
 import math
 import numpy as np
 from Fireworks.toolbox import pipes as pl
-from Fireworks import PyTorch_Model
+from Fireworks import Model
 from collections import defaultdict
 
 def train_test_split(pipe, test=.2):
@@ -28,7 +28,7 @@ def oversample(): pass
 def apply_noise(): pass
 
 #IDEA: Instead of implementing this, what if we couple a LoopingSource + CachingSource to a SKLearn estimator?
-class Normalizer(PyTorch_Model):
+class Normalizer(Model):
     """
     Normalizes Data by Mean and Variance. Analogous to sklearn.preprocessing.Normalizer
     """
@@ -37,7 +37,7 @@ class Normalizer(PyTorch_Model):
 
     def __init__(self, *args, **kwargs):
 
-        PyTorch_Model.__init__(self, *args, **kwargs)
+        Model.__init__(self, *args, **kwargs)
         self.freeze(['mean', 'variance', 'count', 'rolling_sum', 'rolling_squares'])
 
     def init_default_components(self):
