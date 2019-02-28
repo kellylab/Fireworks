@@ -106,8 +106,8 @@ class PyTorch_Component_Map(Component_Map):
                     submodule.set_state(val)
                 elif isinstance(submodule, Module):
                     # Convert state dict to a dict of tensors
-                    val = Message(val).to_tensors()
-                    submodule.load_state_dict({key: val[key] for key in val.keys()})
+                    val = {k:torch.Tensor(v) for k,v in val.items()}
+                    submodule.load_state_dict(val)
         else:
             Component_Map.__setitem__(self, key, val)
             if self.model is not None:

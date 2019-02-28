@@ -275,18 +275,18 @@ class Model(HookedPassThroughPipe, Junction, ABC):
 
     def _getitem_hook(self, message):
 
-        self.__update_hook(message, method='get')
-        return self.forward_hook(message)
+        self._update_hook(message, method='get')
+        return self._forward_hook(message)
 
     def _next_hook(self, message):
 
-        self.__update_hook(message, method='next')
-        return self.forward_hook(message)
+        self._update_hook(message, method='next')
+        return self._forward_hook(message)
 
     def _call_hook(self, message, *args, **kwargs):
 
-        self.__update_hook(message, method='call')
-        return self.forward_hook(message, *args, **kwargs)
+        self._update_hook(message, method='call')
+        return self._forward_hook(message, *args, **kwargs)
         # try: # This will trigger a recursive call if possible.
         #     message = self.recursive_call('__call__')(message, *args, **kwargs)
         # except:
@@ -342,8 +342,8 @@ class Model(HookedPassThroughPipe, Junction, ABC):
 
     def enable_inference(self):
 
-        self.forward_hook = self.forward
-        self.inference_enabled = True
+        self._forward_hook = self.forward
+        self._inference_enabled = True
 
     @recursive()
     def enable_inference_all(self):
@@ -351,8 +351,8 @@ class Model(HookedPassThroughPipe, Junction, ABC):
 
     def disable_inference(self): #TODO: test this
 
-        self.__forward_hook = identity
-        self.__inference_enabled = False
+        self._forward_hook = identity
+        self._inference_enabled = False
 
     @recursive()
     def disable_inference_all(self):
@@ -360,8 +360,8 @@ class Model(HookedPassThroughPipe, Junction, ABC):
 
     def enable_updates(self):
 
-        self.__updates_enabled = True
-        self.__update_hook = self.update
+        self._updates_enabled = True
+        self._update_hook = self.update
 
     @recursive()
     def enable_updates_all(self):
@@ -369,8 +369,8 @@ class Model(HookedPassThroughPipe, Junction, ABC):
 
     def disable_updates(self):
 
-        self.__updates_enabled = True
-        self.__update_hook = identity
+        self._updates_enabled = True
+        self._update_hook = identity
         # try:
         #     self.recursive_call('disable_updates')
         # except AttributeError:

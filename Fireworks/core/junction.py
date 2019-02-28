@@ -47,12 +47,12 @@ class Junction:
 
     def type_check(self, key, components):
 
-        if type(self.required_components) is dict:
+        if type(self.required_components) is dict and key in self.required_components:
             if not isinstance(components[key], self.required_components[key]):
                 # raise ValueError("Component {0} with value {1} is not the correct type. Must be an instance of {2}".format(key, components[key], self.required_components[key))
                 raise ValueError
         else:
-            return
+            return True
 
     # def update_components(self, components=None):
     #

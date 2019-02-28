@@ -28,9 +28,9 @@ class Factory(Junction):
 
     required_components = {'trainer': types.FunctionType, 'eval_set': object, 'parameterizer': types.FunctionType, 'metrics': dict}
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, components=None, **kwargs):
 
-        Junction.__init__(self, *args, **kwargs)
+        Junction.__init__(self, *args, components=components, **kwargs)
         # self.trainer = trainer
         # self.metrics_dict = metrics_dict
         # self.parameterizer = parameterizer
@@ -102,17 +102,27 @@ class SQLFactory(Factory):
     """
     Factory that stores parameters in SQLalchemy database while caching them locally.
     """
+    required_components = {
+        'trainer': types.FunctionType,
+        'eval_set': object,
+        'parameterizer': types.FunctionType,
+        'metrics': dict,
+        'engine': object,
+        'params_table': object,
+        'metrics_tables': object,
+        }
 
-    def __init__(self,*args, params_table, metrics_tables, engine, **kwargs):
-        self.engine = engine
+    def __init__(self,*args, components=None, **kwargs):
+
+        Junction.__init__(self, *args, components=components, **kwargs)
+        # self.engine = engine
         # self.database = TablePipe(factory_table, self.engine, columns=['parameters', 'metrics'])
-        self.metrics_tables = metrics_tables
-        self.params_table = params_table
+        # self.metrics_tables = metrics_tables
+        # self.params_table = params_table
         self.params_pipe = TablePipe(self.params_table, self.engine)
         self.metrics_pipes = {key: TablePipe(value, self.engine) for key, value in self.metrics_tables.items()}
         self.computed_metrics = defaultdict(Message)
-
-        super().__init__(*args,**kwargs)
+        self.get_connection()
 
     def get_connection(self):
 
