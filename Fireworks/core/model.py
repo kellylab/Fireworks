@@ -192,18 +192,28 @@ class Model(HookedPassThroughPipe, Junction, ABC):
         #     isinstance(value, Model)
         # }
 
-        assert False
-        pytorch_parameters, pytorch_modules, other_components, extrinsic_components = self.get_state()
+        # pytorch_parameters, pytorch_modules, other_components, extrinsic_components = self.get_state()
+        state = self.get_state()
+        external = state['external']
+        internal = state['internal']
 
-        # Save pytorch state_dict
+        # Save internal state_dict
         if 'path' in kwargs:
             kwargs['path'] = os.path.join(*paths[:-1], 'torch_'+paths[-1])
 
-        pytorch_as_message = Message.from_objects(pytorch_components)
-        pytorch_as_message.to(method=method, **kwargs)
+        internal_state_as_message = Message.from_objects(internal)
+        serialized = internal_state_as_message.to(method=method, **kwargs)
+
+        external_components = set()
+        external_dict = {}
+
+        for key, value in external.items():
+            if value[0] not in external_components:
+                external_components.add(value[0])
+                external_dict[key] = value[0]
 
         # Save other components. This should recursively trigger the same action on the components if necesssary.
-        for key, component in (other_components.items() + extrinsic_components):
+        for key, component in (external_dict.items()):
             if hasattr(component, 'save'):
                 if 'path' in kwargs:
                     kwargs['path'] = os.path.join(*paths[:-1], key+'_'+paths[-1])
@@ -211,22 +221,20 @@ class Model(HookedPassThroughPipe, Junction, ABC):
 
         # Save inputs. This is done by default and can be disabled by providing 'recursive=False' as an argument.
         if ('recursive' in kwargs and kwargs['recursive']) or 'recursive' not in kwargs:
+
+            if 'path' in kwargs:
+                new_path = paths[-1].split('.')
+                new_path[0] = '--' + new_path[0]
+                new_path = '.'.join(new_path)
+                kwargs['path'] = os.path.join(*paths[:-1], new_path)
             try:
                 self.recursive_call('save',method=method, **kwargs)
-            except: #TODO: Make a custom RecursionEnd error to indicate that the recursion has ended in order to provide tighter error checking.
+            except AttributeError: #TODO: Make a custom RecursionEnd error to indicate that the recursion has ended in order to provide tighter error checking.
                 pass
 
-    def load(self, *args, **kwargs):
+        return serialized
 
-        # Determine file access scheme for inputs/components
-
-        # Load state_dict for this object
-
-        # Recurse
-
-        pass
-
-    def load_state_dict(self, *args, method='json', **kwargs):
+    def load_state(self, *args, method='json', **kwargs):
         """
         Loads the data in the given save file into the state dict.
         """
@@ -242,9 +250,11 @@ class Model(HookedPassThroughPipe, Junction, ABC):
         }
 
         df = methods[method](*args, **kwargs) # Load parameters in
-        state_dict = dict(Message(df).to_tensors()) # Convert to tensors
-        state_dict = {key: value.reshape(*value.shape[1:]) for key, value in state_dict.items()} # Unflatten
-        Module.load_state_dict(self, state_dict)
+        state_dict = Message(df).to_dict()
+        state_dict = {key: value[0] for key, value in state_dict.items()}
+        # state_dict = dict(Message(df).to_tensors()) # Convert to tensors
+        # state_dict = {key: value.reshape(*value.shape[1:]) for key, value in state_dict.items()} # Unflatten
+        self.set_state({'external':{}, 'internal': state_dict}, reset=False)
 
     def get_state(self):
         return self.components.get_state()
@@ -518,7 +528,7 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
                 all_params.extend(self.input.all_parameters())
             except AttributeError:
                 pass
-            
+
         return all_params
 
         # # Get parameters
@@ -603,8 +613,14 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
             if isinstance(value, Model): # Serialize the Model recursively and use that as the value.
                 serialized_state['internal'][key] = value.get_state()
             elif isinstance(value, Module): # Serialize the submodule and use that as the value.
-                serialized_state['internal'][key] = value.state_dict()
+                state_dict = value.state_dict()
+                for k, v in state_dict.items():
+                    state_dict[k] = v.cpu().detach().numpy()
+                serialized_state['internal'][key] = state_dict
+
             else:
+                if type(value) in [torch.Tensor, torch.nn.Parameter]:
+                    value = value.cpu().detach().numpy()
                 serialized_state['internal'][key] = value
 
         return serialized_state

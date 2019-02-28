@@ -112,7 +112,9 @@ def test_Model_save_load():
     sabura.__name__ = 'sabura'
     damura = DummyModel({'m': [2.]})
     damura.__name__ = 'damura'
-    babura = DummyModel({'m': damura.m, 'b': [4.], 'c': sabura, 'd': torch.nn.Conv2d(4,5,4)}, input=damura)
+    lamura = DummyModel()
+    lamura.__name__ = 'lamura'
+    babura = DummyModel({'m': (damura, 'm'), 'b': [4.], 'c': sabura, 'd': torch.nn.Conv2d(4,5,4)}, input=lamura)
     babura.__name__ = 'babura'
 
     if not os.path.isdir('save_test'):
@@ -120,18 +122,17 @@ def test_Model_save_load():
     else:
         shutil.rmtree('save_test')
         os.mkdir('save_test')
-    babura.save(path='save_test/test.json')
+    babura.save(method='json', path='save_test/test.json')
     files = os.walk('save_test/.').__next__()[2]
     assert len(files) == 3
     # Test different save methods.
-    newone = DummyModel({'m': [5.], 'd': torch.nn.Conv2d(4,5,4)})
+    newone = DummyModel({'m': [5.], 'd': torch.nn.Conv2d(4,5,4), 'c': DummyModel()})
     assert (newone.m == 5.).all()
-    old = newone.state_dict()['d.bias'].clone().detach().numpy()
-    newone.load_state_dict('save_test/torch_babura-test.json')
-    assert (newone.m == 2.).all()
-    new = newone.state_dict()['d.bias'].clone().detach().numpy()
-    assert (old != new).any()
-    newone = DummyModel({'m': [5.]})
+    # old = newone.state_dict()['d.bias'].clone().detach().numpy()
+    newone.load_state('save_test/torch_babura-test.json')
+    assert (newone.d.bias - babura.d.bias < .001).all()
+    assert (newone.d.weight - babura.d.weight < .001).all()
+    # new = newone.state_dict()['d.bias'].clone().detach().numpy()
     shutil.rmtree('save_test')
 
 def test_Model_inferencing():
@@ -165,7 +166,11 @@ def test_ModelFromModule():
 def test_save_model():
 
     A = DummyModel({'m': [0.], 'ok': torch.nn.Conv2d(1,20,5), 'c': 'yes'})
-    A.save()
+    A.save(method='json')
+    A.save(method='html')
+    saved = A.save(method='dict')
+    assert type(saved) is dict
+    assert set(saved.keys()) == set(['out_column', 'm', 'in_column', 'ok', 'c', 'b'])
 
 def test_freeze_and_unfreeze():
 
@@ -306,7 +311,7 @@ def test_all_parameters():
     multilinear.hi = torch.nn.Conv2d(4,4,4)
     params = multilinear.all_parameters()
     assert len(params) == 6
-    test = False
+
     for param in params: # See if teh Conv2d from above had it's parameters registered.
         if param.shape == (4,4,4,4,):
             test = True
@@ -316,6 +321,7 @@ def test_all_parameters():
     multilinear2 = DummyMultilinearModel()
     multilinear2.hi = torch.nn.Conv2d(4,4,4)
     state = multilinear.get_state()
+    assert False
     multilinear2.set_state(state, reset=False)
     matches = match(multilinear.all_parameters(), multilinear2.all_parameters(), equivalence = lambda a,b: (a==b).all())
     assert len(matches) == 6

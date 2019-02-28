@@ -547,14 +547,22 @@ class Message:
         if keys is None:
             keys = list(self.tensor_message.keys())
 
-        df = pd.DataFrame({key: np.array(self[key]).tolist() for key in keys})
         new = Message(self.df)
-        still_tensors = list(self.tensor_message.keys() - df.keys())
-        if still_tensors:
-            new[still_tensors] = self[still_tensors]
-        new_df_keys = list(set(df.keys()) - set(self.df.keys()))
-        if new_df_keys:
-            new[new_df_keys] = df[new_df_keys]
+
+        for key in keys:
+            tensor = self[key].cpu().detach().numpy()
+            if len(tensor.shape) > 1:
+                tensor = tensor.tolist()
+            new[key] = tensor
+
+        # df = pd.DataFrame({key: np.array(self[key]).tolist() for key in keys})
+        #
+        # still_tensors = list(self.tensor_message.keys() - df.keys())
+        # if still_tensors:
+        #     new[still_tensors] = self[still_tensors]
+        # new_df_keys = list(set(df.keys()) - set(self.df.keys()))
+        # if new_df_keys:
+        #     new[new_df_keys] = df[new_df_keys]
 
         return new
 

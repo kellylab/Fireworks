@@ -1,4 +1,5 @@
 import torch
+from .message import Message
 from torch.nn import Parameter, Module
 
 class Component_Map(dict):
@@ -61,6 +62,8 @@ class Component_Map(dict):
             return self._internal_components[key]
         elif key in self._external_modules:
             return getattr(self._external_modules[key], self._external_attribute_names[key])
+        else:
+            raise AttributeError()
 
     def setitem_hook(self, key, value):
         """
@@ -102,7 +105,9 @@ class PyTorch_Component_Map(Component_Map):
                 if hasattr(submodule, 'set_state'): # Is a Model
                     submodule.set_state(val)
                 elif isinstance(submodule, Module):
-                    submodule.load_state_dict(val)
+                    # Convert state dict to a dict of tensors
+                    val = Message(val).to_tensors()
+                    submodule.load_state_dict({key: val[key] for key in val.keys()})
         else:
             Component_Map.__setitem__(self, key, val)
             if self.model is not None:
