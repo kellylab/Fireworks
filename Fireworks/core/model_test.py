@@ -1,117 +1,47 @@
-#TODO: Test the following scenarios: hardcoded params, GUI params, database params, params from a pipe, from another model, and param updating
-
-#TODO: Test that gradients and updates behave correctly when multiple models are linked together
-
-#TODO: Demonstrate the following applications: training and inferencing models, interactive models, auto-generated models
-
 from .model import Model, model_from_module
 from Fireworks.utils.exceptions import ParameterizationError
 from Fireworks.toolbox.pipes import BatchingPipe, LoopingPipe, ShufflerPipe, RepeaterPipe
+from Fireworks.utils.test_helpers import DummyModel, DummyMultilinearModel, LinearJunctionModel, LinearModule, RandomJunction, generate_linear_model_data, generate_multilinear_model_data, DummyUpdateModel
 from Fireworks import Message, Junction
 import random
 import torch
 from torch.nn import Parameter
 from random import randint
 import numpy as np
+import os
+import shutil
 
 loss = torch.nn.MSELoss()
 
-class DummyModel(Model):
-    """ Implements y = m*x + b """
-    required_components = ['m', 'b']
-
-    def __init__(self, components = {}, input = None, in_column = 'x', out_column = 'y'):
-        Model.__init__(self, components, input = input)
-        self.in_column = in_column
-        self.out_column = out_column
-
-    def init_default_components(self):
-        """ Default y-intercept to 0 """
-        self.components['b'] = Parameter(torch.Tensor([0.]))
-
-    def forward(self, message):
-
-        y = self.m*message[self.in_column]+self.b
-        message[self.out_column] = y
-
-        return message
-
-class DummyMultilinearModel(Model):
-    """ Implements y = m1*x1 +m2*x1 + b """
-    required_components = ['m1', 'm2', 'b']
-
-    def init_default_components(self):
-        """ Default y-intercept to 0 """
-        self.components['b'] = Parameter(torch.Tensor([0.]))
-
-    def forward(self, message):
-
-        y = self.m1*message['x1']+ self.m2*message['x2'] + self.b
-        message['y'] = y
-        return message
-
-class LinearJunctionModel(Model):
-    """ Implements y = f(x) + b, where the function f(x) is provided as a junction input. """
-
-    required_components = ['b', 'f']
-
-    def init_default_components(self):
-        """ Default y-intercept to 0 """
-        self.components['b'] = Parameter(torch.Tensor([0.]))
-
-    def forward(self, message):
-
-        y = self.f(message)['z'] + self.b
-        message['y'] = y
-        return message
-
-class LinearModule(torch.nn.Module):
-    """ Dummy PyTorch Module. """
-    def __init__(self):
-        torch.nn.Module.__init__(self)
-        self.m = Parameter(torch.randn(1))
-        self.b = Parameter(torch.randn(1))
-        self.conv1 = torch.nn.Conv2d(1, 20, 5)
-
-    def forward(self, message):
-
-        message['y'] = self.m*message['x']+self.b
-
-        return message
-
-class RandomJunction(Junction):
-
-    def __call__(self, *args, **kwargs):
-
-        target = random.sample(self.components.keys(),1)[0]
-        return self.components[target](*args, **kwargs)
-
-def generate_linear_model_data(n=300):
+def match(A, B, equivalence = lambda a,b: a is b):
     """
-    Generates n samples from a linear model with a small variability.
+    Returns all elements of A that are exactly the same as an element of B. ie. a is b for some b in B.
+    You can change the equivalence relation used.
     """
-    m = randint(-3,3)
-    b = randint(-10,10)
-    x = np.random.rand(n)*100
-    errors = np.random.normal(0, .4, n) # Gaussian samples for errors
-    y = m*x+b + errors
+    matches = []
+    for a in A:
+        for b in B:
+            if equivalence(a, b):
+                matches.append(a)
+                break
+    return matches
 
-    return Message({'x':x, 'y_true':y}), {'m': m, 'b': b, 'errors': errors} # Second dict is for debugging
-
-def generate_multilinear_model_data(n=550):
+def unique(A):
     """
-    Generates n samples from a multilinear model y = m1*x1 + m2*x2 +b with a small variability.
+    Returns elements of A that are unique as defined by 'is' an equivalence relation.
     """
+    unique = []
+    for a1 in A:
+        count = 0
+        for a2 in A:
+            if a1 is a2:
+                count +=1
+                if count > 1:
+                    break
+        if count == 1:
+            unique.append(a1)
 
-    m1 = randint(-5,5)
-    m2 = randint(-5,5)
-    b = randint(-10,10)
-    x1 = np.random.rand(n)*100
-    x2 = np.random.rand(n)*100
-    errors = np.random.normal(0,.1,n) # Gaussian samples for errors
-    y = m1*x1 + m2*x2 + b + errors
-
-    return Message({'x1':x1, 'x2': x2, 'y_true':y}), {'m1': m1, 'm2':m2, 'b': b, 'errors': errors} # Second dict is for debugging
+    return unique
 
 def train_model(model, data, models = None, predicted='y', label='y_true'):
 
@@ -152,6 +82,59 @@ def test_Model_init():
     assert (damura.m == 4.).all()
     assert (damura.b == 5.).all()
 
+def test_Model_get_set_state():
+    sabura = DummyModel({'m': [2.], 'b': [3.]})
+    mabura = DummyModel({'m': (sabura, 'm')})
+    state1 = sabura.get_state()
+    assert state1['external'] == {}
+    assert (state1['internal'].keys()) == set(['out_column', 'in_column', 'b', 'm'])
+    assert state1['internal']['b'] == 3.
+    state2 = mabura.get_state()
+    assert state2['external']['m'] == (sabura, 'm')
+    assert (state2['internal'].keys()) == set(['out_column', 'in_column', 'b'])
+    assert state2['internal']['b'] == 0.
+    cabura = DummyModel()
+    cabura.set_state(state1)
+    cstate1 = cabura.get_state()
+    assert cstate1['external'] == {}
+    assert (cstate1['internal'].keys()) == set(['out_column', 'in_column', 'b', 'm'])
+    assert cstate1['internal']['b'] == 3.
+    cabura.set_state(state2)
+    cstate2 = cabura.get_state()
+    assert cstate2['external']['m'] == (sabura, 'm')
+    assert (cstate2['internal'].keys()) == set(['out_column', 'in_column', 'b'])
+    assert cstate2['internal']['b'] == 0.
+
+def test_Model_save_load():
+
+    # Construct model with inputs and components.
+    sabura = DummyModel({'m': [0.]})
+    sabura.__name__ = 'sabura'
+    damura = DummyModel({'m': [2.]})
+    damura.__name__ = 'damura'
+    lamura = DummyModel()
+    lamura.__name__ = 'lamura'
+    babura = DummyModel({'m': (damura, 'm'), 'b': [4.], 'c': sabura, 'd': torch.nn.Conv2d(4,5,4)}, input=lamura)
+    babura.__name__ = 'babura'
+
+    if not os.path.isdir('save_test'):
+        os.mkdir('save_test')
+    else:
+        shutil.rmtree('save_test')
+        os.mkdir('save_test')
+    babura.save(method='json', path='save_test/test.json')
+    files = os.walk('save_test/.').__next__()[2]
+    assert len(files) == 3
+    # Test different save methods.
+    newone = DummyModel({'m': [5.], 'd': torch.nn.Conv2d(4,5,4), 'c': DummyModel()})
+    assert (newone.m == 5.).all()
+    # old = newone.state_dict()['d.bias'].clone().detach().numpy()
+    newone.load_state('save_test/torch_babura-test.json')
+    assert (newone.d.bias - babura.d.bias < .001).all()
+    assert (newone.d.weight - babura.d.weight < .001).all()
+    # new = newone.state_dict()['d.bias'].clone().detach().numpy()
+    shutil.rmtree('save_test')
+
 def test_Model_inferencing():
 
     damura = DummyModel({'m': [2.]})
@@ -179,6 +162,15 @@ def test_ModelFromModule():
     assert (x == result['x']).all()
     assert (y == result['y']).all()
     assert 'y' in result and 'x' in result and 'z' in result
+
+def test_save_model():
+
+    A = DummyModel({'m': [0.], 'ok': torch.nn.Conv2d(1,20,5), 'c': 'yes'})
+    A.save(method='json')
+    A.save(method='html')
+    saved = A.save(method='dict')
+    assert type(saved) is dict
+    assert set(saved.keys()) == set(['out_column', 'm', 'in_column', 'ok', 'c', 'b'])
 
 def test_freeze_and_unfreeze():
 
@@ -301,6 +293,58 @@ def test_setattr_in_pipeline():
     assert 'yes' not in B.components
     assert B.yes is A.yes
 
+def test_all_parameters():
+
+    # Pipe layout
+    A = DummyModel({'m': [3.]}, out_column='y1')
+    B = DummyModel({'m': [1.], 'b': [2.]}, input=A, in_column='y1', out_column='y')
+    # assert len(unique(B.all_parameters())) == len(B.all_parameters())
+    # matches = match(B.all_parameters(), [B.m, B.b, A.m, A.b])
+    # assert len(matches) == 4
+
+    # Component layout
+    A = DummyModel({'m': [0.]})
+    B = model_from_module(LinearModule)()
+    C = DummyModel({'m': [1.]})
+    multilinear = DummyMultilinearModel({'m1':(A, 'm'), 'm2': (B, 'm'), 'b': (C, 'm'), 'ok': [1.]})
+    multilinear.state_dict()
+    multilinear.hi = torch.nn.Conv2d(4,4,4)
+    params = multilinear.all_parameters()
+    assert len(params) == 6
+
+    for param in params: # See if teh Conv2d from above had it's parameters registered.
+        if param.shape == (4,4,4,4,):
+            test = True
+    assert test
+
+
+    multilinear2 = DummyMultilinearModel()
+    multilinear2.hi = torch.nn.Conv2d(4,4,4)
+    state = multilinear.get_state()
+    multilinear2.set_state(state, reset=False)
+    matches = match(multilinear.all_parameters(), multilinear2.all_parameters(), equivalence = lambda a,b: (a==b).all())
+    assert len(matches) == 6
+
+    assert len(unique(multilinear.all_parameters())) == len(multilinear.all_parameters())
+    matches = match(multilinear.all_parameters(), [A.m, B.m, C.m])
+    assert len(matches) == 3
+
+    # Component layout
+    A = DummyModel({'m': [1.],'b':[3.]}, out_column='z')
+    B = LinearJunctionModel(components={'b':[.5], 'f':A})
+    assert len(unique(B.all_parameters())) == len(B.all_parameters())
+    matches = match(B.all_parameters(), [A.m, A.b, B.b])
+    assert len(matches) == 3
+
+    # Pipes and components
+    A = DummyModel({'m': [1.],'b':[3.]}, out_column='z')
+    C = DummyModel({'m': [0.]})
+    B = LinearJunctionModel(components={'b':[.5], 'f':A}, input=C)
+
+    assert len(unique(B.all_parameters())) == len(B.all_parameters())
+    matches = match(B.all_parameters(), [A.m, A.b, B.b, C.m, C.b])
+    assert len(matches) == 5
+
 def test_multiple_Models_training_in_pipeline():
     """
     Here, model A pipes its output into B
@@ -321,13 +365,12 @@ def test_multiple_Models_training_in_pipeline():
     batch = minibatcher.__next__()
     batch.to_tensors()
     A(batch)
-    train_model(B, minibatcher, models = [B])
+    train_model(B, minibatcher, models = [A, B])
     assert (A.m - m < .4).all()
     assert (B.b != 2).all()
     assert (B.m == 1).all()
     assert (A.b == 0).all()
-    assert False
-    
+
 def test_multiple_Models_training_in_junction():
     """
     Here, model A is provided as a component of B
@@ -382,3 +425,90 @@ def test_multiple_Models_training_via_junction():
     assert (C.m != D.m).all()
     assert (D.m != E.m).all()
     assert (E.m != C.m).all()
+
+def test_enable_disable():
+
+    def get_dummys():
+        """
+        This Model increments it's internal _count variable by the length of the Message being accessed on update.
+        On inference, it simply appends the input to itself and returns that.
+        """
+        dummy = DummyUpdateModel()
+        tummy = DummyUpdateModel(input=dummy)
+        assert dummy._count == 0
+        assert tummy._count == 0
+        return dummy, tummy
+
+    data, meta = generate_linear_model_data()
+    batch = data[2:10]
+    l = len(batch)
+
+    # Test updates and inference for one model
+    dummy, tummy = get_dummys()
+    out = dummy(batch)
+    assert dummy._count == l
+    assert tummy._count == 0
+    assert out == batch.append(batch)
+
+    # Test updates and inference for multiple Models
+    dummy, tummy = get_dummys()
+    out = tummy(batch)
+    assert dummy._count == l
+    assert tummy._count == 2*l
+    assert out == batch.append(batch).append(batch).append(batch) # 4x
+
+    # Test disable updates for one Model
+    dummy, tummy = get_dummys()
+    tummy.disable_updates()
+    out = tummy(batch)
+    assert dummy._count == l
+    assert tummy._count == 0
+    assert out == batch.append(batch).append(batch).append(batch) # 4x
+
+    # Test disable updates for all Models recursively
+    dummy, tummy = get_dummys()
+    tummy.disable_updates_all()
+    out = tummy(batch)
+    assert dummy._count == 0
+    assert tummy._count == 0
+    assert out == batch.append(batch).append(batch).append(batch) # 4x
+    # Test reenabling updates for one Model
+    tummy.enable_updates()
+    out = tummy(batch)
+    assert dummy._count == 0
+    assert tummy._count == 2*l
+    assert out == batch.append(batch).append(batch).append(batch) # 4x
+    # Test reenabling updates for all Models
+    tummy.enable_updates_all()
+    out = tummy(batch)
+    assert dummy._count == l
+    assert tummy._count == 4*l
+    assert out == batch.append(batch).append(batch).append(batch) # 4x
+
+    # Test disable inference for one Model
+    dummy, tummy = get_dummys()
+    tummy.disable_inference()
+    out = tummy(batch)
+    assert dummy._count == l
+    assert tummy._count == 2*l
+    assert out == batch.append(batch) # 2x from the first one
+
+    # Test disable inference for all Models recursively
+    dummy, tummy = get_dummys()
+    tummy.disable_inference_all()
+    out = tummy(batch)
+    assert dummy._count == l
+    assert tummy._count == l
+    assert out == batch # Identity
+    # Test renabling inference for one Model
+    tummy.enable_inference()
+    out = tummy(batch)
+    assert dummy._count == 2*l
+    assert tummy._count == 2*l
+    assert out == batch.append(batch) # 2x from the first one
+    # Test renabling inference for all Models
+    tummy.enable_inference_all()
+    out = tummy(batch)
+    assert dummy._count == 3*l
+    assert tummy._count == 4*l
+    assert out == batch.append(batch).append(batch).append(batch) # 4x from the first one

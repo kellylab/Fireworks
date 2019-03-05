@@ -47,3 +47,10 @@ def slice_length(orange):
             return orange.stop - orange.start
     else:
         return len(orange)
+
+def subset_dict(dictionary, keys):
+    """
+    Returns a dict that contains all key,value pairs in dictionary where the key is one of the provided keys.
+    """
+    keys = set(keys)
+    return {key: value for key, value in dictionary.items() if key in keys}

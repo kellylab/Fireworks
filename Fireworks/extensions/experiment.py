@@ -128,13 +128,6 @@ class Experiment:
         self.engines[name] = create_engine("sqlite:///{filename}".format(filename=os.path.join(self.db_path,self.save_path, name+'.sqlite')))
         return self.engines[name]
 
-    # @deprecated(reason="This is an alias for get_engine and will be removed in the future.")
-    # def create_engine(self, name):
-    #     """
-    #     Alias for get_engine. This will be removed in the future.
-    #     """
-    #     return self.get_engine(name)
-
     def get_session(self, name):
         """
         Creates an SQLalchemy session corresponding to the engine with the given name that can be used to interact with the database.

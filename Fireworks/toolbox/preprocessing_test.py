@@ -37,12 +37,14 @@ def test_Normalizer():
     vok = np.var(batch['ok'])
     mood = np.mean(batch['good'])
     vood = np.var(batch['good'])
-    assert abs(mok )< .2
+    assert abs(mok )< .3
     assert abs(vok - 1 )< .4
-    assert abs(mood )< .2
+    assert abs(mood )< .3
     assert abs(vok -1 )< .4
     normie2 = pr.Normalizer(input=normie)
     normie2.disable_inference()
+    normie.enable_inference()
+    normie.disable_updates()
     le = 0
     for batch in normie2:
         le += len(batch)

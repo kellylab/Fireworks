@@ -1,6 +1,6 @@
 import Fireworks
 from Fireworks import Message
-from Fireworks.pipeline import ShufflerPipe, BatchingPipe
+from Fireworks.toolbox import ShufflerPipe, BatchingPipe, TensorPipe
 import numpy as np
 from random import randint
 
@@ -21,7 +21,8 @@ class NonlinearModel(Model):
 
     def init_default_components(self):
 
-        pass
+        for letter in ['a', 'b', 'c', 'd', 'e']:
+            self.components[letter] = np.random.normal(0,1)
 
     def forward(self, message):
 
@@ -30,7 +31,7 @@ class NonlinearModel(Model):
 
         return message
 
-# Construct data, split into train/eval/test, and get get_minibatcher
+# Construct data, split into train/eval/test, and get get_minibatches
 data, params = generate_data(n=1000)
 training = data[0:800]
 evaluation = data[800:900]
@@ -38,9 +39,17 @@ testing = data[900:]
 
 shuffler = ShufflerPipe(training)
 minibatcher = BatchingPipe(shuffler, batch_size=25)
+# TODO: Add a normalizer here
+dataset = TensorPipe(minibatcher)
 
 # Construct training closure and train using ignite
+base_loss = torch.nn.MSELoss()
+loss = lambda batch: base_loss(batch['y'], batch['y_true'])
+
+model = NonlinearModel()
+trainer = IgniteJunction({'model': model, 'dataset': dataset})
 
 # Specify parameters and metrics construction. Initialize Experiment(s).
+trainer.run()
 
 # Specify hyperparameter optimization scheme using Factory
