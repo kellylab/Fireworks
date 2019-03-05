@@ -86,9 +86,9 @@ class Junction:
         """
         return self.components.keys()
 
-    def set_state(self, state): self.components.set_state(state)
+    def set_state(self, state, *args, **kwargs): self.components.set_state(state)
 
-    def get_state(self, state): return self.components.get_state()
+    def get_state(self): return self.components.get_state()
 
     def save(self, *args, **kwargs):
 

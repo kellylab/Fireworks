@@ -18,6 +18,10 @@ or convert these objects on the fly.
 """
 
 to_methods = ['json', 'dict', 'html', 'feather', 'latex', 'stata', 'msgpack', 'gbq', 'records', 'sparse', 'dense', 'string', 'clipboard']
+read_methods = {
+    'json': pd.read_json, 'csv': pd.read_csv, 'excel': pd.read_excel, 'hdf': pd.read_hdf, 'parquet': pd.read_parquet,
+    'pickle': pd.read_pickle, 'sql_table': pd.read_sql_table, 'state': pd.read_stata, 'table': pd.read_table,
+    }
 
 class Message:
     """
@@ -150,6 +154,46 @@ class Message:
             df = {key: [value] for key, value in kwargs['df'].items()}
 
         return cls(tensors, df)
+
+    @classmethod
+    def read(cls, method, path, *args, **kwargs):
+        if method in read_methods:
+            df = read_methods[method](path, *args, **kwargs)
+            return cls(df)
+        else:
+            raise TypeError("Method {0} is not a supported file type for reading. Must be one of {1}".format(method, read_methods.keys()))
+
+    def to(self, method, *args, **kwargs):
+        """
+        Converts all elements of Message to dataframe and then calls df.to_x based on the given method
+        This can be used to serialize and save Messages or convert them into a different format
+        """
+        # The conversion to dataframe is essential, because that enforces that all of the data being serialized
+        # is on the CPU.
+        if method in to_methods:
+            tensor_message = deepcopy(self.tensor_message) # This is copied so that the original message is not perturbed by serialization.
+            to_serialize = Message(tensor_message, self.df)
+            to_serialize = to_serialize.to_dataframe().df # Convert everything to dataframe
+            if 'path' in kwargs:
+                kwargs['path_or_buf'] = kwargs['path']
+                del kwargs['path']
+            return getattr(to_serialize, 'to_{0}'.format(method))(*args, **kwargs)
+        else:
+            raise ValueError("Method {0} is not a valid method for Message serialization. Valid methods include {1}.".format(method, to_methods))
+
+    def to_csv(self, *args, **kwargs): return self.to('csv', *args, **kwargs)
+    def to_pickle(self, *args, **kwargs): return self.to('pickle', *args, **kwargs)
+    def to_sql(self, *args, **kwargs): return self.to('sql', *args, **kwargs)
+    def to_dict(self, *args, **kwargs):
+        if 'orient' not in kwargs:
+            kwargs['orient']  = 'list'
+        return self.to('dict', *args, **kwargs)
+    def to_excel(self, *args, **kwargs): return self.to('excel', *args, **kwargs)
+    def to_json(self, *args, **kwargs):
+        if 'orient' not in kwargs:
+            kwargs['orient']  = 'list'
+        return self.to('json', *args, **kwargs)
+    def to_string(self, *args, **kwargs): return self.to('string', *args, **kwargs)
 
     def check_length(self):
         """
@@ -364,38 +408,6 @@ class Message:
 
     def __repr__(self):
         return "Message with \n Tensors: \n {0} \n Metadata: \n {1}".format(self.tensor_message, self.df)
-
-    def to(self, method, *args, **kwargs):
-        """
-        Converts all elements of Message to dataframe and then calls df.to_x based on the given method
-        This can be used to serialize and save Messages or convert them into a different format
-        """
-        # The conversion to dataframe is essential, because that enforces that all of the data being serialized
-        # is on the CPU.
-        if method in to_methods:
-            tensor_message = deepcopy(self.tensor_message) # This is copied so that the original message is not perturbed by serialization.
-            to_serialize = Message(tensor_message, self.df)
-            to_serialize = to_serialize.to_dataframe().df # Convert everything to dataframe
-            if 'path' in kwargs:
-                kwargs['path_or_buf'] = kwargs['path']
-                del kwargs['path']
-            return getattr(to_serialize, 'to_{0}'.format(method))(*args, **kwargs)
-        else:
-            raise ValueError("Method {0} is not a valid method for Message serialization. Valid methods include {1}.".format(method, to_methods))
-
-    def to_csv(self, *args, **kwargs): return self.to('csv', *args, **kwargs)
-    def to_pickle(self, *args, **kwargs): return self.to('pickle', *args, **kwargs)
-    def to_sql(self, *args, **kwargs): return self.to('sql', *args, **kwargs)
-    def to_dict(self, *args, **kwargs):
-        if 'orient' not in kwargs:
-            kwargs['orient']  = 'list'
-        return self.to('dict', *args, **kwargs)
-    def to_excel(self, *args, **kwargs): return self.to('excel', *args, **kwargs)
-    def to_json(self, *args, **kwargs):
-        if 'orient' not in kwargs:
-            kwargs['orient']  = 'list'
-        return self.to('json', *args, **kwargs)
-    def to_string(self, *args, **kwargs): return self.to('string', *args, **kwargs)
 
     @property
     def columns(self):

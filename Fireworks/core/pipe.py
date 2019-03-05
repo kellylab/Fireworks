@@ -107,8 +107,8 @@ class Pipe(ABC):
     def get_state(self):
         return {'internal': {key: getattr(self, key) for key in self.stateful_attributes}, 'external': {}}
 
-    def set_state(self, state):
-        for key, value in state['internal'].items():
+    def set_state(self, state, *args, **kwargs):
+        for key, value in {**state['internal']}.items():
             setattr(self, key, value)
 
     def recursive_call(self, attribute, *args, ignore_first = True, call=True,  **kwargs):
