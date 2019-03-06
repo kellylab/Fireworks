@@ -87,6 +87,19 @@ of a Model using the freeze/unfreeze methods.
     :undoc-members:
     :show-inheritance:
 
+State
+-------------------------
+
+.. automodule:: Fireworks.core.component_map
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: Fireworks.core.scaffold
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Database
 -------------------------
 

@@ -1,0 +1,385 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Fireworks.core.component_map &#8212; Fireworks 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Fireworks</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Project.html">Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../License.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Fireworks.html">API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for Fireworks.core.component_map</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">.message</span> <span class="k">import</span> <span class="n">Message</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="k">import</span> <span class="n">Parameter</span><span class="p">,</span> <span class="n">Module</span>
+
+<div class="viewcode-block" id="Component_Map"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.component_map.Component_Map">[docs]</a><span class="k">class</span> <span class="nc">Component_Map</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Each of the main objects that can be used to construct pipelines (Pipes, Junctions, and Models) have a means for tracking their internal</span>
+<span class="sd">    state. For Pipes, this is handled by a simple dictionary, but for Junctions and Models we use this class which satisfies the more complex</span>
+<span class="sd">    needs for these objects.</span>
+<span class="sd">    In particular, a Component_Map can track whether a variable is internal or external to a given object, and if it&#39;s external, whom the</span>
+<span class="sd">    variable belongs to. This lets us dynamically assign a variable of one object to to a component of a Junction or Model while maintaining</span>
+<span class="sd">    the distinction that the assigned variable is not internal to Junction or Model.</span>
+<span class="sd">    This distinction can be useful for variables such as hyperparameters or runtime configurations (eg. whether to use Cuda) that one does</span>
+<span class="sd">    not want to store alongside variables like model weights. You can also have a Model &#39;borrow&#39; variables from another Model while maintaining</span>
+<span class="sd">    this distinciton (eg. use the first two layers from this other model, then use the remainder of the layers using internal weights), and</span>
+<span class="sd">    this can be useful when training Models (you could have your optimizer operate only on a Model&#39;s internal parameters, treating everything</span>
+<span class="sd">    else as constant.)</span>
+<span class="sd">    These are a just few examples of how this abstraction can be useful, and in simpler terms, it is essentially a means to deliberately pass</span>
+<span class="sd">    variables by reference, which is not how Python&#39;s memory model operates by default, but it can be extremely helpful when doing machine</span>
+<span class="sd">    learning.</span>
+<span class="sd">    The details of the interaction with a Component_Map are abstracted away by Junctions and Models. Hence, you shouldn&#39;t have to directly</span>
+<span class="sd">    interact with a Component_Map. Instead, you can generally just call set_state and get_state on Junctions and Models to get serialized</span>
+<span class="sd">    representations of the Component_Maps.</span>
+
+<span class="sd">    The format of these serialization is a dict of the form {&#39;external&#39;: {...}, &#39;internal&#39;: {...}}.</span>
+<span class="sd">    The &#39;internal&#39; dict contains a mapping between variable names and those variables.</span>
+<span class="sd">    The &#39;external&#39; dict contains a mapping between variable names and the object that those variables belong to. In this way, a Component_Map</span>
+<span class="sd">    can keep track of the owner of the linked variable and also get its value as needed. Hence, Junctions and Models can simply use that</span>
+<span class="sd">    variable as if it were internal, and this makes it easy to swap variables around without changing syntax (eg. replace some internal</span>
+<span class="sd">    component of a Model with an attribute of some other object on the fly.)</span>
+
+<span class="sd">    A Component_Map behaves like a dict with the special property that if you assign an tuple of the form (obj, x) to the dict, where</span>
+<span class="sd">    x is a string, then the Component_Map will treat that as a &#39;pass by reference&#39; assignment. In other words, it will assume that you</span>
+<span class="sd">    want to externally link the variable obj.x to the Component_Map. For example, if you do this:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        A = some_object()</span>
+<span class="sd">        cm = Component_Map()</span>
+<span class="sd">        cm[&#39;a&#39;] = (A, &#39;x&#39;)</span>
+
+<span class="sd">    Now whenever you call cm[&#39;a&#39;], you will get whatever is returned by A.x.</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        cm[&#39;a&#39;] == A.x # This evaluates to True.</span>
+<span class="sd">        cm[&#39;a&#39;] is A.x # This also evaluates to True, because the assignment is by reference.</span>
+
+<span class="sd">    If you cm.get_state(), the &#39;external&#39; dict will contain a reference to A.</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        state = cm.get_state()</span>
+<span class="sd">        external = state[&#39;external&#39;]</span>
+<span class="sd">        external[&#39;a&#39;] == (A, &#39;x&#39;) # This evaluates to True.</span>
+
+<span class="sd">    On the other hand, if you do this:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        cm[&#39;a&#39;] = A.x # Don&#39;t pass by reference.</span>
+<span class="sd">        cm[&#39;a&#39;] == A.x # This evaluates to True.</span>
+<span class="sd">        cm[&#39;a&#39;] is A.x # This may or may not be True because Python sometimes assigns by reference and sometimes copies data depending on the situation.</span>
+
+<span class="sd">    This will be treated as an internal assignment. Note that PyTorch implements logic for enforcing pass-by-reference for torch.nn.Parameter</span>
+<span class="sd">    objects. Hence, if A.x was a Parameter, then the assignment will be by reference. However, we will have no way of knowing who the</span>
+<span class="sd">    &#39;owner&#39; of the Parameter is, and by using Component_Maps, we also are able to extend this functionality to any Python object. If</span>
+<span class="sd">    you now get the state, it will be in the &#39;internal&#39; dict.</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        state = cm.get_state()</span>
+<span class="sd">        internal = state[&#39;internal&#39;]</span>
+<span class="sd">        internal[&#39;a&#39;] == A.x # This evaluates to True. If A.x is vector/tensor-valued, you may get a vector/tensor of 1&#39;s.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">components</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        self._internal_components functions like a normal dictionary. If you call cm[&#39;a&#39;] and &#39;a&#39; is in the internal_components dict, then</span>
+<span class="sd">        it will return cm._internal_components[&#39;a&#39;]. However, if &#39;a&#39; is external, then cm[&#39;a&#39;] will return</span>
+<span class="sd">        getattr(cm._external_modules[&#39;a&#39;], c._external_attribute_names[&#39;a&#39;]).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">dict</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_external_modules</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_external_attribute_names</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_internal_components</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">components</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This overrides the __setitem__ method of dict so that if you set an item of the form (obj, x) to a key k, where x is a string,</span>
+<span class="sd">        the Component_Map will &#39;link&#39; obj.x to k. ie. cm[&#39;k&#39;] == obj.x. It will do this by inserting obj into the _external_modules dict</span>
+<span class="sd">        and x into the _external_attribute_names dict with k as the key for both. Hence, when you call cm[&#39;k&#39;], the Component_Map will fetch</span>
+<span class="sd">        obj and the attribute name x and then call getattr(obj, x).</span>
+
+<span class="sd">        Note that you cannot have a key in both the internal and external dicts. If you already have a key in one and you assign to the other,</span>
+<span class="sd">        the former will be deleted. This prevents ambiguity when accessing elements.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">tuple</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="ow">is</span> <span class="mi">2</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">val</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="c1"># Very specific test to check if the intention is to link an attribute inside of another</span>
+            <span class="c1"># object to this Component Map rather than simply set the value of the key to a tuple.</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_components</span><span class="p">:</span>
+                <span class="c1"># Delete from internal components if this key already exists</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="n">obj</span><span class="p">,</span> <span class="n">attribute</span> <span class="o">=</span> <span class="n">val</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attribute</span><span class="p">)</span>
+            <span class="c1"># key, value = self.setitem_hook(key, value)</span>
+            <span class="c1"># self._external_components[key] = value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_external_modules</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_external_attribute_names</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">attribute</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_external_modules</span><span class="p">:</span>
+                <span class="c1"># Deelte from external components if this key already exists.</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">val</span>
+            <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">setitem_hook</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_internal_components</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="nb">dict</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This also deletes the key from the the internal and external dicts.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">dict</span><span class="o">.</span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_external_attribute_names</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_external_modules</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_components</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This returns the object referenced by the key, whether it is internal or external.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_components</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_components</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_external_modules</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_external_modules</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_external_attribute_names</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Component_Map.setitem_hook"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.component_map.Component_Map.setitem_hook">[docs]</a>    <span class="k">def</span> <span class="nf">setitem_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This can be overridden by a subclass in order to implement specific actions</span>
+<span class="sd">        that should take place before an attribute is set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="Component_Map.set_state"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.component_map.Component_Map.set_state">[docs]</a>    <span class="k">def</span> <span class="nf">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This method can be used to apply a serialized representation of state to a Component_Map at once. This is used for loading in saved</span>
+<span class="sd">        data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            state: A dict of the form {&#39;external&#39;: {...}, &#39;internal&#39;: {...}}. The elements of this dict will be assigned to the Component_Map.</span>
+<span class="sd">                   Note that this will not reset the Component_Map, so if there were previous elements already present, those will remain</span>
+<span class="sd">                   in the Component_Map.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">{</span><span class="o">**</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;internal&#39;</span><span class="p">],</span> <span class="o">**</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;external&#39;</span><span class="p">]}</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="Component_Map.get_state"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.component_map.Component_Map.get_state">[docs]</a>    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This returns a serialized representation of the state of the Component_Map.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            None</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            state: A dict of the form {&#39;external&#39;: {...}, &#39;internal&#39;: {...}}. See above documentation for more information.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">internal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_components</span>
+        <span class="n">external</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_external_modules</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_external_attribute_names</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_external_modules</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;internal&#39;</span><span class="p">:</span> <span class="n">internal</span><span class="p">,</span> <span class="s1">&#39;external&#39;</span><span class="p">:</span> <span class="n">external</span><span class="p">}</span></div></div>
+
+<div class="viewcode-block" id="PyTorch_Component_Map"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.component_map.PyTorch_Component_Map">[docs]</a><span class="k">class</span> <span class="nc">PyTorch_Component_Map</span><span class="p">(</span><span class="n">Component_Map</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is a subclass of Component_Map with additional functionality for dealing with PyTorch data structures. PyTorch has a lot of logic</span>
+<span class="sd">    in the background to keep track of Parameters and gradients and where objects are located in memory. The PyTorch_Component_Map has</span>
+<span class="sd">    a modified __setitem__ method which ensures that there are no conflicts with any of these background operations by PyTorch.</span>
+<span class="sd">    In particular, a PyTorch_Component_Map can have a (PyTorch) Model assigned to it, and whenever __setitem__ is called, the item is</span>
+<span class="sd">    1) Converted to a torch.nn.Parameter object if possible. This is essential for computing gradients and training the parameter.</span>
+<span class="sd">    2) Recursively assigned if necessary. This concept is best explained with an example. Say you have a neural network with a convolutional</span>
+<span class="sd">       layer,</span>
+
+<span class="sd">       ::</span>
+
+<span class="sd">            model = some_pytorch_model()</span>
+<span class="sd">            model.conv1 = torch.nn.Conv2d(4,4,4) # This represents a 4x4 convolutional layer with 4 channels.</span>
+
+<span class="sd">        &#39;model.conv1&#39; is itself a PyTorch Module with its own internal state, and in general, models can have models that have models,</span>
+<span class="sd">        and so on. In other words, &#39;model.conv1&#39; could itself have variables that are Modules/Models and so on. When you get the state</span>
+<span class="sd">        dict for the original model, you will get nested dictionaries. These can still be serialized and saved to a file like normal, but</span>
+<span class="sd">        when we call set_state, we want to make sure that we assign these nested dictionary elements to the correct submodules.</span>
+
+<span class="sd">        ::</span>
+
+<span class="sd">            state = model.get_state()</span>
+<span class="sd">            internal = state[&#39;internal&#39;]</span>
+<span class="sd">            internal[&#39;conv1&#39;] == {&#39;weights&#39;: [&#39;This is some Tensor&#39;], &#39;bias&#39;: [&#39;This is some vector&#39;]}</span>
+
+<span class="sd">        If we naively called model.set_state(state) to load some other state from a file, then we would end up assigning a nested</span>
+<span class="sd">        dictionary to the value of model.conv1. What we actually want is:</span>
+
+<span class="sd">        ::</span>
+
+<span class="sd">            model.set_state(state)</span>
+<span class="sd">            print(model.conv1) # This is a PyTorch Module</span>
+<span class="sd">            print(model.conv1.weights) # This is a Tensor</span>
+<span class="sd">            print(model.conv1.bias) # This is a Tensor</span>
+
+<span class="sd">        PyTorch_Component_Map checks if the attribute being assigned to is a PyTorch_Model or (PyTorch) Module and performs this type</span>
+<span class="sd">        of assignment.</span>
+
+<span class="sd">    3) &#39;Registered&#39; to the Model. This is something that PyTorch does whenever you assign a value to a PyTorch Module and is essential</span>
+<span class="sd">        for proper functioning of PyTorch methods/functions, such as getting a state_dict, submodules, etc.</span>
+
+<span class="sd">    This additional logic is important, because in general, all of the layers of a Neural Network are implemented as Modules and PyTorch</span>
+<span class="sd">    Modules inherently has a nested structure.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">components</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        If a model is provided, then the PyTorch_Component_Map can register values with that model, which is essential for proper usage with</span>
+<span class="sd">        PyTorch Modules.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="n">Component_Map</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">components</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This method has additional logic to __setitem__ that is described above.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># This allows the Module superclass to register the parameters.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">key</span> <span class="o">!=</span> <span class="s1">&#39;components&#39;</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span> <span class="c1"># If setting the state dict for a submodule.</span>
+                <span class="n">submodule</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">submodule</span><span class="p">,</span> <span class="s1">&#39;set_state&#39;</span><span class="p">):</span> <span class="c1"># Is a Model</span>
+                    <span class="n">submodule</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">submodule</span><span class="p">,</span> <span class="n">Module</span><span class="p">):</span>
+                    <span class="c1"># Convert state dict to a dict of tensors</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+                    <span class="n">submodule</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Component_Map</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_flags</span><span class="p">[</span><span class="s1">&#39;components_initialized&#39;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_flags</span><span class="p">[</span><span class="s1">&#39;components_initialized&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_flags</span><span class="p">[</span><span class="s1">&#39;components_initialized&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+
+<div class="viewcode-block" id="PyTorch_Component_Map.hook"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.component_map.PyTorch_Component_Map.hook">[docs]</a>    <span class="k">def</span> <span class="nf">hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is used to (try to) convert objects to torch.nn.Parameter objects upon assignment. If a value has tensor-like structure (ie. is</span>
+<span class="sd">        a list or ndarray), then it will automatically be converted.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Module</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;__len__&#39;</span><span class="p">):</span> <span class="c1"># Convert to Parameter</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+            <span class="k">except</span><span class="p">:</span>
+            <span class="c1"># If the component is not a tensor-like, Parameter, or Module, then it is some other object that we simply attach to the model</span>
+            <span class="c1"># For example, it could be a Pipe or Junction that the model can call upon.</span>
+                <span class="k">pass</span>
+        <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="PyTorch_Component_Map.setitem_hook"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.component_map.PyTorch_Component_Map.setitem_hook">[docs]</a>    <span class="k">def</span> <span class="nf">setitem_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This assigns the above hook to setitem_hook so that it will be triggered upon every __setitem__ call.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hook</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;2018, Saad Khan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
