@@ -22,6 +22,8 @@ class Junction:
     Unlike Pipes, junctions do not automatically have recursive method calling. This is because they have multiple input sources,
     which would result in ambiguity. Instead, junctions are meant to act as bridges between multiple pipes in order to enable
     complex workflows which require more than a linear pipeline.
+
+    Like Models, Junctions can have internal and external components in their state. 
     """
 
     def __init__(self, *args, components=None, **kwargs):

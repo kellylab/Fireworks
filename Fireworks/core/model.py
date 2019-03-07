@@ -73,7 +73,6 @@ class Model(HookedPassThroughPipe, Junction, ABC):
             paths = path.split('/')
             paths[-1]="{0}-{1}".format(name, paths[-1])
 
-        # pytorch_parameters, pytorch_modules, other_components, extrinsic_components = self.get_state()
         state = self.get_state()
         external = state['external']
         internal = state['internal']
@@ -364,8 +363,6 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
                 all_params.append(param)
             elif isinstance(param,Module):
                 all_params.extend(list(param.parameters()))
-            # elif type(param) is PyTorch_Model:
-            #     all_params.extend(list(param.all_parameters)) # NOTE: This could cause recursion loops.
 
         if hasattr(self, 'input') and self.input is not None:
             try:
