@@ -28,7 +28,6 @@ class Junction:
 
         self.components = Component_Map(components)
         self.check_components()
-        # self.update_components()
 
     def check_components(self, components = None):
         """
@@ -53,15 +52,6 @@ class Junction:
                 raise ValueError
         else:
             return True
-
-    # def update_components(self, components=None):
-    #
-    #     if components is None:
-    #         components = self.components
-    #
-    #     for name in components:
-    #         self.type_check(name, components)
-    #         setattr(self, name, self.components[name])
 
     def __setattr__(self, name, value):
 
@@ -97,10 +87,6 @@ class Junction:
                 pass
             else:
                 save_df = Message.from_objects(save_dict).to_dataframe().df
-                # Save the df using the given method and arguments
-                # TODO: Implement
-
-                # Save input
 
             for name, component in self.components.items():
                 component.save(*args, **kwargs)
@@ -110,7 +96,10 @@ class Junction:
         return {}
 
 class PyTorch_Junction(Junction):
-
+    """
+    A PyTorch Junction can have automatically convert components to their PyTorch equivalents (eg. convert a numpy array or list to a
+    torch.Tensor), and this can be useful when using the Junction for PyTorch related tasks.
+    """
     def __init__(self, *args, components=None, **kwargs):
         self.components = PyTorch_Component_Map(components)
         self.check_components()

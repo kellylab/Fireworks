@@ -104,11 +104,11 @@ A Message consists of two components: a Pandas DataFrame and a TensorMessage. Th
 <em class="property">class </em><code class="descclassname">Fireworks.core.message.</code><code class="descname">Message</code><span class="sig-paren">(</span><em>*args</em>, <em>metadata=None</em>, <em>length=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A Message is a class for representing data in a way that can be consumed by different analysis pipelines in python. It does this by
-representing the data as a dictionary of arrays. This is the same approach that pandas takes, but Messages are specifically designed to
-be used with pytorch, in which the core data structure is a tensor, which cannot be mixed into a pandas dataframe.
+representing the data as a dictionary of arrays. This is the same approach that Pandas takes, but Messages are specifically designed to
+be used with PyTorch, in which the core data structure is a tensor, which cannot be mixed into a Pandas dataframe.
 Hence, a Message has two elements: a TensorMessage which specifically stores tensor objects and a dataframe which can be used for handling
 any other type of array data. With this structure, you could put your training data in as a TensorMessage and any associated metadata as
-the df and lump all of that into a message. All of the existing df methods can be run on the metadata, and any pytorch operations can be
+the df and lump all of that into a message. All of the existing df methods can be run on the metadata, and any PyTorch operations can be
 performed on the tensor part.</p>
 <p>Messages support operations such as appending one message to another, joining two messages along keys, applying maps to the message’s values,
 and equality checks.</p>
@@ -121,7 +121,8 @@ For example, for preparing batches to feed into an RNN to classify DNA sequences
 <span class="o">...</span><span class="p">})</span>
 </pre></div>
 </div>
-<p>The Message constructor will parse this dictionary and store the labels and embedded sequences inside a TensorMessage and the raw_sequences and other metadata in the dataframe.</p>
+<p>The Message constructor will parse this dictionary and store the labels and embedded sequences inside a TensorMessage and the
+raw_sequences and other metadata in the dataframe.</p>
 <p>Now we can access elements of this Message:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">my_message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">my_message</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
@@ -139,73 +140,130 @@ For example, for preparing batches to feed into an RNN to classify DNA sequences
 <dt id="Fireworks.core.message.Message.from_objects">
 <em class="property">classmethod </em><code class="descname">from_objects</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.from_objects"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.from_objects" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a message by treating all of the provided values as atomic elments and ignoring length differences. This results in a Message
-of length 1.</p>
+of length 1. This can be useful if you want to treat an entire blob as data as a single unit. For example, if you want a row of the
+Message to contain the state of a neural network, one column could be ‘bias’, and the element could be an entire bias-vector, and
+another column could be ‘weights’, containing an entire weight matrix in a single row.</p>
 </dd></dl>
 
 <dl class="classmethod">
 <dt id="Fireworks.core.message.Message.read">
 <em class="property">classmethod </em><code class="descname">read</code><span class="sig-paren">(</span><em>method</em>, <em>path</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.read" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Reads the file located at a provided path using a given method and loads the data into a Message. This method uses the Pandas .read_
+functions and converts the resulting DataFrame to a Message. Thus, there is no way currently to go straight from data in a file to
+a TensorMessage. Additionally, only the methods in the read_methods dict at the top of the file are supported.</p>
+<p>You can provide additional positional and key-word arguments which will be passed to the relevant Pandas method to parameterize the
+read.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>method</strong> (<em>-</em>) – The method to read the file as. Must be one of: json, csv, excel, hdf, parquet, pickle, sql_table, stata, table.</li>
+<li><strong>path</strong> (<em>-</em>) – The location of the file. This file must exist, be readable, and must be the type specified by method.</li>
+<li><strong>*args</strong><strong>, </strong><strong>**kwargs</strong> (<em>-</em>) – <p>Additional arguments for the underlying Pandas function call.</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A Message representation of the loaded data.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li>message</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.message.Message.to">
 <code class="descname">to</code><span class="sig-paren">(</span><em>method</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts all elements of Message to dataframe and then calls df.to_x based on the given method
 This can be used to serialize and save Messages or convert them into a different format</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>method</strong> (<em>-</em>) – The method to save the file as. Must be one of: ‘json’, ‘dict’, ‘html’, ‘feather’, ‘latex’, ‘stata’, ‘msgpack’, ‘gbq’, ‘records’, ‘sparse’, ‘dense’, ‘string’, ‘clipboard’</li>
+<li><strong>*args</strong><strong>, </strong><strong>**kwargs</strong> (<em>-</em>) – <p>Additional arguments for the underlying Pandas <a href="#id9"><span class="problematic" id="id10">pd.to_</span></a> function call as desired. If the first argument (or kwarg
+path_or_buf) is provided, it will be used as a filepath to save to.</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li>Depending on the method chosen, this will save the Message to a file location and then return the converted Message (eg. to_json will return a json)</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.message.Message.to_csv">
 <code class="descname">to_csv</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_csv" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Converts Message to a CSV.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.message.Message.to_pickle">
 <code class="descname">to_pickle</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_pickle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_pickle" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Converts Message to a Python Pickle.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.message.Message.to_sql">
 <code class="descname">to_sql</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_sql"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_sql" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Saves Message to a SQL Database using pd.to_sql function.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.message.Message.to_dict">
 <code class="descname">to_dict</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_dict" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Converts Message to a dict.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.message.Message.to_excel">
 <code class="descname">to_excel</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_excel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_excel" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Saves Message to an Excel file.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.message.Message.to_json">
 <code class="descname">to_json</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_json" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Converts Message to a JSON.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.message.Message.to_string">
 <code class="descname">to_string</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_string" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Converts Message to a string.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.message.Message.check_length">
 <code class="descname">check_length</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.check_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.check_length" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks that lengths of the internal tensor_message and dataframe are the same and equalto self.len
-If one of the two is empty (length 0) then, that is fine.</p>
+If one of the two is empty (length 0), then that is fine.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="Fireworks.core.message.Message.columns">
 <code class="descname">columns</code><a class="headerlink" href="#Fireworks.core.message.Message.columns" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns names of tensors in TensorMessage</p>
+<dd><p>Returns the names of columns in this Message</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.message.Message.keys">
 <code class="descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.keys" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns names of tensors in TensorMessage
+<dd><p>Returns names of keys in this Message.
 Note: This is the same as self.columns</p>
 </dd></dl>
 
@@ -261,7 +319,7 @@ For example:</p>
 <dl class="method">
 <dt id="Fireworks.core.message.Message.map">
 <code class="descname">map</code><span class="sig-paren">(</span><em>mapping</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.map" title="Permalink to this definition">¶</a></dt>
-<dd><p>Applies function mapping to message. If mapping is a dict, then maps will be applied to the correspondign keys as columns, leaving
+<dd><p>Applies function mapping to message. If mapping is a dict, then maps will be applied to the corresponding keys as columns, leaving
 columns not present in mapping untouched.
 In otherwords, mapping would be a dict of column_name:functions specifying the mappings.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -430,11 +488,19 @@ message_b == message_c<p class="last">The last statement will evaluate to True</
 <dt id="Fireworks.core.message.TensorMessage">
 <em class="property">class </em><code class="descclassname">Fireworks.core.message.</code><code class="descname">TensorMessage</code><span class="sig-paren">(</span><em>message_dict=None</em>, <em>map_dict=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#TensorMessage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.TensorMessage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>A TensorMessage is a class for representing data meant for consumption by pytorch as a dictionary of tensors.</p>
+<p>A TensorMessage is a class for representing data meant for consumption by pytorch as a dictionary of tensors. It is analogous to a
+Pandas DataFrame, except all elements are PyTorch Tensors (or torch.nn.Parameter). This can be useful when working with PyTorch, as you
+can have your Models use column names to keep track of what each Tensor is for, and by parameterizing column names, you can make your
+Models somewhat generic (instead of taking x as an argument that must have a specific format, you take take a TensorMessage and act on
+columns that can be configured at runtime or in your script.)</p>
+<p>TensorMessages, along with DataFrames, constitute the components of a Message. We recommend using Messages rather than TensorMessages
+directly, as all of the functionality of TensorMessages is encapsulated by a Message, and this gives you the ability to seamlessly move
+data to and from Tensor format, so you can mix your deep learning tasks with other data science tasks that you would use Pandas for.</p>
 <dl class="method">
 <dt id="Fireworks.core.message.TensorMessage.keys">
 <code class="descname">keys</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#TensorMessage.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.TensorMessage.keys" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the column names of this TensorMessage, which as the keys of the internal tensor_dict.</p>
+</dd></dl>
 
 <dl class="attribute">
 <dt id="Fireworks.core.message.TensorMessage.tensor_message">
@@ -455,7 +521,7 @@ message_b == message_c<p class="last">The last statement will evaluate to True</
 <dl class="attribute">
 <dt id="Fireworks.core.message.TensorMessage.index">
 <code class="descname">index</code><a class="headerlink" href="#Fireworks.core.message.TensorMessage.index" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns index for internal tensors</p>
+<dd><p>Returns the index for internal tensors</p>
 </dd></dl>
 
 <dl class="method">
@@ -1147,6 +1213,8 @@ this will default to just return the components already present within the Model
 <dt id="Fireworks.core.junction.PyTorch_Junction">
 <em class="property">class </em><code class="descclassname">Fireworks.core.junction.</code><code class="descname">PyTorch_Junction</code><span class="sig-paren">(</span><em>*args</em>, <em>components=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/junction.html#PyTorch_Junction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.junction.PyTorch_Junction" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.core.junction.Junction" title="Fireworks.core.junction.Junction"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.junction.Junction</span></code></a></p>
+<p>A PyTorch Junction can have automatically convert components to their PyTorch equivalents (eg. convert a numpy array or list to a
+torch.Tensor), and this can be useful when using the Junction for PyTorch related tasks.</p>
 </dd></dl>
 
 <span class="target" id="module-Fireworks.toolbox.junctions"></span><dl class="class">
@@ -1270,7 +1338,7 @@ This should return a Message.</p>
 <dt id="Fireworks.core.model.Model.save">
 <code class="descname">save</code><span class="sig-paren">(</span><em>*args</em>, <em>method='json'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.save" title="Permalink to this definition">¶</a></dt>
 <dd><p>Aggregates this model’s components into a single Message and saves them using the chosen method.
-You can use any method that Messages support writing to via the <a href="#id1"><span class="problematic" id="id2">to_</span></a> method, and you can
+You can use any method that Messages support writing to via the <a href="#id11"><span class="problematic" id="id12">to_</span></a> method, and you can
 provide additional key-word arguments as needed to support this.
 If the save method involves a path, then the path will be modified for each component and the state_dict.
 For the state_dict, the path will be torch_{name}-{path}, and for each component it will be {key}_{path}
