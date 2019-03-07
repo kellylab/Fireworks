@@ -2,15 +2,7 @@
 Introduction
 =====================================
 
-Tensor algebra frameworks such as TensorFlow and PyTorch have made developing neural network based machine learning models surprisingly easy in the past few years. The flowgraph architecture that these are built around makes it simple to apply algebraic transforms such as gradients to tensor valued datasets with GPU optimization, such as in neural networks.
-
-While these frameworks offer building blocks for constructing models, we often want tools to combine those blocks in reusable manners. Libraries such as Keras and Gluon are built on top of these computation frameworks to offer abstractions specific to certain types of neural networks that can be stacked together in layers. The Ignite library for PyTorch takes a more hands-on approach. It provides an ‘engine’ class that has event methods corresponding to the stages of a machine learning training process (before training, before epoch, before step, during step, after step, etc.). The developer writes functions for what should happen during each of these events (what happens during a training step, at the end of an epoch, etc.), and the engine then makes sure those functions are called at the correct times. On the other extreme, there are completely hands-off machine learning frameworks such as arya.ai and Google autoML that allow one to drag and drop elements and data to construct and train a neural network model.
-
-Which of these approaches makes the most sense? For a researcher, control and flexibility are of paramount importance. Models should be easy to construct but allow one to step in wherever additional control is needed. This is particularly important because in research, one often wants to design models that cannot be expressed using simpler frameworks. For this reason, I prefer the combination of PyTorch + Ignite for deep learning.
-
-However, these tools do not satisfy all of the needs of a deep learning pipeline. A pain point in all deep learning frameworks is data entry; one has to take data in its original form and morph it into the form that the model expects (tensors, TFRecords, etc.). This process can include acquiring the data from a database or an API call, formatting it, applying preprocessing transforms such as mapping text to vectors based on a vocabulary, and preparing mini batches for training. In each of these steps, one must be cognizant of memory, storage, bandwidth, and compute limitations. For example, if a dataset is too big to fit in memory, then it’s journey must be streamed or broken into chunks. In practice, dealing with these issues takes more time than developing the actual models. Hence, we are in a strange position where it’s easy to construct a bidirectional LSTM RNN with attention, but it’s hard to load in a corpus of text from a database to train a classifier with that RNN.
-
-This is where Fireworks comes in. Fireworks is a python-first framework for performing the data processing steps of machine learning in a modular and reusable manner. It does this by moving data between objects called ‘Sources’. A Source can represent a file, a database, or a transform. Each Source has a set of input Sources and is itself an input to other Sources, and as data flows from Source to Source, transforms are applied one at a time, creating a graph of data flow. Because each Source is independent, they can be stacked and reused in the future. Moreover, because Sources are aware of their inputs, they can also call methods on their inputs, and this enables lazy evaluation of data transformations. Lastly, the means of communication between Sources is represented by a Message object. A Message is essentially a (python) dict of arrays, lists, vectors, tensors, etc. It generalizes the functionality of a pandas dataframe to include the ability to store PyTorch tensors. This makes it easy to adapt traditional ML pipelines that use pandas and sklearn, because Messages behave like dataframes. As a result, Fireworks is useful for any data processing task, and not just deep learning. It can be used for interacting with a database, constructing statistical models with pandas, and so much more.
+Fireworks is a python-first batch-processing framework for performing the data processing steps of machine learning in a modular and reusable manner. It provides a set of core components (Message, Pipes, Junctions, and Models) that can be used to implement different operations and can be joined together to construct a data science workflow along with a set of tools built around these components. Data is represented using an object called a Message, which generalizes the concept of a DataFrame to include PyTorch tensors (analogous to a TensorFrame in other frameworks), and there are modules here for training machine learning models, reading and writing to databases using Messages, hyperparameter optimization, and saving/loading snapshots and logs of your data pipeline for re-usability and reproducibility.
 
 Overview
 =====================================
@@ -23,15 +15,15 @@ Fireworks consists of a number of modules that are designed to work together to 
 
 **Pipe**
 
-A class that abstracts data access and transformation. Pipes can be linked together, allowing one to modularly construct a data pipeline. When data is accessed from such a pipeline, each Pipe will apply its own transformation one at a time and return the resulting output.
+A class that abstracts data access and transformation. Pipes can be linked together, allowing one to modularly construct a data pipeline. When data is accessed from such a pipeline, each Pipe will apply its own transformation one at a time and return the resulting output. There are numerous premade Pipes in Fireworks.toolbox which implement common preprocessing tasks.
 
 **Junction**
 
-Whereas pipes can only have one input and are meant to represent a linear flow of information, Junctions can have multiple inputs and enable more complex information flows. These inputs are called components, and each Junction can implement its own logic for how it uses its components to return data that is requested.
+Whereas pipes can only have one input and are meant to represent a linear flow of information, Junctions extend that functionality to allow multiple inputs, enabling more complex information flows. These inputs are called components, and each Junction can implement its own logic for how it uses its components to return data that is requested. There are premade Junctions in Fireworks.toolbox which implement common tasks related to combining or samplign from multiple data sources.
 
 **Models**
 
-Models represent parameterizable transformations. In particular, PyTorch_Models represent transformations in the form of PyTorch Modules which can be inserted into a pipeline.
+Models represent parameterizable transformations. This differentiates them from Pipes, as there is additional functionality in place to facilitate saving, loading, and swapping around the parameters of a Model that go beyond what a typical Pipe would require. Additionally, Models have methods specifically relevant to the statistical models that they are meant to represent. In particular, PyTorch_Models are designed to represent machine learning models in the form of PyTorch Modules, and this allows one to insert the Modules into a pipeline.
 
 **MessageCache**
 
@@ -51,8 +43,6 @@ Additionally, it is possible to save and load the state of an entire computation
 
 
 **Not Yet Implemented / Roadmap Objectives**
-
-(An experiment is a single run of get data - preprocess - train - evaluate - hyperparams - test)
 
 **Plotting**
 
