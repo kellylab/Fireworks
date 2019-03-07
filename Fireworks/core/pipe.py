@@ -5,8 +5,6 @@ from .cache import LRUCache, LFUCache, UnlimitedCache
 from types import MethodType
 from abc import ABC, abstractmethod
 
-#TODO: Make methods/attributes beginning with underscore exempt from recursion in order to simplify namespace issues
-
 def recursive(accumulate=False):
     """
     Decorator that labels a Pipe method as recursive. This means, that method func will first be called on
@@ -35,7 +33,7 @@ def recursive(accumulate=False):
 
 class Pipe(ABC):
     """
-    The core data structure in fireworks.
+    The core object of computation in fireworks.
     A Pipe can take Pipes as inputs, and its outputs can be streamed to other Pipes.
     All communication is done via Message objects.
     Method calls are deferred to input Pipes recursively until a Pipe that implements the method is reached.
@@ -105,9 +103,30 @@ class Pipe(ABC):
             raise AttributeError("Pipe {0} has no attribute called {1}".format(self, name))
 
     def get_state(self):
+        """
+        This returns the current state of the Pipe, which consists of the values of all attributes designated in the list 'stateful_attributes'.
+        This can be used to save and load a Pipe's state.
+
+        Args:
+            - None
+
+        Returns:
+            - A dict of the form {'internal': {...}, 'external': {...}}, where the 'external' subdict is empty. This is so that the representation
+            is consistent with the get_state methods of Junctions and Models. We consider all attributes of a Pipe to be internal, and that is
+            why the 'external' subdict is empty. See documentation on Component Map for more details on what we mean by that (note that Pipes
+            don't use Component_Maps to store state, but simply expose similar methods for compatilibity.)
+        """
+
         return {'internal': {key: getattr(self, key) for key in self.stateful_attributes}, 'external': {}}
 
     def set_state(self, state, *args, **kwargs):
+        """
+        Sets the state of the pipe based on the provided state argument.
+
+        Args:
+            - state: A dict of the form {'internal': {...}, 'external': {...}}. The 'external' dict will be ignored, because consider all
+                     attributes of a Pipe to be in internal (for simplicity). See Component_Map documentation for details.
+        """
         for key, value in {**state['internal']}.items():
             setattr(self, key, value)
 
@@ -142,15 +161,6 @@ class Pipe(ABC):
                 except AttributeError:
                     return self.__getattr__(attribute)
 
-                # if args or kwargs: # Is a method call
-                #     return self.__getattribute__(attribute)(*args,**kwargs)
-                #
-                # else: # Is an attribute
-                #     try:
-                #         return self.__getattribute__(attribute)
-                #     except AttributeError:
-                #         return self.__getattr__(attribute)
-
         if not hasattr(self, 'input') or self.input is None:
             raise AttributeError("Pipe {0} does not have method/attribute {1}.".format(self.name, str(attribute)))
 
@@ -174,11 +184,15 @@ class Pipe(ABC):
         return response
 
     def _save_hook(self):
-
+        """
+        You can override this method to define custom behavior that taks place when a call to save() is made.
+        """
         return {}
 
-    def save(self, *args, **kwargs):
-
+    def save(self, *args, **kwargs): # TODO: Implement save logic
+        """
+        This method currently does nothing but pass on a 'save' method call to the input.
+        """
         save_dict = self._save_hook(*args, **kwargs)
         if save_dict == {}:
             pass
@@ -191,38 +205,18 @@ class Pipe(ABC):
 
         self.input.save(*args, **kwargs)
 
-    # class recursive_decorator:
-    #     """
-    #     Decorator that labels a Pipe method as recursive. This means, that method func will first be called on
-    #     the Pipe's inputs and then on the Pipe itself.
-    #     If accumulate is set to True, then the result from calling the method on a given Pipe will be
-    #     used as input to the next one. If False, then the original arguments will be used when calling
-    #     the method each time.
-    #     """
-    #     def __init__(self, outer):
-    #         self.outer = outer
-    #
-    #     def __call__(self, accumulate=True):
-    #         def wrapper(func, *args, **kwargs):
-            #     response = self.outer.recursive_call(func.__name__, *args, **kwargs)
-            #     if accumulate:
-            #         return func(response)
-            #     else:
-            #         return func(*args, **kwargs)
-            # return wrapper
-
-        # if response:
-        #     if isinstance(responses[0], Pipe):
-        #         return Fireworks.merge(responses)
-        #     elif len(responses) == 1:
-        #         return responses[0]
-        #     else:
-        #         return {key: response for key, respone in zip(self.inputs.keys(), responses)}
-
-class HookedPassThroughPipe(Pipe): # BUG NOTE: Methods that return self will break the passthrough at the moment
+class HookedPassThroughPipe(Pipe):
     """
     This Pipe has hooks which can be implemented by subclasses to modify the behavior of
     passed through calls.
+    You can define hooks for the following (magic) methods: __getitem__, __call__, and __next__.
+    Whenever you call one of these method this will happen:
+        1. The method will be recursively called on this Pipes input (if it exists)
+        2. The appropriate hook function will be called on the result of that recursive call
+        3. This will be the returned value.
+
+    These hooks can make it easy to create pipes that 'do something' every time data is accessed in a certain way. For example, you could have
+    the pipe apply some transform to the data.
     """
 
     name = 'Hooked-passthrough Pipe'
@@ -242,37 +236,7 @@ class HookedPassThroughPipe(Pipe): # BUG NOTE: Methods that return self will bre
 
     def __call__(self, *args, **kwargs): # TODO: Test these hooks more thoroughly.
 
-        # if hasattr(self, 'input') and hasattr(self.input, '__call__'):
-        #     return self._call_hook(self.recursive_call('__call__', *args, **kwargs))
-        # else:
-        #     return self._call_hook(*args, **kwargs)
         try:
             return self._call_hook(self.recursive_call('__call__', *args, **kwargs))
         except AttributeError:
             return self._call_hook(*args, **kwargs)
-
-    # def __iter__(self, *args, **kwargs):
-    #
-    #     self.input = self.input.__iter__(*args, **kwargs)
-    #     return self
-
-# def recursive(pipin, target=None, accumulate=False):
-#     """
-#     Decorator that labels a Pipe method as recursive. This means, that method func will first be called on
-#     the Pipe's inputs and then on the Pipe itself.
-#     If accumulate is set to True, then the result from calling the method on a given Pipe will be
-#     used as input to the next one. If False, then the original arguments will be used when calling
-#     the method each time.
-#     """
-#     def decorator(func):
-#         def wrapper(*args, **kwargs):
-#             # response = pipe.recursive_call(func.__name__, *args, **kwargs)
-#             response = 2
-#             assert False
-#             if accumulate:
-#                 return func(response)
-#             else:
-#                 return func(*args, **kwargs)
-#
-#         return wrapper
-#     return decorator

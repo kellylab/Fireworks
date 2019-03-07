@@ -22,19 +22,15 @@ def update(bundle: dict, parameters: dict):
 
 class Factory(Junction):
     """
-    Base class for parallel hyperparameter optimization in pytorch using queues.
+    Base class for hyperparameter optimization in pytorch using queues.
     """
-    # NOTE: This is currently not parallelized yet
+    # NOTE: This is currently not parallelized. It would be nice if it was.
 
     required_components = {'trainer': types.FunctionType, 'eval_set': object, 'parameterizer': types.FunctionType, 'metrics': dict}
 
     def __init__(self, *args, components=None, **kwargs):
 
         Junction.__init__(self, *args, components=components, **kwargs)
-        # self.trainer = trainer
-        # self.metrics_dict = metrics_dict
-        # self.parameterizer = parameterizer
-        # self.eval_set = eval_eval_set
         self.get_connection()
 
     @abc.abstractmethod
@@ -90,14 +86,6 @@ class LocalMemoryFactory(Factory):
         for key in metrics_dict:
             self.computed_metrics[key] = self.computed_metrics[key].append(metrics_dict[key])
 
-# Table for storing hyperparameter data in SQLFactory
-# columns = [
-#     Column('parameters', JSON),
-#     Column('metrics', JSON),
-# ]
-#
-# factory_table = create_table('hyperparmeters', columns)
-
 class SQLFactory(Factory):
     """
     Factory that stores parameters in SQLalchemy database while caching them locally.
@@ -115,10 +103,6 @@ class SQLFactory(Factory):
     def __init__(self,*args, components=None, **kwargs):
 
         Junction.__init__(self, *args, components=components, **kwargs)
-        # self.engine = engine
-        # self.database = TablePipe(factory_table, self.engine, columns=['parameters', 'metrics'])
-        # self.metrics_tables = metrics_tables
-        # self.params_table = params_table
         self.params_pipe = TablePipe(self.params_table, self.engine)
         self.metrics_pipes = {key: TablePipe(value, self.engine) for key, value in self.metrics_tables.items()}
         self.computed_metrics = defaultdict(Message)
@@ -133,12 +117,9 @@ class SQLFactory(Factory):
         self.params_table.metadata.create_all(self.engine)
         self.id = 0
         self.sync()
-        # Session = sessionmaker(bind=self.engine)
-        # self.session = Session()
 
     def write(self, params, metrics):
 
-        # self.database.insert(Fireworks.Message({'params':[params], 'metrics_dict': [metrics_dict]}))
         if len(params) != len(metrics):
             raise ValueError("Parameters and Metrics messages must be equal length.")
 

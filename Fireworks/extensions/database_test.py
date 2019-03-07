@@ -148,7 +148,7 @@ def test_DBPipe():
     deedee = db.DBPipe(tab, engine)
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
-    deedee.reset()
+    deedee.reset_session()
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
 
@@ -156,7 +156,7 @@ def test_DBPipe():
     ts = db.DBPipe('jotaro', engine)
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
-    deedee.reset()
+    deedee.reset_session()
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
 
@@ -164,7 +164,7 @@ def test_DBPipe():
     deedee.reset_session()
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
-    deedee.reset()
+    deedee.reset_session()
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
 
@@ -172,7 +172,7 @@ def test_DBPipe():
     ts = db.DBPipe('jotaro', engine)
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
-    deedee.reset()
+    deedee.reset_session()
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
 

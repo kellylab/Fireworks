@@ -103,7 +103,7 @@
 <div class="viewcode-block" id="BioSeqPipe"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.BioSeqPipe">[docs]</a><span class="k">class</span> <span class="nc">BioSeqPipe</span><span class="p">(</span><span class="n">Pipe</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Class for representing biosequence data.</span>
-<span class="sd">    Specifically, this class can read biological data files (such as fasta) and iterate throug them as a Pipe.</span>
+<span class="sd">    Specifically, this class can read biological data files (such as fasta) and iterate through them as a Pipe.</span>
 <span class="sd">    This can serve as the first Pipe in a pipeline for analyzing genomic data.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -246,18 +246,6 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="s1">&#39;__next__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="s1">&#39;reset&#39;</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Pipe </span><span class="si">{0}</span><span class="s1"> does not have __next__ and reset methods.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span></div>
 
-    <span class="c1"># def reset(self):</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     Calls reset on input Pipes and sets position to 0.</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     # # for pipe in self.inputs.values():</span>
-    <span class="c1">#     #     pipe.reset()</span>
-    <span class="c1">#     try:</span>
-    <span class="c1">#         self.input.reset()</span>
-    <span class="c1">#     except: # TODO: Do proper error catching here</span>
-    <span class="c1">#         pass</span>
-    <span class="c1">#     self.position = 0</span>
-
     <span class="nd">@recursive</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
@@ -332,6 +320,7 @@
 <span class="sd">        cache[25:30] # This will read from the dataset and update the cache again</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">cache_size</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">buffer_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">cache_type</span> <span class="o">=</span> <span class="s1">&#39;LRU&#39;</span><span class="p">,</span> <span class="n">infinite</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
@@ -353,10 +342,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">buffer_size</span> <span class="o">=</span> <span class="n">buffer_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">init_cache</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="c1"># @abstractmethod # TODO: Make different types of caches implementable via subclasses</span>
+
 <div class="viewcode-block" id="CachingPipe.init_cache"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.CachingPipe.init_cache">[docs]</a>    <span class="k">def</span> <span class="nf">init_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        This should initialize a cache object called self.cache</span>
+<span class="sd">        This initializes a cache object at self.cache. There are currently two types of Cache available; LRUCache and LFUCache, and you can</span>
+<span class="sd">        choose which one by specifying the cache_type argument in the initializer. See Fireworks/core/cache.py for more information on</span>
+<span class="sd">        Message caches.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">choices</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;LRU&#39;</span><span class="p">:</span> <span class="n">LRUCache</span><span class="p">,</span> <span class="s1">&#39;LFU&#39;</span><span class="p">:</span> <span class="n">LFUCache</span><span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="n">choices</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_type</span><span class="p">](</span><span class="n">max_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_size</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer_size</span><span class="p">)</span></div>
@@ -365,7 +356,6 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Checks inputs to determine if they implement __getitem__.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># for name, pipe in self.inputs.items():</span>
         <span class="n">pipe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span>
         <span class="k">if</span> <span class="n">pipe</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;This pipe has no inputs.&quot;</span><span class="p">)</span>
@@ -379,12 +369,12 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">):</span> <span class="c1"># Implicit length check if length is known</span>
             <span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;Requested index is out of bounds for inputs with length </span><span class="si">{0}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">))</span>
+
         <span class="c1"># Identify what is in the cache and what isn&#39;t.</span>
         <span class="n">in_cache</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">pointers</span><span class="p">]</span> <span class="c1"># Elements of index corresponding to in_cache elements</span>
         <span class="n">in_cache_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">count</span><span class="p">())</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">pointers</span><span class="p">]</span> <span class="c1"># Indices in index corresponding to in_cache elements</span>
         <span class="n">not_in_cache</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">pointers</span><span class="p">]</span> <span class="c1"># Elements of index corresponding to not_in_cache elements</span>
         <span class="n">not_in_cache_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">count</span><span class="p">())</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">pointers</span><span class="p">]</span> <span class="c1"># Indices in index corresponding to not_in_cache elements</span>
-
         <span class="c1"># Retrieve from cache existing elements</span>
         <span class="n">in_cache_elements</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">in_cache</span><span class="p">]</span> <span class="c1"># elements in cache corresponding to indices in cache</span>
         <span class="c1"># Update cache to have other elements</span>
@@ -401,7 +391,6 @@
             <span class="n">permutation</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">j</span>
         <span class="c1"># permutation = in_cache_indices.extend(not_in_cache_indices)</span>
         <span class="n">message</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="n">permutation</span><span class="p">)</span>
-
         <span class="c1"># Implicit update of internal knowledge of length</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">infinite</span><span class="p">:</span>
             <span class="n">l</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
@@ -462,49 +451,6 @@
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">insert_labels</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
 
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    NOTE: Explore using the below code as an approach to make a general purpose wrapper Pipes,</span>
-<span class="sd">    ie. Pipes that modify all function calls from their input.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># def __getattr__(self, *args, **kwargs):</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     Pass through all methods of the input pipe while adding labels.</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     output = self.input.__getattribute__(*args, **kwargs)</span>
-    <span class="c1">#     if type(output) is types.MethodType: # Wrap the method in a converter</span>
-    <span class="c1">#         return self.method_wrapper(output)</span>
-    <span class="c1">#     else:</span>
-    <span class="c1">#         return self.attribute_wrapper(output)</span>
-    <span class="c1">#</span>
-    <span class="c1"># def method_wrapper(self, function):</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     Wraps method with a label attacher such that whenever the method is called, the output is modified</span>
-    <span class="c1">#     by adding the label.</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#</span>
-    <span class="c1">#     def new_function(*args, **kwargs):</span>
-    <span class="c1">#</span>
-    <span class="c1">#         output = function(*args, **kwargs)</span>
-    <span class="c1">#         try:</span>
-    <span class="c1">#             output = Message(output)</span>
-    <span class="c1">#         except:</span>
-    <span class="c1">#             return output</span>
-    <span class="c1">#</span>
-    <span class="c1">#         return self.insert_labels(output)</span>
-    <span class="c1">#</span>
-    <span class="c1">#     return new_function</span>
-    <span class="c1">#</span>
-    <span class="c1"># def attribute_wrapper(self, attribute):</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     Wraps attribute with new label if attribute returns a message.</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     try:</span>
-    <span class="c1">#         output = Message(attribute)</span>
-    <span class="c1">#     except:</span>
-    <span class="c1">#         return attribute</span>
-    <span class="c1">#</span>
-    <span class="c1">#     return self.insert_labels(output)</span>
-
 <div class="viewcode-block" id="Title2LabelPipe.insert_labels"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.Title2LabelPipe.insert_labels">[docs]</a>    <span class="k">def</span> <span class="nf">insert_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
 
         <span class="n">l</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
@@ -549,17 +495,6 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">Pipe</span><span class="p">):</span> <span class="c1"># TODO: Test this scenario</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
 
-    <span class="c1"># def reset(self):</span>
-    <span class="c1">#     self.iteration = 0</span>
-    <span class="c1">#     if not isinstance(self.input, Pipe):</span>
-    <span class="c1">#         self.iterator = iter(self.input)</span>
-    <span class="c1">#     else:</span>
-    <span class="c1">#         try:</span>
-    <span class="c1">#             self.recursive_call(&#39;reset&#39;)</span>
-    <span class="c1">#         except:</span>
-    <span class="c1">#             pass</span>
-    <span class="c1">#         return self</span>
-
     <span class="nd">@recursive</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
@@ -592,6 +527,7 @@
 <span class="sd">    Given input Pipes that implement __getitem__ and __len__, will shuffle the indices so that iterating through</span>
 <span class="sd">    the Pipe or calling __getitem__ will return different values.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">check_input</span><span class="p">()</span>
@@ -627,18 +563,6 @@
 <div class="viewcode-block" id="ShufflerPipe.shuffle"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.pipes.ShufflerPipe.shuffle">[docs]</a>    <span class="k">def</span> <span class="nf">shuffle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="c1"># TODO: Add support for ordering</span>
 
         <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shuffle_indices</span><span class="p">)</span></div>
-
-    <span class="c1"># def reset(self):</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     Triggers a shuffle on reset.</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     self.shuffle()</span>
-    <span class="c1">#     self.current_index = 0</span>
-    <span class="c1">#     try:</span>
-    <span class="c1">#         self.recursive_call(&#39;reset&#39;)</span>
-    <span class="c1">#     except AttributeError:</span>
-    <span class="c1">#         pass</span>
-    <span class="c1">#     return self</span>
 
     <span class="nd">@recursive</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -750,6 +674,53 @@
     <span class="k">def</span> <span class="nf">_next_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hook</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_getitem_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hook</span><span class="p">(</span><span class="n">message</span><span class="p">)</span></div>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">NOTE: Explore using the below code as an approach to make a general purpose wrapper Pipes,</span>
+<span class="sd">ie. Pipes that modify all function calls from their input.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># class GenericWrapperPipe(HookedPassThroughPipe):</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     Wraps all method and attribute calls with a hook.</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     def __getattr__(self, *args, **kwargs):</span>
+<span class="c1">#         &quot;&quot;&quot;</span>
+<span class="c1">#         Pass through all methods of the input pipe while adding labels.</span>
+<span class="c1">#         &quot;&quot;&quot;</span>
+<span class="c1">#         output = self.input.__getattribute__(*args, **kwargs)</span>
+<span class="c1">#         if type(output) is types.MethodType: # Wrap the method in a converter</span>
+<span class="c1">#             return self.method_wrapper(output)</span>
+<span class="c1">#         else:</span>
+<span class="c1">#             return self.attribute_wrapper(output)</span>
+<span class="c1">#</span>
+<span class="c1">#     def method_wrapper(self, function):</span>
+<span class="c1">#         &quot;&quot;&quot;</span>
+<span class="c1">#         Wraps method with a label attacher such that whenever the method is called, the output is modified</span>
+<span class="c1">#         by adding the label.</span>
+<span class="c1">#         &quot;&quot;&quot;</span>
+<span class="c1">#</span>
+<span class="c1">#         def new_function(*args, **kwargs):</span>
+<span class="c1">#</span>
+<span class="c1">#             output = function(*args, **kwargs)</span>
+<span class="c1">#             try:</span>
+<span class="c1">#                 output = Message(output)</span>
+<span class="c1">#             except:</span>
+<span class="c1">#                 return output</span>
+<span class="c1">#</span>
+<span class="c1">#             return self.insert_labels(output)</span>
+<span class="c1">#</span>
+<span class="c1">#         return new_function</span>
+<span class="c1">#</span>
+<span class="c1">#     def attribute_wrapper(self, attribute):</span>
+<span class="c1">#         &quot;&quot;&quot;</span>
+<span class="c1">#         Wraps attribute with new label if attribute returns a message.</span>
+<span class="c1">#         &quot;&quot;&quot;</span>
+<span class="c1">#         try:</span>
+<span class="c1">#             output = Message(attribute)</span>
+<span class="c1">#         except:</span>
+<span class="c1">#             return attribute</span>
+<span class="c1">#</span>
+<span class="c1">#         return self.insert_labels(output)</span>
 </pre></div>
 
           </div>

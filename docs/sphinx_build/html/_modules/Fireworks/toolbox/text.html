@@ -85,6 +85,10 @@
   <h1>Source code for Fireworks.toolbox.text</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file contains helper functions that can be useful for NLP tasks.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
 <div class="viewcode-block" id="character_tokenizer"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.text.character_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">character_tokenizer</span><span class="p">(</span><span class="n">sequence</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Splits sequence into a list of characters. &quot;&quot;&quot;</span>
 
@@ -185,7 +189,9 @@
     <span class="k">return</span> <span class="n">embeddings_dict</span></div>
 
 <div class="viewcode-block" id="too_big"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.text.too_big">[docs]</a><span class="k">def</span> <span class="nf">too_big</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span> <span class="n">cutoff</span> <span class="o">=</span> <span class="mi">620000</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Calculates if a batch consisting of dataset[start:end] is too big based on cutoff. &quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates if a batch consisting of dataset[start:end] is too big based on cutoff. This can be used for constructing dynamic batches.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">sizes</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dataset</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">][</span><span class="s1">&#39;embeddings&#39;</span><span class="p">]]</span>
     <span class="n">max_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">sizes</span><span class="p">)</span>

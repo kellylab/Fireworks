@@ -618,7 +618,7 @@ the method each time.</p>
 <dt id="Fireworks.core.pipe.Pipe">
 <em class="property">class </em><code class="descclassname">Fireworks.core.pipe.</code><code class="descname">Pipe</code><span class="sig-paren">(</span><em>input=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/pipe.html#Pipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.pipe.Pipe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></a></p>
-<p>The core data structure in fireworks.
+<p>The core object of computation in fireworks.
 A Pipe can take Pipes as inputs, and its outputs can be streamed to other Pipes.
 All communication is done via Message objects.
 Method calls are deferred to input Pipes recursively until a Pipe that implements the method is reached.</p>
@@ -648,12 +648,42 @@ Method calls are deferred to input Pipes recursively until a Pipe that implement
 <dl class="method">
 <dt id="Fireworks.core.pipe.Pipe.get_state">
 <code class="descname">get_state</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/pipe.html#Pipe.get_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.pipe.Pipe.get_state" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>This returns the current state of the Pipe, which consists of the values of all attributes designated in the list ‘stateful_attributes’.
+This can be used to save and load a Pipe’s state.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>None</strong> (<em>-</em>) – </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">{…}, ‘external’: {…}}, where the ‘external’ subdict is empty. This is so that the representation
+is consistent with the get_state methods of Junctions and Models. We consider all attributes of a Pipe to be internal, and that is
+why the ‘external’ subdict is empty. See documentation on Component Map for more details on what we mean by that (note that Pipes
+don’t use Component_Maps to store state, but simply expose similar methods for compatilibity.)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><ul class="simple">
+<li>A dict of the form {‘internal’</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.pipe.Pipe.set_state">
 <code class="descname">set_state</code><span class="sig-paren">(</span><em>state</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/pipe.html#Pipe.set_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.pipe.Pipe.set_state" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Sets the state of the pipe based on the provided state argument.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>state</strong> (<em>-</em>) – A dict of the form {‘internal’: {…}, ‘external’: {…}}. The ‘external’ dict will be ignored, because consider all
+attributes of a Pipe to be in internal (for simplicity). See Component_Map documentation for details.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.pipe.Pipe.recursive_call">
@@ -689,7 +719,8 @@ implements a method and wants to use an upstream call of the same method as well
 <dl class="method">
 <dt id="Fireworks.core.pipe.Pipe.save">
 <code class="descname">save</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/pipe.html#Pipe.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.pipe.Pipe.save" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>This method currently does nothing but pass on a ‘save’ method call to the input.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -698,7 +729,18 @@ implements a method and wants to use an upstream call of the same method as well
 <em class="property">class </em><code class="descclassname">Fireworks.core.pipe.</code><code class="descname">HookedPassThroughPipe</code><span class="sig-paren">(</span><em>input=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/pipe.html#HookedPassThroughPipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.pipe.HookedPassThroughPipe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.core.pipe.Pipe" title="Fireworks.core.pipe.Pipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.pipe.Pipe</span></code></a></p>
 <p>This Pipe has hooks which can be implemented by subclasses to modify the behavior of
-passed through calls.</p>
+passed through calls.
+You can define hooks for the following (magic) methods: __getitem__, __call__, and __next__.
+Whenever you call one of these method this will happen:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>The method will be recursively called on this Pipes input (if it exists)</li>
+<li>The appropriate hook function will be called on the result of that recursive call</li>
+<li>This will be the returned value.</li>
+</ol>
+</div></blockquote>
+<p>These hooks can make it easy to create pipes that ‘do something’ every time data is accessed in a certain way. For example, you could have
+the pipe apply some transform to the data.</p>
 <dl class="attribute">
 <dt id="Fireworks.core.pipe.HookedPassThroughPipe.name">
 <code class="descname">name</code><em class="property"> = 'Hooked-passthrough Pipe'</em><a class="headerlink" href="#Fireworks.core.pipe.HookedPassThroughPipe.name" title="Permalink to this definition">¶</a></dt>
@@ -938,7 +980,7 @@ but index 0 and 1 do not more.</p>
 <em class="property">class </em><code class="descclassname">Fireworks.toolbox.pipes.</code><code class="descname">BioSeqPipe</code><span class="sig-paren">(</span><em>path</em>, <em>input=None</em>, <em>filetype='fasta'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/pipes.html#BioSeqPipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.pipes.BioSeqPipe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.core.pipe.Pipe" title="Fireworks.core.pipe.Pipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.pipe.Pipe</span></code></a></p>
 <p>Class for representing biosequence data.
-Specifically, this class can read biological data files (such as fasta) and iterate throug them as a Pipe.
+Specifically, this class can read biological data files (such as fasta) and iterate through them as a Pipe.
 This can serve as the first Pipe in a pipeline for analyzing genomic data.</p>
 <dl class="attribute">
 <dt id="Fireworks.toolbox.pipes.BioSeqPipe.name">
@@ -1040,7 +1082,9 @@ on the input and an update to the cache.</p>
 <dl class="method">
 <dt id="Fireworks.toolbox.pipes.CachingPipe.init_cache">
 <code class="descname">init_cache</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/pipes.html#CachingPipe.init_cache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.pipes.CachingPipe.init_cache" title="Permalink to this definition">¶</a></dt>
-<dd><p>This should initialize a cache object called self.cache</p>
+<dd><p>This initializes a cache object at self.cache. There are currently two types of Cache available; LRUCache and LFUCache, and you can
+choose which one by specifying the cache_type argument in the initializer. See Fireworks/core/cache.py for more information on
+Message caches.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1355,12 +1399,42 @@ the components dictionary.</p>
 <dl class="method">
 <dt id="Fireworks.core.model.Model.get_state">
 <code class="descname">get_state</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.get_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.get_state" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>This returns the current state of the Pipe, which consists of the values of all attributes designated in the list ‘stateful_attributes’.
+This can be used to save and load a Pipe’s state.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>None</strong> (<em>-</em>) – </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">{…}, ‘external’: {…}}, where the ‘external’ subdict is empty. This is so that the representation
+is consistent with the get_state methods of Junctions and Models. We consider all attributes of a Pipe to be internal, and that is
+why the ‘external’ subdict is empty. See documentation on Component Map for more details on what we mean by that (note that Pipes
+don’t use Component_Maps to store state, but simply expose similar methods for compatilibity.)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><ul class="simple">
+<li>A dict of the form {‘internal’</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.model.Model.set_state">
 <code class="descname">set_state</code><span class="sig-paren">(</span><em>state</em>, <em>reset=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.set_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.set_state" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Sets the state of the pipe based on the provided state argument.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>state</strong> (<em>-</em>) – A dict of the form {‘internal’: {…}, ‘external’: {…}}. The ‘external’ dict will be ignored, because consider all
+attributes of a Pipe to be in internal (for simplicity). See Component_Map documentation for details.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.model.Model.update">
@@ -1481,7 +1555,17 @@ This is useful for providing a parameters list to an optimizer.</p>
 <dl class="method">
 <dt id="Fireworks.core.model.PyTorch_Model.set_state">
 <code class="descname">set_state</code><span class="sig-paren">(</span><em>state</em>, <em>reset=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#PyTorch_Model.set_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.PyTorch_Model.set_state" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Sets the state of the pipe based on the provided state argument.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>state</strong> (<em>-</em>) – A dict of the form {‘internal’: {…}, ‘external’: {…}}. The ‘external’ dict will be ignored, because consider all
+attributes of a Pipe to be in internal (for simplicity). See Component_Map documentation for details.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.model.PyTorch_Model.get_state">
@@ -1982,12 +2066,6 @@ default, this will be set to an instance of declarative_base from SQLalchemy.</l
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.core.pipe.Pipe" title="Fireworks.core.pipe.Pipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.pipe.Pipe</span></code></a></p>
 <p>Pipe that can iterate through the output of a database query.</p>
 <dl class="method">
-<dt id="Fireworks.extensions.database.DBPipe.reset">
-<code class="descname">reset</code><span class="sig-paren">(</span><em>entities=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/database.html#DBPipe.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.database.DBPipe.reset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Resets DBPipe by reperforming the query, so that it is now at the beginning of the query.</p>
-</dd></dl>
-
-<dl class="method">
 <dt id="Fireworks.extensions.database.DBPipe.reset_session">
 <code class="descname">reset_session</code><span class="sig-paren">(</span><em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/database.html#DBPipe.reset_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.database.DBPipe.reset_session" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -2073,12 +2151,6 @@ added by the create_table function.</li>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.extensions.database.convert">
-<code class="descclassname">Fireworks.extensions.database.</code><code class="descname">convert</code><span class="sig-paren">(</span><em>value</em>, <em>sqltype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/database.html#convert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.database.convert" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts a given value to a value that SQLalchemy can read.</p>
 </dd></dl>
 
 <dl class="function">
@@ -2294,25 +2366,6 @@ create the file using some other library.</li>
 
 </dd></dl>
 
-<dl class="function">
-<dt id="Fireworks.extensions.experiment.filter_columns">
-<code class="descclassname">Fireworks.extensions.experiment.</code><code class="descname">filter_columns</code><span class="sig-paren">(</span><em>message</em>, <em>columns=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/experiment.html#filter_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.experiment.filter_columns" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns only the given columns of message or everything if columns is None.
-If tensor columns are requested, they are converted to ndarray first.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>columns</strong> – Columns to keep. Default = None, meaning return the Message as is.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Message with the filetered columns.</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">message</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 </div>
 <div class="section" id="factory">
 <h2>Factory<a class="headerlink" href="#factory" title="Permalink to this headline">¶</a></h2>
@@ -2368,7 +2421,7 @@ with the database.</p>
 <dt id="Fireworks.extensions.factory.Factory">
 <em class="property">class </em><code class="descclassname">Fireworks.extensions.factory.</code><code class="descname">Factory</code><span class="sig-paren">(</span><em>*args</em>, <em>components=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/factory.html#Factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.factory.Factory" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.core.junction.Junction" title="Fireworks.core.junction.Junction"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.junction.Junction</span></code></a></p>
-<p>Base class for parallel hyperparameter optimization in pytorch using queues.</p>
+<p>Base class for hyperparameter optimization in pytorch using queues.</p>
 <dl class="attribute">
 <dt id="Fireworks.extensions.factory.Factory.required_components">
 <code class="descname">required_components</code><em class="property"> = {'eval_set': &lt;class 'object'&gt;, 'metrics': &lt;class 'dict'&gt;, 'parameterizer': &lt;class 'function'&gt;, 'trainer': &lt;class 'function'&gt;}</em><a class="headerlink" href="#Fireworks.extensions.factory.Factory.required_components" title="Permalink to this definition">¶</a></dt>
@@ -2532,49 +2585,97 @@ Each index value corresponds to a one-hot vector.</p>
 <dl class="function">
 <dt id="Fireworks.toolbox.text.too_big">
 <code class="descclassname">Fireworks.toolbox.text.</code><code class="descname">too_big</code><span class="sig-paren">(</span><em>dataset</em>, <em>start</em>, <em>end</em>, <em>dim=300</em>, <em>cutoff=620000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/text.html#too_big"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.text.too_big" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates if a batch consisting of dataset[start:end] is too big based on cutoff.</p>
+<dd><p>Calculates if a batch consisting of dataset[start:end] is too big based on cutoff. This can be used for constructing dynamic batches.</p>
 </dd></dl>
 
 <span class="target" id="module-Fireworks.utils.utils"></span><dl class="attribute">
 <dt id="Fireworks.utils.utils.one_hot">
 <code class="descclassname">Fireworks.utils.utils.</code><code class="descname">one_hot</code><a class="reference internal" href="_modules/Fireworks/utils/utils.html#one_hot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.utils.utils.one_hot" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>This converts an integer to a one-hot vector, which is a format that is often used by statistical classifiers to represent predictions.
+:param - index: The index in the one-hot array to set as 1
+:param - max: The size of the one-hot array.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A one-hot array, which consists of all 0s except a 1 at a certain index which corresponds to the label classification.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><ul class="simple">
+<li>hot</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.utils.utils.index_to_list">
 <code class="descclassname">Fireworks.utils.utils.</code><code class="descname">index_to_list</code><span class="sig-paren">(</span><em>index</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/utils/utils.html#index_to_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.utils.utils.index_to_list" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts an index to a list.</p>
+<dd><p>Converts an index to a list. This is used by some of the methods in message.py.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.utils.utils.slice_to_list">
 <code class="descclassname">Fireworks.utils.utils.</code><code class="descname">slice_to_list</code><span class="sig-paren">(</span><em>s</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/utils/utils.html#slice_to_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.utils.utils.slice_to_list" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts a slice object to a list of indices</p>
+<dd><p>Converts a slice object to a list of indices. This is used by some of the methods in message.py.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.utils.utils.get_indices">
 <code class="descclassname">Fireworks.utils.utils.</code><code class="descname">get_indices</code><span class="sig-paren">(</span><em>values</em>, <em>listlike</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/utils/utils.html#get_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.utils.utils.get_indices" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the indices in litlike that match elements in values</p>
+<dd><p>Returns the indices in litlike that match elements in values. This is used by some of the methods in message.py.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.utils.utils.slice_length">
 <code class="descclassname">Fireworks.utils.utils.</code><code class="descname">slice_length</code><span class="sig-paren">(</span><em>orange</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/utils/utils.html#slice_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.utils.utils.slice_length" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the length of the index corresponding to a slice.
-For example, slice(0,4,2) has a length of two.</p>
+For example, slice(0,4,2) has a length of two.
+This is used by some of the methods in message.py.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.utils.utils.subset_dict">
 <code class="descclassname">Fireworks.utils.utils.</code><code class="descname">subset_dict</code><span class="sig-paren">(</span><em>dictionary</em>, <em>keys</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/utils/utils.html#subset_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.utils.utils.subset_dict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a dict that contains all key,value pairs in dictionary where the key is one of the provided keys.</p>
+<dd><p>Returns a dict that contains all key,value pairs in dictionary where the key is one of the provided keys.
+This is used by some of the methods in message.py.</p>
 </dd></dl>
 
 <span class="target" id="module-Fireworks.toolbox.preprocessing"></span><dl class="function">
 <dt id="Fireworks.toolbox.preprocessing.train_test_split">
 <code class="descclassname">Fireworks.toolbox.preprocessing.</code><code class="descname">train_test_split</code><span class="sig-paren">(</span><em>pipe</em>, <em>test=0.2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/preprocessing.html#train_test_split"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.preprocessing.train_test_split" title="Permalink to this definition">¶</a></dt>
-<dd><p>Splits input pipe into a training pipe and a test pipe.</p>
+<dd><p>Splits input pipe into a training pipe and a test pipe. The indices representing the input pipe are shuffled, and assigned to the training
+and test sets randomly based on the proportions specified.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pipe</strong> (<em>-</em>) – A pipe which represents the data to be split up.</li>
+<li><strong>test</strong> (<em>-</em>) – The proportion of the set that should be returns as test set. This should be between 0 and 1.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><dl class="docutils">
+<dt>A pipe that represents the training data. You can call __getitem__, __next__, etc. on this pipe and it will transparently</dt>
+<dd><p class="first last">provide elements from the shuffled training set.</p>
+</dd>
+</dl>
+<ul class="simple">
+<li>test_pipe: Analogous to the train_pipe, this represents the test data, which is shuffled and disjoint from the training data.</li>
+</ul>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li>train_pipe</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -2591,7 +2692,12 @@ For example, slice(0,4,2) has a length of two.</p>
 <dt id="Fireworks.toolbox.preprocessing.Normalizer">
 <em class="property">class </em><code class="descclassname">Fireworks.toolbox.preprocessing.</code><code class="descname">Normalizer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/preprocessing.html#Normalizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.preprocessing.Normalizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.core.model.PyTorch_Model" title="Fireworks.core.model.PyTorch_Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.model.PyTorch_Model</span></code></a></p>
-<p>Normalizes Data by Mean and Variance. Analogous to sklearn.preprocessing.Normalizer</p>
+<p>Normalizes Data by Mean and Variance. Analogous to sklearn.preprocessing.Normalizer
+This Model uses a one-pass method to estimate the sample variance which is not guaranteed to be numerically stable.</p>
+<p>The functionality is implemented using hooks. Every time data is accessed from upstream pipes, this Model updates its estimate of the
+population mean and variance using the update() method. If self._inference_enabled is set to True, then the data will also be normalized
+based on those estimates. Means and variances are calculated on a per-column basis. You can also disable/enable the updating of these
+estimate by calling self.enable_updates / self.disable_updates.</p>
 <dl class="attribute">
 <dt id="Fireworks.toolbox.preprocessing.Normalizer.required_components">
 <code class="descname">required_components</code><em class="property"> = ['mean', 'variance', 'count', 'rolling_sum', 'rolling_squares']</em><a class="headerlink" href="#Fireworks.toolbox.preprocessing.Normalizer.required_components" title="Permalink to this definition">¶</a></dt>
@@ -2627,7 +2733,11 @@ required components.</p>
 <span class="target" id="module-Fireworks.utils.events"></span><dl class="function">
 <dt id="Fireworks.utils.events.visdom_loss_handler">
 <code class="descclassname">Fireworks.utils.events.</code><code class="descname">visdom_loss_handler</code><span class="sig-paren">(</span><em>modules_dict</em>, <em>model_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/utils/events.html#visdom_loss_handler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.utils.events.visdom_loss_handler" title="Permalink to this definition">¶</a></dt>
-<dd><p>Attaches plots and metrics to trainer.</p>
+<dd><p>Attaches plots and metrics to trainer.
+This handler creates or connects to an environment on a running Visdom dashboard and creates a line plot that tracks the loss function of a
+training loop as a function of the number of iterations. This can be attached to an Ignite Engine, and the training closure must
+have ‘loss’ as one of the keys in its return dict for this plot to be made.
+See documentation for Ignite (<a class="reference external" href="https://github.com/pytorch/ignite">https://github.com/pytorch/ignite</a>) and Visdom (<a class="reference external" href="https://github.com/facebookresearch/visdom">https://github.com/facebookresearch/visdom</a>) for more information.</p>
 </dd></dl>
 
 <span class="target" id="module-Fireworks.utils.exceptions"></span><dl class="exception">

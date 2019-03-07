@@ -86,8 +86,19 @@
 <span></span><span class="kn">from</span> <span class="nn">ignite.handlers</span> <span class="k">import</span> <span class="n">ModelCheckpoint</span><span class="p">,</span> <span class="n">Timer</span>
 <span class="kn">import</span> <span class="nn">visdom</span>
 
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This code is largely adapted from the demos from the PyTorch and Ignite documentation.</span>
+<span class="sd">See https://github.com/pytorch/ignite for more information.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
 <div class="viewcode-block" id="visdom_loss_handler"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.utils.events.visdom_loss_handler">[docs]</a><span class="k">def</span> <span class="nf">visdom_loss_handler</span><span class="p">(</span><span class="n">modules_dict</span><span class="p">,</span> <span class="n">model_name</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Attaches plots and metrics to trainer. &quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Attaches plots and metrics to trainer.</span>
+<span class="sd">    This handler creates or connects to an environment on a running Visdom dashboard and creates a line plot that tracks the loss function of a</span>
+<span class="sd">    training loop as a function of the number of iterations. This can be attached to an Ignite Engine, and the training closure must</span>
+<span class="sd">    have &#39;loss&#39; as one of the keys in its return dict for this plot to be made.</span>
+<span class="sd">    See documentation for Ignite (https://github.com/pytorch/ignite) and Visdom (https://github.com/facebookresearch/visdom) for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">tim</span> <span class="o">=</span> <span class="n">Timer</span><span class="p">()</span>
     <span class="n">tim</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span> <span class="n">trainer</span><span class="p">,</span>

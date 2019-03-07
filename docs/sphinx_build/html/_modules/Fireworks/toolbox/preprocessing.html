@@ -90,9 +90,23 @@
 <span class="kn">from</span> <span class="nn">Fireworks</span> <span class="k">import</span> <span class="n">PyTorch_Model</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
 
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file contains models that can perform common preprocessing tasks, such as batch normalization.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
 <div class="viewcode-block" id="train_test_split"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.preprocessing.train_test_split">[docs]</a><span class="k">def</span> <span class="nf">train_test_split</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="n">test</span><span class="o">=.</span><span class="mi">2</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Splits input pipe into a training pipe and a test pipe.</span>
+<span class="sd">    Splits input pipe into a training pipe and a test pipe. The indices representing the input pipe are shuffled, and assigned to the training</span>
+<span class="sd">    and test sets randomly based on the proportions specified.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        - pipe: A pipe which represents the data to be split up.</span>
+<span class="sd">        - test: The proportion of the set that should be returns as test set. This should be between 0 and 1.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        - train_pipe: A pipe that represents the training data. You can call __getitem__, __next__, etc. on this pipe and it will transparently</span>
+<span class="sd">                      provide elements from the shuffled training set.</span>
+<span class="sd">        - test_pipe: Analogous to the train_pipe, this represents the test data, which is shuffled and disjoint from the training data.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="s1">&#39;__getitem__&#39;</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Input pipe must be indexable via __getitem__&quot;</span><span class="p">)</span>
@@ -113,9 +127,16 @@
 <div class="viewcode-block" id="apply_noise"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.preprocessing.apply_noise">[docs]</a><span class="k">def</span> <span class="nf">apply_noise</span><span class="p">():</span> <span class="k">pass</span></div>
 
 <span class="c1">#IDEA: Instead of implementing this, what if we couple a LoopingSource + CachingSource to a SKLearn estimator?</span>
+<span class="c1"># Doing so would create a path to seamless insertion of SKlearn modules into pipelines.</span>
 <div class="viewcode-block" id="Normalizer"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.preprocessing.Normalizer">[docs]</a><span class="k">class</span> <span class="nc">Normalizer</span><span class="p">(</span><span class="n">PyTorch_Model</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Normalizes Data by Mean and Variance. Analogous to sklearn.preprocessing.Normalizer</span>
+<span class="sd">    This Model uses a one-pass method to estimate the sample variance which is not guaranteed to be numerically stable.</span>
+
+<span class="sd">    The functionality is implemented using hooks. Every time data is accessed from upstream pipes, this Model updates its estimate of the</span>
+<span class="sd">    population mean and variance using the update() method. If self._inference_enabled is set to True, then the data will also be normalized</span>
+<span class="sd">    based on those estimates. Means and variances are calculated on a per-column basis. You can also disable/enable the updating of these</span>
+<span class="sd">    estimate by calling self.enable_updates / self.disable_updates.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">required_components</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;variance&#39;</span><span class="p">,</span> <span class="s1">&#39;count&#39;</span><span class="p">,</span> <span class="s1">&#39;rolling_sum&#39;</span><span class="p">,</span> <span class="s1">&#39;rolling_squares&#39;</span><span class="p">]</span>
@@ -127,11 +148,6 @@
 
 <div class="viewcode-block" id="Normalizer.init_default_components"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.preprocessing.Normalizer.init_default_components">[docs]</a>    <span class="k">def</span> <span class="nf">init_default_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="c1"># self.mean = {}</span>
-        <span class="c1"># self.variance = {}</span>
-        <span class="c1"># self.count = 0</span>
-        <span class="c1"># self.rolling_sum = defaultdict(lambda : 0)</span>
-        <span class="c1"># self.rolling_squares = defaultdict(lambda : 0)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span> <span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;variance&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span> <span class="p">:</span> <span class="mi">1</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.</span><span class="p">]</span>

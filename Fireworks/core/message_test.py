@@ -554,8 +554,6 @@ def test_TensorMessage_set_get_del():
     del zohomail['b']
     assert len(zohomail) == 0
 
-    assert False
-
 def test_TensorMessage_eq():
 
     a = [1,2,3]

@@ -18,7 +18,7 @@ import numpy as np
 class BioSeqPipe(Pipe):
     """
     Class for representing biosequence data.
-    Specifically, this class can read biological data files (such as fasta) and iterate throug them as a Pipe.
+    Specifically, this class can read biological data files (such as fasta) and iterate through them as a Pipe.
     This can serve as the first Pipe in a pipeline for analyzing genomic data.
     """
 
@@ -161,18 +161,6 @@ class LoopingPipe(Pipe):
         if not (hasattr(pipe, '__next__') and hasattr(pipe, 'reset')):
             raise TypeError('Pipe {0} does not have __next__ and reset methods.'.format(name))
 
-    # def reset(self):
-    #     """
-    #     Calls reset on input Pipes and sets position to 0.
-    #     """
-    #     # # for pipe in self.inputs.values():
-    #     #     pipe.reset()
-    #     try:
-    #         self.input.reset()
-    #     except: # TODO: Do proper error catching here
-    #         pass
-    #     self.position = 0
-
     @recursive()
     def reset(self):
 
@@ -247,6 +235,7 @@ class CachingPipe(Pipe):
         cache[25:30] # This will read from the dataset and update the cache again
 
     """
+
     def __init__(self, input, *args, cache_size = 100, buffer_size = 0, cache_type = 'LRU', infinite = False, **kwargs):
         """
         Args:
@@ -268,10 +257,12 @@ class CachingPipe(Pipe):
         self.buffer_size = buffer_size
         self.init_cache(*args, **kwargs)
 
-    # @abstractmethod # TODO: Make different types of caches implementable via subclasses
+
     def init_cache(self, *args, **kwargs):
         """
-        This should initialize a cache object called self.cache
+        This initializes a cache object at self.cache. There are currently two types of Cache available; LRUCache and LFUCache, and you can
+        choose which one by specifying the cache_type argument in the initializer. See Fireworks/core/cache.py for more information on
+        Message caches.
         """
         choices = {'LRU': LRUCache, 'LFU': LFUCache}
         self.cache = choices[self.cache_type](max_size = self.cache_size, buffer_size=self.buffer_size)
@@ -280,7 +271,6 @@ class CachingPipe(Pipe):
         """
         Checks inputs to determine if they implement __getitem__.
         """
-        # for name, pipe in self.inputs.items():
         pipe = self.input
         if pipe is None:
             raise AttributeError("This pipe has no inputs.")
@@ -294,12 +284,12 @@ class CachingPipe(Pipe):
         if self.length and len(index): # Implicit length check if length is known
             if max(index) >= self.length:
                 raise IndexError("Requested index is out of bounds for inputs with length {0}.".format(self.length))
+
         # Identify what is in the cache and what isn't.
         in_cache = [i for i in index if i in self.cache.pointers] # Elements of index corresponding to in_cache elements
         in_cache_indices = [j for i,j in zip(index, count()) if i in self.cache.pointers] # Indices in index corresponding to in_cache elements
         not_in_cache = [i for i in index if i not in self.cache.pointers] # Elements of index corresponding to not_in_cache elements
         not_in_cache_indices = [j for i,j in zip(index, count()) if i not in self.cache.pointers] # Indices in index corresponding to not_in_cache elements
-
         # Retrieve from cache existing elements
         in_cache_elements = self.cache[in_cache] # elements in cache corresponding to indices in cache
         # Update cache to have other elements
@@ -316,7 +306,6 @@ class CachingPipe(Pipe):
             permutation[i] = j
         # permutation = in_cache_indices.extend(not_in_cache_indices)
         message = message.permute(permutation)
-
         # Implicit update of internal knowledge of length
         if len(index) and self.length is None and not self.infinite:
             l = max(index)
@@ -377,49 +366,6 @@ class Title2LabelPipe(HookedPassThroughPipe):
 
         return self.insert_labels(message)
 
-    """
-    NOTE: Explore using the below code as an approach to make a general purpose wrapper Pipes,
-    ie. Pipes that modify all function calls from their input.
-    """
-    # def __getattr__(self, *args, **kwargs):
-    #     """
-    #     Pass through all methods of the input pipe while adding labels.
-    #     """
-    #     output = self.input.__getattribute__(*args, **kwargs)
-    #     if type(output) is types.MethodType: # Wrap the method in a converter
-    #         return self.method_wrapper(output)
-    #     else:
-    #         return self.attribute_wrapper(output)
-    #
-    # def method_wrapper(self, function):
-    #     """
-    #     Wraps method with a label attacher such that whenever the method is called, the output is modified
-    #     by adding the label.
-    #     """
-    #
-    #     def new_function(*args, **kwargs):
-    #
-    #         output = function(*args, **kwargs)
-    #         try:
-    #             output = Message(output)
-    #         except:
-    #             return output
-    #
-    #         return self.insert_labels(output)
-    #
-    #     return new_function
-    #
-    # def attribute_wrapper(self, attribute):
-    #     """
-    #     Wraps attribute with new label if attribute returns a message.
-    #     """
-    #     try:
-    #         output = Message(attribute)
-    #     except:
-    #         return attribute
-    #
-    #     return self.insert_labels(output)
-
     def insert_labels(self, message):
 
         l = len(message)
@@ -464,17 +410,6 @@ class RepeaterPipe(Pipe):
         if not isinstance(self.input, Pipe): # TODO: Test this scenario
             self.iterator = iter(input)
 
-    # def reset(self):
-    #     self.iteration = 0
-    #     if not isinstance(self.input, Pipe):
-    #         self.iterator = iter(self.input)
-    #     else:
-    #         try:
-    #             self.recursive_call('reset')
-    #         except:
-    #             pass
-    #         return self
-
     @recursive()
     def reset(self):
         self.iteration = 0
@@ -507,6 +442,7 @@ class ShufflerPipe(Pipe):
     Given input Pipes that implement __getitem__ and __len__, will shuffle the indices so that iterating through
     the Pipe or calling __getitem__ will return different values.
     """
+
     def __init__(self, input, *args, **kwargs):
         super().__init__(input, *args, **kwargs)
         self.check_input()
@@ -542,18 +478,6 @@ class ShufflerPipe(Pipe):
     def shuffle(self, order = None): # TODO: Add support for ordering
 
         np.random.shuffle(self.shuffle_indices)
-
-    # def reset(self):
-    #     """
-    #     Triggers a shuffle on reset.
-    #     """
-    #     self.shuffle()
-    #     self.current_index = 0
-    #     try:
-    #         self.recursive_call('reset')
-    #     except AttributeError:
-    #         pass
-    #     return self
 
     @recursive()
     def reset(self):
@@ -665,3 +589,50 @@ class TensorPipe(HookedPassThroughPipe):
     def _next_hook(self, message): return self._hook(message)
 
     def _getitem_hook(self, message): return self._hook(message)
+
+"""
+NOTE: Explore using the below code as an approach to make a general purpose wrapper Pipes,
+ie. Pipes that modify all function calls from their input.
+"""
+# class GenericWrapperPipe(HookedPassThroughPipe):
+#     """
+#     Wraps all method and attribute calls with a hook.
+#     """
+#     def __getattr__(self, *args, **kwargs):
+#         """
+#         Pass through all methods of the input pipe while adding labels.
+#         """
+#         output = self.input.__getattribute__(*args, **kwargs)
+#         if type(output) is types.MethodType: # Wrap the method in a converter
+#             return self.method_wrapper(output)
+#         else:
+#             return self.attribute_wrapper(output)
+#
+#     def method_wrapper(self, function):
+#         """
+#         Wraps method with a label attacher such that whenever the method is called, the output is modified
+#         by adding the label.
+#         """
+#
+#         def new_function(*args, **kwargs):
+#
+#             output = function(*args, **kwargs)
+#             try:
+#                 output = Message(output)
+#             except:
+#                 return output
+#
+#             return self.insert_labels(output)
+#
+#         return new_function
+#
+#     def attribute_wrapper(self, attribute):
+#         """
+#         Wraps attribute with new label if attribute returns a message.
+#         """
+#         try:
+#             output = Message(attribute)
+#         except:
+#             return attribute
+#
+#         return self.insert_labels(output)

@@ -1,5 +1,9 @@
 import numpy as np
 
+"""
+This file contains helper functions that can be useful for NLP tasks.
+"""
+
 def character_tokenizer(sequence):
     """ Splits sequence into a list of characters. """
 
@@ -100,7 +104,9 @@ def make_indices(vocabulary): # TODO: write test
     return embeddings_dict
 
 def too_big(dataset, start, end, dim = 300, cutoff = 620000):
-    """ Calculates if a batch consisting of dataset[start:end] is too big based on cutoff. """
+    """
+    Calculates if a batch consisting of dataset[start:end] is too big based on cutoff. This can be used for constructing dynamic batches.
+    """
 
     sizes = [len(x) for x in dataset[start:end]['embeddings']]
     max_size = max(sizes)

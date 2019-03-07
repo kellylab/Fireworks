@@ -11,7 +11,12 @@ import numpy as np
 import types
 
 def default_training_closure(model, optimizer, loss_fn):
-
+    """
+    This is function produces a simple training loop that can be used for many situations. During each loop, the model is applied to the
+    current batch, the loss_fn computes a loss, gradients are computed on the loss, and the optimizer updates its parameters using those
+    gradients. The update function returns a dictionary containing the loss, the current value of the optimizer (ie. the gradients), and
+    the output of the model.
+    """
     def update_function(engine, batch):
 
         model.train()
@@ -26,7 +31,10 @@ def default_training_closure(model, optimizer, loss_fn):
     return update_function
 
 class IgniteJunction(Junction):
-
+    """
+    This abstracts the functionality of an Ignite Engine into Junction format. See the Ignite documentation (https://github.com/pytorch/ignite)
+    for more details.
+    """
     required_components = {'model': Model, 'dataset': object}
 
     # These dictionaries describe the allowed optimizers and learning rate schedulers, along with the keyword arguments that each can accept.

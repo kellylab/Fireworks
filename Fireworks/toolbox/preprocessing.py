@@ -5,9 +5,23 @@ from Fireworks.toolbox import pipes as pl
 from Fireworks import PyTorch_Model
 from collections import defaultdict
 
+"""
+This file contains models that can perform common preprocessing tasks, such as batch normalization.
+"""
+
 def train_test_split(pipe, test=.2):
     """
-    Splits input pipe into a training pipe and a test pipe.
+    Splits input pipe into a training pipe and a test pipe. The indices representing the input pipe are shuffled, and assigned to the training
+    and test sets randomly based on the proportions specified.
+
+    Args:
+        - pipe: A pipe which represents the data to be split up.
+        - test: The proportion of the set that should be returns as test set. This should be between 0 and 1.
+
+    Returns:
+        - train_pipe: A pipe that represents the training data. You can call __getitem__, __next__, etc. on this pipe and it will transparently
+                      provide elements from the shuffled training set.
+        - test_pipe: Analogous to the train_pipe, this represents the test data, which is shuffled and disjoint from the training data.
     """
     if not hasattr(pipe, '__getitem__'):
         raise ValueError("Input pipe must be indexable via __getitem__")
@@ -28,9 +42,16 @@ def oversample(): pass
 def apply_noise(): pass
 
 #IDEA: Instead of implementing this, what if we couple a LoopingSource + CachingSource to a SKLearn estimator?
+# Doing so would create a path to seamless insertion of SKlearn modules into pipelines.
 class Normalizer(PyTorch_Model):
     """
     Normalizes Data by Mean and Variance. Analogous to sklearn.preprocessing.Normalizer
+    This Model uses a one-pass method to estimate the sample variance which is not guaranteed to be numerically stable.
+
+    The functionality is implemented using hooks. Every time data is accessed from upstream pipes, this Model updates its estimate of the
+    population mean and variance using the update() method. If self._inference_enabled is set to True, then the data will also be normalized
+    based on those estimates. Means and variances are calculated on a per-column basis. You can also disable/enable the updating of these
+    estimate by calling self.enable_updates / self.disable_updates.
     """
 
     required_components = ['mean', 'variance', 'count', 'rolling_sum', 'rolling_squares']
@@ -42,11 +63,6 @@ class Normalizer(PyTorch_Model):
 
     def init_default_components(self):
 
-        # self.mean = {}
-        # self.variance = {}
-        # self.count = 0
-        # self.rolling_sum = defaultdict(lambda : 0)
-        # self.rolling_squares = defaultdict(lambda : 0)
         self.components['mean'] = defaultdict(lambda : 0)
         self.components['variance'] = defaultdict(lambda : 1)
         self.components['count'] = [0.]

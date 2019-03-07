@@ -145,7 +145,6 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1"># TODO:     Enable inserting TensorMessages (QUESTION: how would this work?)</span>
-        <span class="c1"># rows = [self.make_row_dict(row) for row in batch]</span>
         <span class="n">rows</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
 
         <span class="c1"># NOTE:     Bulk inserts implemented using this guide:</span>
@@ -166,9 +165,6 @@
             <span class="n">table</span><span class="o">.</span><span class="n">insert</span><span class="p">(),</span> <span class="c1"># NOTE: This requires self.table to have a __table__ attribute, which is not guaranteed.</span>
             <span class="n">rows</span>
         <span class="p">)</span></div>
-        <span class="c1"># self.session.bulk_insert_mappings(self.table, rows)</span>
-        <span class="c1"># self.session.bulk_save_objects(rows)</span>
-        <span class="c1"># self.session.add_all(rows)</span>
 
 <div class="viewcode-block" id="TablePipe.query"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.extensions.database.TablePipe.query">[docs]</a>    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entities</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -197,7 +193,7 @@
             <span class="n">entities</span> <span class="o">=</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">,</span> <span class="n">entity</span><span class="p">)</span> <span class="k">for</span> <span class="n">entity</span> <span class="ow">in</span> <span class="n">entities</span><span class="p">]</span>
             <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="o">*</span><span class="n">entities</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="n">columns_and_types</span> <span class="o">=</span> <span class="n">parse_columns_and_types</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
-        <span class="c1"># return self.session.query(entities, *args, **kwargs)</span>
+
         <span class="k">return</span> <span class="n">DBPipe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">columns_and_types</span> <span class="o">=</span> <span class="n">columns_and_types</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TablePipe.delete"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.extensions.database.TablePipe.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_name</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
@@ -313,23 +309,11 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">columns_and_types</span> <span class="o">=</span> <span class="n">columns_and_types</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span>
-
-<div class="viewcode-block" id="DBPipe.reset"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.extensions.database.DBPipe.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entities</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Resets DBPipe by reperforming the query, so that it is now at the beginning of the query.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># if entities is None: # TODO: Make this work properly</span>
-        <span class="c1">#     entities = self.table</span>
-        <span class="c1">#</span>
-        <span class="c1"># self.query = self.session.query(entities, *args, **kwargs)</span>
-        <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="DBPipe.reset_session"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.extensions.database.DBPipe.reset_session">[docs]</a>    <span class="k">def</span> <span class="nf">reset_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
@@ -391,7 +375,6 @@
 <span class="sd">        columns (list): A list of columns names in the sqlalchemy object.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1">#[c.key for c in table.__table__.columns]</span>
     <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">parse_columns_and_types</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">ignore_id</span><span class="p">)</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
 
 <div class="viewcode-block" id="parse_columns_and_types"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.extensions.database.parse_columns_and_types">[docs]</a><span class="k">def</span> <span class="nf">parse_columns_and_types</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">ignore_id</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
@@ -417,18 +400,6 @@
     <span class="k">if</span> <span class="n">ignore_id</span> <span class="ow">and</span> <span class="s1">&#39;id&#39;</span> <span class="ow">in</span> <span class="n">columns_and_types</span><span class="p">:</span>
         <span class="k">del</span> <span class="n">columns_and_types</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">columns_and_types</span></div>
-
-<div class="viewcode-block" id="convert"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.extensions.database.convert">[docs]</a><span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">sqltype</span><span class="p">):</span> <span class="c1"># NOTE: This is deprecated</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Converts a given value to a value that SQLalchemy can read.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">objtype</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">sqltype</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">objtype</span> <span class="ow">is</span> <span class="n">Integer</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bytes</span><span class="p">:</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">byteorder</span><span class="o">=</span><span class="s1">&#39;little&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">value</span></div>
 
 <div class="viewcode-block" id="to_message"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.extensions.database.to_message">[docs]</a><span class="k">def</span> <span class="nf">to_message</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">columns_and_types</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -470,11 +441,6 @@
         <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">to_pydatetime</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">value</span></div>
-<span class="c1"># Get Representation</span>
-<span class="c1"># Test row generation</span>
-<span class="c1"># Test with SQLite backend</span>
-<span class="c1"># Test with CSV, Message, and Fasta</span>
-<span class="c1"># Create reader pipes</span>
 
 <div class="viewcode-block" id="reflect_table"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.extensions.database.reflect_table">[docs]</a><span class="k">def</span> <span class="nf">reflect_table</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
