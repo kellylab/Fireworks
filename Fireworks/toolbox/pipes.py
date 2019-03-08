@@ -398,10 +398,12 @@ class LabelerPipe(Pipe):
 
 class RepeaterPipe(Pipe):
     """
-    Given an input Pipe that is iterable, enables repeat iteration.
+    Given an input Pipe that is iterable, enables repeat iteration. In other words, one loop through a RepeaterPipe is equivalent to n loops
+    through the original dataset, where n is the number of repetitions that have been configured. Thsi can be useful for oversampling a data
+    set without having to duplicate it.
     """
 
-    def __init__(self, input, *args,repetitions=10,**kwargs):
+    def __init__(self, input, *args, repetitions=10,**kwargs):
         super().__init__(input, *args,**kwargs)
         if not type(repetitions) is int:
             raise ValueError("Number of repetitions must be provided as an integer.")
