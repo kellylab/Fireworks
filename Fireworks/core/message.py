@@ -6,27 +6,20 @@ from copy import deepcopy
 from collections import Hashable
 from Fireworks.utils import index_to_list, slice_length
 
-"""
-Messages passed between objects in this framework are represented as dictionaries of tensors.
-This is analogous to a pandas dataframe, except the elements of the table are tensors rather than series objects. Because
-a message is just a dictionary, it can be converted to a dataframe. The inverse will only be possible if every element
-of the dataframe can be tensorized (strings can't be converted to tensors.)
-
-This file contains utility functions for working with messages. In order to simplify usage,
-messages have a similar interface to dictionaries and dataframes, and you can often use these interchangeably
-or convert these objects on the fly.
-"""
-
 to_methods = ['json', 'dict', 'html', 'feather', 'latex', 'stata', 'msgpack', 'gbq', 'records', 'sparse', 'dense', 'string', 'clipboard']
+read_methods = {
+    'json': pd.read_json, 'csv': pd.read_csv, 'excel': pd.read_excel, 'hdf': pd.read_hdf, 'parquet': pd.read_parquet,
+    'pickle': pd.read_pickle, 'sql_table': pd.read_sql_table, 'state': pd.read_stata, 'table': pd.read_table,
+    }
 
 class Message:
     """
     A Message is a class for representing data in a way that can be consumed by different analysis pipelines in python. It does this by
-    representing the data as a dictionary of arrays. This is the same approach that pandas takes, but Messages are specifically designed to
-    be used with pytorch, in which the core data structure is a tensor, which cannot be mixed into a pandas dataframe.
+    representing the data as a dictionary of arrays. This is the same approach that Pandas takes, but Messages are specifically designed to
+    be used with PyTorch, in which the core data structure is a tensor, which cannot be mixed into a Pandas dataframe.
     Hence, a Message has two elements: a TensorMessage which specifically stores tensor objects and a dataframe which can be used for handling
     any other type of array data. With this structure, you could put your training data in as a TensorMessage and any associated metadata as
-    the df and lump all of that into a message. All of the existing df methods can be run on the metadata, and any pytorch operations can be
+    the df and lump all of that into a message. All of the existing df methods can be run on the metadata, and any PyTorch operations can be
     performed on the tensor part.
 
     Messages support operations such as appending one message to another, joining two messages along keys, applying maps to the message's values,
@@ -43,7 +36,8 @@ class Message:
         'raw_sequences': ['TCGA...',...,],
         ...})
 
-    The Message constructor will parse this dictionary and store the labels and embedded sequences inside a TensorMessage and the raw_sequences and other metadata in the dataframe.
+    The Message constructor will parse this dictionary and store the labels and embedded sequences inside a TensorMessage and the
+    raw_sequences and other metadata in the dataframe.
 
     Now we can access elements of this Message:
 
@@ -73,7 +67,8 @@ class Message:
         If *args has __getitem__ and keys() attributes --> construct a message from elements of dict, separating tensors from pd series
         """
 
-        """ Init must be idempotent, attempt to perform type conversions as necessary, and compute/check length. """
+        """ The initializer is designed to be idempotent, perform type conversions as necessary, and ensure consistency of lengths. """
+
         if len(args) == 0:
             tensors = {}
             df = {}
@@ -85,7 +80,6 @@ class Message:
         if len(args) == 1:
             # Identify tensors and separate them out
             # The argument may be an existing Message/TensorMessage
-            # TODO: Implement ability to create a message from a list of messages/dicts
             if type(args[0]) is Message:
                 tensors = args[0].tensor_message
                 df = args[0].df
@@ -119,7 +113,9 @@ class Message:
     def from_objects(cls, *args, **kwargs):
         """
         Returns a message by treating all of the provided values as atomic elments and ignoring length differences. This results in a Message
-        of length 1.
+        of length 1. This can be useful if you want to treat an entire blob as data as a single unit. For example, if you want a row of the
+        Message to contain the state of a neural network, one column could be 'bias', and the element could be an entire bias-vector, and
+        another column could be 'weights', containing an entire weight matrix in a single row.
         """
 
         if len(args) == 0:
@@ -151,10 +147,91 @@ class Message:
 
         return cls(tensors, df)
 
+    @classmethod
+    def read(cls, method, path, *args, **kwargs):
+        """
+        Reads the file located at a provided path using a given method and loads the data into a Message. This method uses the Pandas .read_
+        functions and converts the resulting DataFrame to a Message. Thus, there is no way currently to go straight from data in a file to
+        a TensorMessage. Additionally, only the methods in the read_methods dict at the top of the file are supported.
+
+        You can provide additional positional and key-word arguments which will be passed to the relevant Pandas method to parameterize the
+        read.
+
+        Args:
+            - method: The method to read the file as. Must be one of: json, csv, excel, hdf, parquet, pickle, sql_table, stata, table.
+            - path: The location of the file. This file must exist, be readable, and must be the type specified by method.
+            - *args, **kwargs: Additional arguments for the underlying Pandas function call.
+
+        Returns:
+            - message: A Message representation of the loaded data.
+        """
+        if method in read_methods:
+            df = read_methods[method](path, *args, **kwargs)
+            return cls(df)
+        else:
+            raise TypeError("Method {0} is not a supported file type for reading. Must be one of {1}".format(method, read_methods.keys()))
+
+    def to(self, method, *args, **kwargs):
+        """
+        Converts all elements of Message to dataframe and then calls df.to_x based on the given method
+        This can be used to serialize and save Messages or convert them into a different format
+
+        Args:
+            - method: The method to save the file as. Must be one of: 'json', 'dict', 'html', 'feather', 'latex', 'stata', 'msgpack', 'gbq', 'records', 'sparse', 'dense', 'string', 'clipboard'
+            - *args, **kwargs: Additional arguments for the underlying Pandas pd.to_ function call as desired. If the first argument (or kwarg
+                               path_or_buf) is provided, it will be used as a filepath to save to.
+
+        Returns:
+            - Depending on the method chosen, this will save the Message to a file location and then return the converted Message (eg. to_json will return a json)
+        """
+        # The conversion to dataframe is essential, because that enforces that all of the data being serialized is on the CPU.
+        if method in to_methods:
+            tensor_message = deepcopy(self.tensor_message) # This is copied so that the original message is not perturbed by serialization.
+            to_serialize = Message(tensor_message, self.df)
+            to_serialize = to_serialize.to_dataframe().df # Convert everything to dataframe
+            if 'path' in kwargs:
+                kwargs['path_or_buf'] = kwargs['path']
+                del kwargs['path']
+            return getattr(to_serialize, 'to_{0}'.format(method))(*args, **kwargs)
+        else:
+            raise ValueError("Method {0} is not a valid method for Message serialization. Valid methods include {1}.".format(method, to_methods))
+
+    def to_csv(self, *args, **kwargs):
+        """ Converts Message to a CSV. """
+        return self.to('csv', *args, **kwargs)
+
+    def to_pickle(self, *args, **kwargs):
+        """ Converts Message to a Python Pickle. """
+        return self.to('pickle', *args, **kwargs)
+
+    def to_sql(self, *args, **kwargs):
+        """ Saves Message to a SQL Database using pd.to_sql function. """
+        return self.to('sql', *args, **kwargs)
+
+    def to_dict(self, *args, **kwargs):
+        """ Converts Message to a dict. """
+        if 'orient' not in kwargs:
+            kwargs['orient']  = 'list'
+        return self.to('dict', *args, **kwargs)
+
+    def to_excel(self, *args, **kwargs):
+        """ Saves Message to an Excel file. """
+        return self.to('excel', *args, **kwargs)
+
+    def to_json(self, *args, **kwargs):
+        """ Converts Message to a JSON. """
+        if 'orient' not in kwargs:
+            kwargs['orient']  = 'list'
+        return self.to('json', *args, **kwargs)
+
+    def to_string(self, *args, **kwargs):
+        """ Converts Message to a string. """
+        return self.to('string', *args, **kwargs)
+
     def check_length(self):
         """
         Checks that lengths of the internal tensor_message and dataframe are the same and equalto self.len
-        If one of the two is empty (length 0) then, that is fine.
+        If one of the two is empty (length 0), then that is fine.
         """
         if len(self.df) == 0:
             self.length = len(self.tensor_message)
@@ -167,7 +244,11 @@ class Message:
 
     def __len__(self):
         """
-        Must give sensible results for online and streaming type datasets.
+        The length of a Message is the length of its internal DataFrame and/or internal TensorFrame. These two must have the same length
+        for consistency. In this way, row i of a Message is row i of the DataFrame and row i of the TensorFrame.
+        The only exception to this rule is if one of the two are empty. In that case, the empty component is ignored. However, the moment you
+        insert data into the empty component (eg. insert a Tensor into a Message that previously only had DataFrame elements), then the lengths
+        must again be equal (ie. you can only insert a Tensor that has the same length as the Message.)
         """
         return self.length
 
@@ -185,6 +266,9 @@ class Message:
 
         Args:
             index: An integer, slice, or list of integer indices.
+
+        Returns:
+            item: The element of the Message referenced by the index.
         """
 
         t = type(index)
@@ -346,15 +430,20 @@ class Message:
             del self.tensor_message[index]
             self.length = self.tensor_message.length
 
-    def __contains__(self, item):
-
-        if type(item) is str:
-            return item in self.df or item in self.tensor_message
+    def __contains__(self, key):
+        """
+        This checks if the given key is present as a column in this Message.
+        """
+        if type(key) is str:
+            return key in self.df or key in self.tensor_message
         else:
             return False
 
     def __getattr__(self, name):
-
+        """
+        If name is the name of a column in this Message, then this returns that column. Otherwise, this calls __getattr__ on the internal
+        DataFrame or Tensor_Message.
+        """
         if name in self.__getattribute__('df').keys():
             return self.df.__getattribute__(name)
         elif name in self.__getattribute__('tensor_message').keys():
@@ -365,48 +454,16 @@ class Message:
     def __repr__(self):
         return "Message with \n Tensors: \n {0} \n Metadata: \n {1}".format(self.tensor_message, self.df)
 
-    def to(self, method, *args, **kwargs):
-        """
-        Converts all elements of Message to dataframe and then calls df.to_x based on the given method
-        This can be used to serialize and save Messages or convert them into a different format
-        """
-        # The conversion to dataframe is essential, because that enforces that all of the data being serialized
-        # is on the CPU.
-        if method in to_methods:
-            tensor_message = deepcopy(self.tensor_message) # This is copied so that the original message is not perturbed by serialization.
-            to_serialize = Message(tensor_message, self.df)
-            to_serialize = to_serialize.to_dataframe().df # Convert everything to dataframe
-            if 'path' in kwargs:
-                kwargs['path_or_buf'] = kwargs['path']
-                del kwargs['path']
-            return getattr(to_serialize, 'to_{0}'.format(method))(*args, **kwargs)
-        else:
-            raise ValueError("Method {0} is not a valid method for Message serialization. Valid methods include {1}.".format(method, to_methods))
-
-    def to_csv(self, *args, **kwargs): return self.to('csv', *args, **kwargs)
-    def to_pickle(self, *args, **kwargs): return self.to('pickle', *args, **kwargs)
-    def to_sql(self, *args, **kwargs): return self.to('sql', *args, **kwargs)
-    def to_dict(self, *args, **kwargs):
-        if 'orient' not in kwargs:
-            kwargs['orient']  = 'list'
-        return self.to('dict', *args, **kwargs)
-    def to_excel(self, *args, **kwargs): return self.to('excel', *args, **kwargs)
-    def to_json(self, *args, **kwargs):
-        if 'orient' not in kwargs:
-            kwargs['orient']  = 'list'
-        return self.to('json', *args, **kwargs)
-    def to_string(self, *args, **kwargs): return self.to('string', *args, **kwargs)
-
     @property
     def columns(self):
         """
-        Returns names of tensors in TensorMessage
+        Returns the names of columns in this Message
         """
         return self.df.columns.append(pd.Index(self.tensor_message.keys()))
 
     def keys(self):
         """
-        Returns names of tensors in TensorMessage
+        Returns names of keys in this Message.
         Note: This is the same as self.columns
         """
 
@@ -462,7 +519,7 @@ class Message:
 
     def map(self, mapping):
         """
-        Applies function mapping to message. If mapping is a dict, then maps will be applied to the correspondign keys as columns, leaving
+        Applies function mapping to message. If mapping is a dict, then maps will be applied to the corresponding keys as columns, leaving
         columns not present in mapping untouched.
         In otherwords, mapping would be a dict of column_name:functions specifying the mappings.
 
@@ -555,15 +612,6 @@ class Message:
                 tensor = tensor.tolist()
             new[key] = tensor
 
-        # df = pd.DataFrame({key: np.array(self[key]).tolist() for key in keys})
-        #
-        # still_tensors = list(self.tensor_message.keys() - df.keys())
-        # if still_tensors:
-        #     new[still_tensors] = self[still_tensors]
-        # new_df_keys = list(set(df.keys()) - set(self.df.keys()))
-        # if new_df_keys:
-        #     new[new_df_keys] = df[new_df_keys]
-
         return new
 
     def permute(self, index):
@@ -626,7 +674,15 @@ class Message:
 
 class TensorMessage:
     """
-    A TensorMessage is a class for representing data meant for consumption by pytorch as a dictionary of tensors.
+    A TensorMessage is a class for representing data meant for consumption by pytorch as a dictionary of tensors. It is analogous to a
+    Pandas DataFrame, except all elements are PyTorch Tensors (or torch.nn.Parameter). This can be useful when working with PyTorch, as you
+    can have your Models use column names to keep track of what each Tensor is for, and by parameterizing column names, you can make your
+    Models somewhat generic (instead of taking x as an argument that must have a specific format, you take take a TensorMessage and act on
+    columns that can be configured at runtime or in your script.)
+
+    TensorMessages, along with DataFrames, constitute the components of a Message. We recommend using Messages rather than TensorMessages
+    directly, as all of the functionality of TensorMessages is encapsulated by a Message, and this gives you the ability to seamlessly move
+    data to and from Tensor format, so you can mix your deep learning tasks with other data science tasks that you would use Pandas for.
     """
     def __init__(self, message_dict = None, map_dict = None):
         """
@@ -699,7 +755,10 @@ class TensorMessage:
             raise KeyError("{0} is not a column name or a valid index for this message.".format(str(index)))
 
     def __setitem__(self, index, value):
-
+        """
+        Sets the rows specified by the index to the provided value, which can be a dict of Tensors/list-likes, or a Message/TensorMessage/DataFrame
+        of the appropriate length. All non-tensor objects will be converted to Tensor if possible (and this will cause an error if it's not possible).
+        """
         t = type(index)
         if t is str:
             # Check length
@@ -730,8 +789,10 @@ class TensorMessage:
             else: # Empty list
                 raise ValueError("No index specified for setitem.")
 
-    def __delitem__(self, index): # BUG: delitem raises sigfaults when called on a tensor.
-
+    def __delitem__(self, index):
+        """
+        Deletes the rows corresponding to the provided index.
+        """
         t = type(index)
         if t is str:
             del self.tensor_dict[index] # Will automatically throw a KeyError if not in the dict
@@ -759,7 +820,7 @@ class TensorMessage:
 
     def _delindex(self, index):
         """
-        Deletes single row corresponding to a single index.
+        Deletes single row corresponding to a single index. This is called by __delitem__.
         """
         new_length = self.length - 1
         if index == 0:
@@ -778,7 +839,7 @@ class TensorMessage:
 
     def _delslice(self, orange):
         """
-        Deletes rows corresponding to a slice object.
+        Deletes rows corresponding to a slice object. This is called by __delitem__.
         This involves finding the complementary set of indices and returning those.
         """
         if orange.step is None or orange.step in [0, 1, -1]: # Unit step size
@@ -818,7 +879,7 @@ class TensorMessage:
 
     def _dellist(self, listy):
         """
-        Deletes rows corresponding to indices in a list.
+        Deletes rows corresponding to indices in a list. This is called by __delitem__.
         This involves finding the complementary set of indices and returning those.
         """
         complement = [i for i in range(self.length) if i not in listy]
@@ -833,10 +894,12 @@ class TensorMessage:
 
         return TensorMessage(deepcopy(self.tensor_dict), deepcopy(self.map_dict))
 
-    def __contains__(self, item):
-
-        if isinstance(item, Hashable):
-            return item in self.tensor_dict
+    def __contains__(self, key):
+        """
+        Returns true if the requested key is a column in this TensorMessage.
+        """
+        if isinstance(key, Hashable):
+            return key in self.tensor_dict
         else:
             return False
 
@@ -844,9 +907,16 @@ class TensorMessage:
         return self.tensor_dict.__getattribute__(name)
 
     def keys(self,*args, **kwargs):
+        """
+        Returns the column names of this TensorMessage, which as the keys of the internal tensor_dict.
+        """
         return self.tensor_dict.keys(*args, **kwargs)
 
     def __len__(self):
+        """
+        The length of all columns in the TensorMessage must be the same to ensure consistency. By length, we mean the first dimension of a
+        Tensor's shape (so if a Tensor is 2x4x6, its length is 2, and each 'row' consists of a 4x6 matrix.)
+        """
         return self.length
 
     def __eq__(self, other):
@@ -883,7 +953,7 @@ class TensorMessage:
     @property
     def index(self):
         """
-        Returns index for internal tensors
+        Returns the index for internal tensors
         """
         # NOTE: Index currently has no meaning, because messages are currently required to be indexed from 0:length
         return pd.RangeIndex(0,self.length)
@@ -1011,5 +1081,6 @@ def merge(list_of_args):
 
     return m
 
+# These are here for comparison purposes when testing if something is empty and is used by some of the methods in this file.
 empty_tensor_message = TensorMessage()
 empty_message = Message()

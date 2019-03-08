@@ -1,0 +1,224 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Fireworks.core.scaffold &#8212; Fireworks 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Fireworks</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Project.html">Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../License.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Fireworks.html">API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for Fireworks.core.scaffold</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">.message</span> <span class="k">import</span> <span class="n">Message</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<div class="viewcode-block" id="Scaffold"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.scaffold.Scaffold">[docs]</a><span class="k">class</span> <span class="nc">Scaffold</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Scaffold can keep track of the internal state of objects in a pipeline. This can be used to save and load the entire state of a</span>
+<span class="sd">    pipeline, allowing one to pause and resume a project, take snapshots, and log the internal state of components as an experiment proceeds.</span>
+<span class="sd">    The current implementation of Scaffold is very simple; you attach objects to the Scaffold while providing a name that serves as an</span>
+<span class="sd">    identifier for that object. You can then call the serialize method to get a dictionary of the current states of all attached objects,</span>
+<span class="sd">    the save method to save those serialized states to a given folder, or load to update the states of attached objects using data in</span>
+<span class="sd">    a provided directory.</span>
+
+<span class="sd">    ::</span>
+<span class="sd">    </span>
+<span class="sd">        scaffold = Scaffold()</span>
+<span class="sd">        # Attach components as desired</span>
+<span class="sd">        scaffold.attach(&#39;a&#39;, A)</span>
+<span class="sd">        scaffold.attach(&#39;b&#39;, B)</span>
+<span class="sd">        .</span>
+<span class="sd">        .</span>
+<span class="sd">        .</span>
+<span class="sd">        # This will save the current state of attached objects in folder &#39;save_directory&#39;. The filenames will be based on the identifiers</span>
+<span class="sd">        # eg. &#39;a.json&#39;, &#39;b.json&#39;, etc.</span>
+<span class="sd">        scaffold.save(path=&#39;save_directory&#39;, method=&#39;json&#39;)</span>
+<span class="sd">        # This will read files in folder &#39;save_directory2&#39; and set the state of attached objects based on identifiers.</span>
+<span class="sd">        # eg. the components attached with identifier &#39;a&#39; will load from &#39;a.json&#39; and so on. Note that the provided method must be</span>
+<span class="sd">        # consistent with the filetypes in the save directory.</span>
+<span class="sd">        scaffold.load(path=&#39;save_directory2&#39;, method=&#39;json&#39;)</span>
+
+<span class="sd">        # This will produce a dictionary of identifiers to state object serializations (see Component_Map documentation for details).</span>
+<span class="sd">        # You could use this dictionary to log state information however you want. For example, you could log the current weights of</span>
+<span class="sd">        # neural network layers in your model for later plotting.</span>
+
+<span class="sd">        state = scaffold.serialize()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">to_attach</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            to_attach: A dictionary of keys mapping to objects that you want the Scaffold to track. Note that each object must implement</span>
+<span class="sd">                       a get_state method which returns a dictionary of the form {&#39;external&#39;: {...}, &#39;internal&#39;: {...}}.</span>
+<span class="sd">                       Pipes, Junctions, and Models satisfy this criteria.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attached</span> <span class="o">=</span> <span class="n">to_attach</span> <span class="ow">or</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="Scaffold.attach"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.scaffold.Scaffold.attach">[docs]</a>    <span class="k">def</span> <span class="nf">attach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Attaches an object to the Scaffold with a provided identifier. The Scaffold can then track the object&#39;s internal state, enabling one</span>
+<span class="sd">        to access, save, and load the serialized states of all tracked objects at once.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name: The identifier for the object.</span>
+<span class="sd">            obj: The object to attach. Note that each object must implement a get_state method which returns a dictionary of the</span>
+<span class="sd">                 form {&#39;external&#39;: {...}, &#39;internal&#39;: {...}}. Pipes, Junctions, and Models satisfy this criteria.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;get_state&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+            <span class="s2">&quot;Objects attached to a Scaffold must have a &#39;get_state&#39; method that returns a serialized representation of the object.&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attached</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span></div>
+
+<div class="viewcode-block" id="Scaffold.serialize"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.scaffold.Scaffold.serialize">[docs]</a>    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a dictionary containing serialized representations of all objects tracked by the scaffold. See Component_Map documentation</span>
+<span class="sd">        for more information on these serializations.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            None</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            state: A dict of the form {key: state}, where state is a dict of the form {&#39;external&#39;: {...}, &#39;internal&#39;: {...}} corresponding to</span>
+<span class="sd">            the internal and external state of objects tracked by the Scaffold. See Component_Map documentation for more information on state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attached</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span></div>
+
+<div class="viewcode-block" id="Scaffold.save"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.scaffold.Scaffold.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Saves serialized representation of all objects linked to Scaffold using a desired method (json, csv, pickle, etc.)</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: The folder to save serializations to. This folder must exist and be writable by the program.</span>
+<span class="sd">            method: The method for saving. This must be one of the methods support by the Message.to(...) method (see Message documentation)</span>
+<span class="sd">                    , as state dicts are converted to Messages and saved using Message.to(...).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">serialized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span>
+
+        <span class="c1"># Logic for saving</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">component_state</span> <span class="ow">in</span> <span class="n">serialized</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+            <span class="n">serialized_internal_state</span> <span class="o">=</span> <span class="n">Message</span><span class="o">.</span><span class="n">from_objects</span><span class="p">(</span><span class="n">component_state</span><span class="p">[</span><span class="s1">&#39;internal&#39;</span><span class="p">])</span>
+            <span class="n">component_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">.</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">))</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">component_path</span>
+            <span class="n">saved_internal_state</span> <span class="o">=</span> <span class="n">serialized_internal_state</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Scaffold.load"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.scaffold.Scaffold.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="n">reset</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loads serialized representations of all objects linked to Scaffold using the given names in the given path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path: The folder to load serializations from. This folder must exist and be readable by the program.</span>
+<span class="sd">            method: The method for loading. This must be one of the methods support by the Message.load(...) method (see Message</span>
+<span class="sd">                    documentation), as that method is used to read the files.</span>
+<span class="sd">                    Note that load will only look for files corresponding to the provided method that also have the correspponding suffix</span>
+<span class="sd">                    (eg. json filenames must end with &#39;.json&#39;, pickles files with &#39;.pickle&#39;, etc.). So if you have files in the foler that</span>
+<span class="sd">                    were not saved as the given method, or have different filename suffixes, they will be ignored.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="c1"># state = Message.from_objects((os.path.join(path, filename))</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="n">Message</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">filename</span><span class="p">))</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+            <span class="c1"># NOTE: The saving process adds an extra dimension to the values, which we squash out here.</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># Drop the file suffix for mapping filenames to identifiers.</span>
+
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attached</span><span class="p">:</span> <span class="c1"># Files in the folder that do not correspond to attached objects will be ignored.</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">attached</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">set_state</span><span class="p">({</span><span class="s1">&#39;external&#39;</span><span class="p">:</span> <span class="p">{},</span> <span class="s1">&#39;internal&#39;</span><span class="p">:</span> <span class="n">state</span><span class="p">},</span> <span class="n">reset</span><span class="o">=</span><span class="n">reset</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;2018, Saad Khan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -91,6 +91,7 @@ def test_paths():
     """
     Tests that relative and absolute paths work with Experiment constructor
     """
+
     xmen = exp.Experiment('xmen', 'data')
     xbois = exp.Experiment('xbois',os.path.join(os.getcwd(),'data'))
     for folder in os.listdir('data'):

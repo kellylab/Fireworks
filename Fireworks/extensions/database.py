@@ -60,7 +60,6 @@ class TablePipe(Pipe):
         """
 
         # TODO:     Enable inserting TensorMessages (QUESTION: how would this work?)
-        # rows = [self.make_row_dict(row) for row in batch]
         rows = list(batch.df.T.to_dict().values())
 
         # NOTE:     Bulk inserts implemented using this guide:
@@ -81,9 +80,6 @@ class TablePipe(Pipe):
             table.insert(), # NOTE: This requires self.table to have a __table__ attribute, which is not guaranteed.
             rows
         )
-        # self.session.bulk_insert_mappings(self.table, rows)
-        # self.session.bulk_save_objects(rows)
-        # self.session.add_all(rows)
 
     def query(self, entities=None, *args, **kwargs):
         """
@@ -112,7 +108,7 @@ class TablePipe(Pipe):
             entities = [getattr(self.table, entity) for entity in entities]
             query = self.session.query(*entities, *args, **kwargs)
             columns_and_types = parse_columns_and_types(query)
-        # return self.session.query(entities, *args, **kwargs)
+
         return DBPipe(self.table, self.engine, query, columns_and_types = columns_and_types)
 
     def delete(self, column_name, values):
@@ -228,23 +224,11 @@ class DBPipe(Pipe):
                 self.query = self.session.query(self.table)
         else:
             self.columns_and_types = columns_and_types
-        self.reset()
 
     def __iter__(self):
 
-        self.reset()
         self.iterator = self.query.__iter__()
         return self
-
-    def reset(self, entities=None, *args, **kwargs):
-        """
-        Resets DBPipe by reperforming the query, so that it is now at the beginning of the query.
-        """
-        # if entities is None: # TODO: Make this work properly
-        #     entities = self.table
-        #
-        # self.query = self.session.query(entities, *args, **kwargs)
-        pass
 
     def reset_session(self, session=None):
 
@@ -306,7 +290,6 @@ def parse_columns(object, ignore_id=True):
         columns (list): A list of columns names in the sqlalchemy object.
     """
 
-    #[c.key for c in table.__table__.columns]
     return list(parse_columns_and_types(object, ignore_id).keys())
 
 def parse_columns_and_types(object, ignore_id = True):
@@ -332,18 +315,6 @@ def parse_columns_and_types(object, ignore_id = True):
     if ignore_id and 'id' in columns_and_types:
         del columns_and_types['id']
     return columns_and_types
-
-def convert(value, sqltype): # NOTE: This is deprecated
-    """
-    Converts a given value to a value that SQLalchemy can read.
-    """
-    objtype = type(sqltype)
-    if objtype is Integer:
-        if type(value) is bytes:
-            value = int.from_bytes(value, byteorder='little')
-        return int(value)
-
-    return value
 
 def to_message(row, columns_and_types=None):
     """
@@ -385,11 +356,6 @@ def cast(value):
         value = value.to_pydatetime()
 
     return value
-# Get Representation
-# Test row generation
-# Test with SQLite backend
-# Test with CSV, Message, and Fasta
-# Create reader pipes
 
 def reflect_table(table_name, engine):
     """

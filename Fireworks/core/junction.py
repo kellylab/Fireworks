@@ -22,13 +22,14 @@ class Junction:
     Unlike Pipes, junctions do not automatically have recursive method calling. This is because they have multiple input sources,
     which would result in ambiguity. Instead, junctions are meant to act as bridges between multiple pipes in order to enable
     complex workflows which require more than a linear pipeline.
+
+    Like Models, Junctions can have internal and external components in their state. 
     """
 
     def __init__(self, *args, components=None, **kwargs):
 
         self.components = Component_Map(components)
         self.check_components()
-        # self.update_components()
 
     def check_components(self, components = None):
         """
@@ -54,15 +55,6 @@ class Junction:
         else:
             return True
 
-    # def update_components(self, components=None):
-    #
-    #     if components is None:
-    #         components = self.components
-    #
-    #     for name in components:
-    #         self.type_check(name, components)
-    #         setattr(self, name, self.components[name])
-
     def __setattr__(self, name, value):
 
         if name.startswith('__') or name == 'components':
@@ -86,9 +78,9 @@ class Junction:
         """
         return self.components.keys()
 
-    def set_state(self, state): self.components.set_state(state)
+    def set_state(self, state, *args, **kwargs): self.components.set_state(state)
 
-    def get_state(self, state): return self.components.get_state()
+    def get_state(self): return self.components.get_state()
 
     def save(self, *args, **kwargs):
 
@@ -97,10 +89,6 @@ class Junction:
                 pass
             else:
                 save_df = Message.from_objects(save_dict).to_dataframe().df
-                # Save the df using the given method and arguments
-                # TODO: Implement
-
-                # Save input
 
             for name, component in self.components.items():
                 component.save(*args, **kwargs)
@@ -110,7 +98,10 @@ class Junction:
         return {}
 
 class PyTorch_Junction(Junction):
-
+    """
+    A PyTorch Junction can have automatically convert components to their PyTorch equivalents (eg. convert a numpy array or list to a
+    torch.Tensor), and this can be useful when using the Junction for PyTorch related tasks.
+    """
     def __init__(self, *args, components=None, **kwargs):
         self.components = PyTorch_Component_Map(components)
         self.check_components()

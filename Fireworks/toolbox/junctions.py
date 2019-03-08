@@ -16,6 +16,7 @@ class HubJunction(Junction):
     This junction takes multiple sources implementing __next__ as input and implements a new __next__ method that samples
     its input sources.
     """
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.check_inputs()

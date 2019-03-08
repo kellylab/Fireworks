@@ -21,28 +21,16 @@ class Model(HookedPassThroughPipe, Junction, ABC):
     complex graphs of Models that can be trained simultaneously or individually.
     """
 
-    # TODO: Add methods to move model components to and from GPU
-
     def __init__(self, components = {}, *args, input = None, **kwargs):
         """
         Args:
             components: A dict of components that the model can call on.
         """
         self._flags = {'recursive_get': 1, 'components_initialized': 0} # Used for controlling recursion. Don't mess with this.
-        # self._public_components = {}
-        # self._private_components = {}
-        # self._private_submodules = {}
-        # self.components = Component_Map(self, components)
         self.components = Component_Map(components, owner=self)
-        # if not skip_module_init: # This is so the ModelFromModule Class can work.
-        #     Module.__init__(self)
         HookedPassThroughPipe.__init__(self, input = input)
 
         self.init_default_components()
-        # self.update_components(components)
-        # self.update_components()
-        # self.components.update(components) # Overwrite and/or adds params in the argument.
-        # self.check_components()
         self.enable_updates()
         self.enable_inference()
         self._flags['components_initialized'] = 1
@@ -54,31 +42,6 @@ class Model(HookedPassThroughPipe, Junction, ABC):
         """
         pass
 
-    # def update_components(self, components = None):
-    #
-    #     self._flags['components_initialized'] = 0
-    #     self.components = {**self.components, **self._public_components, **self._private_components, **self._modules, **self._parameters}
-    #
-    #     if components is None:
-    #         components = self.components
-    #
-    #     for key, component in components.items():
-    #
-    #         if linker(component):
-    #             # Update private attributes if the component is part of another Model.
-    #             model, key = component
-    #             value = to_parameter(getattr(model, key))
-    #             self._private_components[key] = value
-    #             self._private_models[key] = model
-    #             setattr(self, key, value)
-    #             # Update public attributes if the component is natively part of this Model.
-    #         else:
-    #             self._public_components[key] = component
-    #             setattr(self, key, component)
-    #
-    #     self.components = {**self._public_components, **self._private_components, **self._modules, **self._parameters}
-    #     self._flags['components_initialized'] = 1
-
     @abstractmethod
     def forward(self, message):
         """
@@ -86,60 +49,6 @@ class Model(HookedPassThroughPipe, Junction, ABC):
         This should return a Message.
         """
         pass
-
-    # def get_state(self):
-    #
-    #     # Get params
-    #     pytorch_parameters = {
-    #         key: value.clone().detach() for key, value in self._public_components.items() if
-    #         isinstance(value, torch.nn.Parameter) or isinstance(value, torch.Tensor)
-    #         }
-    #     pytorch_modules = [
-    #         {key: value.state_dict()} for key, value in self._public_components.items() if
-    #         isinstance(value, torch.nn.Module) and not isinstance(value, Model)
-    #         ]
-    #     pytorch_modules = { # Unwrap all parameters associated with pytorch modules
-    #         "{0}.{1}".format(outerkey, innerkey): value.clone().detach()
-    #         for outerdict in pytorch_modules
-    #         for outerkey, innerdict in outerdict.items()
-    #         for innerkey, value in innerdict.items()
-    #         }
-    #     pytorch_components = {**pytorch_parameters, **pytorch_modules}
-    #
-    #     other_components = {
-    #         key: value for key, value in self._public_components.items() if
-    #         not isinstance(value, torch.nn.Parameter) and
-    #         not isinstance(value, torch.Tensor) and
-    #         not isinstance(value, torch.nn.Module) or
-    #         isinstance(value, Model)
-    #     }
-    #
-    #     extrinsic_models = self._private_models
-    #
-    #     return pytorch_parameters, pytorch_modules, other_components, extrinsic_models
-
-    # def set_state(self, state, reset=False):
-    #
-    #     components = {}
-    #     # Set parameters
-    #     if 'parameters' in state:
-    #         components = {**components, **state['parameters']}
-    #     # Set modules
-    #     if 'modules' in state:
-    #         components = {**components, **state['modules']}
-    #     # Set other components
-    #     if 'components' in state:
-    #         components = {**components, **state['components']}
-    #     # Set extrinsic models
-    #     if 'extrinsic' in state:
-    #         components = {**components, **state['extrinsic']}
-    #
-    #     if reset:
-    #         self._flags['components_initialized'] = 0
-    #         self.components = {}
-    #         self._flags['components_initialized'] = 1
-    #
-    #     self.update_components(state)
 
     def save(self, *args, method='json', **kwargs):
         """
@@ -164,35 +73,6 @@ class Model(HookedPassThroughPipe, Junction, ABC):
             paths = path.split('/')
             paths[-1]="{0}-{1}".format(name, paths[-1])
 
-        # # Get params
-        # pytorch_parameters = {
-        #     key: value.clone().detach() for key, value in self.components.items() if
-        #     isinstance(value, torch.nn.Parameter) or isinstance(value, torch.Tensor)
-        #     }
-        # pytorch_modules = [
-        #     {key: value.state_dict()} for key, value in self.components.items() if
-        #     isinstance(value, torch.nn.Module) and not isinstance(value, Model)
-        #     ]
-        # pytorch_modules = {
-        #     "{0}.{1}".format(outerkey, innerkey): value.clone().detach()
-        #     for outerdict in pytorch_modules
-        #     for outerkey, innerdict in outerdict.items()
-        #     for innerkey, value in innerdict.items()
-        #     }
-        # pytorch_components = {**pytorch_parameters, **pytorch_modules}
-        # # pytorch_components = self.state_dict() # Modules and parameters
-        #
-        # # other_keys = self.components.keys() - self._parameters.keys()
-        # # other_components = {key: self.components[key] for key in other_keys}
-        # other_components = {
-        #     key: value for key, value in self.components.items() if
-        #     not isinstance(value, torch.nn.Parameter) and
-        #     not isinstance(value, torch.Tensor) and
-        #     not isinstance(value, torch.nn.Module) or
-        #     isinstance(value, Model)
-        # }
-
-        # pytorch_parameters, pytorch_modules, other_components, extrinsic_components = self.get_state()
         state = self.get_state()
         external = state['external']
         internal = state['internal']
@@ -252,8 +132,6 @@ class Model(HookedPassThroughPipe, Junction, ABC):
         df = methods[method](*args, **kwargs) # Load parameters in
         state_dict = Message(df).to_dict()
         state_dict = {key: value[0] for key, value in state_dict.items()}
-        # state_dict = dict(Message(df).to_tensors()) # Convert to tensors
-        # state_dict = {key: value.reshape(*value.shape[1:]) for key, value in state_dict.items()} # Unflatten
         self.set_state({'external':{}, 'internal': state_dict}, reset=False)
 
     def get_state(self):
@@ -270,8 +148,7 @@ class Model(HookedPassThroughPipe, Junction, ABC):
 
     def compile(self): pass
 
-    # TODO: Figure out model i/o
-    # TODO: Implement description methods
+    # TODO: Implement description methods (__repr__, __str__)
 
     def _getitem_hook(self, message):
 
@@ -287,12 +164,6 @@ class Model(HookedPassThroughPipe, Junction, ABC):
 
         self._update_hook(message, method='call')
         return self._forward_hook(message, *args, **kwargs)
-        # try: # This will trigger a recursive call if possible.
-        #     message = self.recursive_call('__call__')(message, *args, **kwargs)
-        # except:
-        #     pass
-
-        # return self.forward(message, *args, **kwargs)
 
     def __call__(self, *args, **kwargs):
 
@@ -302,19 +173,6 @@ class Model(HookedPassThroughPipe, Junction, ABC):
 
         if self._flags['components_initialized'] and name in self.components:
             return self.components[name]
-
-        # if '_parameters' in self.__dict__:
-        #     _parameters = self.__dict__['_parameters']
-        #     if name in _parameters:
-        #         return _parameters[name]
-        # if '_buffers' in self.__dict__:
-        #     _buffers = self.__dict__['_buffers']
-        #     if name in _buffers:
-        #         return _buffers[name]
-        # if '_modules' in self.__dict__:
-        #     modules = self.__dict__['_modules']
-        #     if name in modules:
-        #         return modules[name]
 
         if not name.startswith('_') and self._flags['recursive_get']:
             try:
@@ -371,10 +229,6 @@ class Model(HookedPassThroughPipe, Junction, ABC):
 
         self._updates_enabled = True
         self._update_hook = identity
-        # try:
-        #     self.recursive_call('disable_updates')
-        # except AttributeError:
-        #     pass
 
     @recursive()
     def disable_updates_all(self):
@@ -445,33 +299,22 @@ def to_parameter(component):
             pass
     return component
 
-# def linker(component):
-#     """
-#     Returns true if the component is actually part of another model. This is used by the update_components method in Model to determine if
-#     a component should be considered part of the Model or part of another existing Model. Currently, this just checks if the argument is a tuple.
-#     """
-#     return type(component) is tuple and len(component) == 2
-
 class PyTorch_Model(Module, Model, PyTorch_Junction ):
 
     def __init__(self, components={}, *args, input=None, skip_module_init=False, **kwargs):
+
         self._flags = {'recursive_get': 1, 'components_initialized': 0} # Used for controlling recursion. Don't mess with this.
-        # self._public_components = {}
-        # self._private_components = {}
-        # self._private_submodules = {}
-        # self.components = Component_Map(self, components
+
         if not skip_module_init: # This is so the ModelFromModule Class can work.
             Module.__init__(self)
+
         self.components = PyTorch_Component_Map({}, model=self)
         self.init_default_components()
+
         for key, value in components.items():
             self.components[key] = value
-        HookedPassThroughPipe.__init__(self, input = input)
 
-        # self.update_components(components)
-        # self.update_components()
-        # self.components.update(components) # Overwrite and/or adds params in the argument.
-        # self.check_components()
+        HookedPassThroughPipe.__init__(self, input = input)
         self.enable_updates()
         self.enable_inference()
         self._flags['components_initialized'] = 1
@@ -520,8 +363,6 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
                 all_params.append(param)
             elif isinstance(param,Module):
                 all_params.extend(list(param.parameters()))
-            # elif type(param) is PyTorch_Model:
-            #     all_params.extend(list(param.all_parameters)) # NOTE: This could cause recursion loops.
 
         if hasattr(self, 'input') and self.input is not None:
             try:
@@ -530,61 +371,6 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
                 pass
 
         return all_params
-
-        # # Get parameters
-        # all_params = {**all_params, **{key: param for key, param in self._parameters.items() if param.requires_grad}}
-        # # Get submodules
-        # # all_params = {**all_params, **list(module.parameters()) for module in self._modules.values() if module is not self and not isinstance(module, Model)]) # TODO: Test this
-        # # Get components
-        # for component in self.components.values():
-        #     try:
-        #         all_params.extend(component.all_parameters())
-        #     except AttributeError:
-        #         pass
-        # # Get from input
-        # try:
-        #     all_params.extend(self.input.all_parameters())
-        # except AttributeError:
-        #     pass
-        #
-        # assert False
-        #
-        # return all_params
-
-    # def internal_parameters(self):
-    #     """
-    #     Returns a list of every PyTorch parameter internal to this Model that is
-    #     unfrozen. This includes submodules that are not linked.
-    #     """
-    #
-    #     state_dict = {
-    #         key: value for key, value in self.components._internal_components.items()
-    #         if key not in self.components._external_attribute_names.keys()
-    #         }
-    #
-    #     return state_dict
-    #     # internals = self.get_state()['internal']
-    #     # all_internals = [x for x in internals.values() if isinstance(x, Parameter)]
-    #     # return all_internals
-    #
-    # def external_parameters(self):
-    #     """
-    #     Returns a dict of every PyTorch parameter external to this Model that
-    #     this Model depends on and is unfrozen. The keys are the linking tuples
-    #     and the values are the Parameters.
-    #     """
-    #     # externals = self.get_state()['external']
-    #     # all_externals = {
-    #     #     tuple: getattr(tuple[0],tuple[1]) for tuple in externals
-    #     #     if isinstance(getattr(tuple[0],tuple[1]), Parameter)
-    #     #     }
-    #     externals = {}
-    #     for name, module in self.components._external_modules.items():
-    #         externals = {**externals, **{
-    #             {"{0}.{1}".format(name, attr): value for attr, value in module().items()}
-    #             }
-    #         }
-    #     return externals
 
     def _sync_parameters(self): # TODO: Test this.
         """
@@ -624,31 +410,6 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
                 serialized_state['internal'][key] = value
 
         return serialized_state
-
-    # def parameters(self):
-    #     """
-    #     Returns a list of every parameter that is internal to this Model along
-    #     with every parameter associated with Modules internal to this Model.
-    #     """
-    #     pass
-    #
-    # @property
-    # def _parameters(self):
-    #     """
-    #     Returns a list of every parameter that is internal to this Model.
-    #     """
-    #     return {
-    #         key: value for key, value in self.components._internal_components.items()
-    #         if isinstance(value, Parameter)
-    #         }
-    #
-    # @property
-    # def _modules(self):
-    #     """
-    #     Returns an OrderedDict of every parameter that is part of a Module internal
-    #     to this Model.
-    #     """
-    #     pass
 
     def freeze(self, components = None):
         """

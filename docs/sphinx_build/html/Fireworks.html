@@ -6,14 +6,14 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>API Reference &#8212; Fireworks 0.2.0 documentation</title>
+    <title>API Reference &#8212; Fireworks 0.3.0 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="prev" title="Tutorial" href="Tutorial.html" />
@@ -48,6 +48,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#pipes">Pipes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#junctions">Junctions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#models">Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-Fireworks.core.component_map">State</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#database">Database</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#experiment">Experiment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#factory">Factory</a></li>
@@ -76,6 +77,14 @@
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="documentwrapper">
@@ -95,11 +104,11 @@ A Message consists of two components: a Pandas DataFrame and a TensorMessage. Th
 <em class="property">class </em><code class="descclassname">Fireworks.core.message.</code><code class="descname">Message</code><span class="sig-paren">(</span><em>*args</em>, <em>metadata=None</em>, <em>length=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A Message is a class for representing data in a way that can be consumed by different analysis pipelines in python. It does this by
-representing the data as a dictionary of arrays. This is the same approach that pandas takes, but Messages are specifically designed to
-be used with pytorch, in which the core data structure is a tensor, which cannot be mixed into a pandas dataframe.
+representing the data as a dictionary of arrays. This is the same approach that Pandas takes, but Messages are specifically designed to
+be used with PyTorch, in which the core data structure is a tensor, which cannot be mixed into a Pandas dataframe.
 Hence, a Message has two elements: a TensorMessage which specifically stores tensor objects and a dataframe which can be used for handling
 any other type of array data. With this structure, you could put your training data in as a TensorMessage and any associated metadata as
-the df and lump all of that into a message. All of the existing df methods can be run on the metadata, and any pytorch operations can be
+the df and lump all of that into a message. All of the existing df methods can be run on the metadata, and any PyTorch operations can be
 performed on the tensor part.</p>
 <p>Messages support operations such as appending one message to another, joining two messages along keys, applying maps to the message’s values,
 and equality checks.</p>
@@ -112,7 +121,8 @@ For example, for preparing batches to feed into an RNN to classify DNA sequences
 <span class="o">...</span><span class="p">})</span>
 </pre></div>
 </div>
-<p>The Message constructor will parse this dictionary and store the labels and embedded sequences inside a TensorMessage and the raw_sequences and other metadata in the dataframe.</p>
+<p>The Message constructor will parse this dictionary and store the labels and embedded sequences inside a TensorMessage and the
+raw_sequences and other metadata in the dataframe.</p>
 <p>Now we can access elements of this Message:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">my_message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">my_message</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
@@ -126,23 +136,134 @@ For example, for preparing batches to feed into an RNN to classify DNA sequences
 <span class="n">my_message</span><span class="o">.</span><span class="n">cuda</span><span class="p">(</span><span class="n">keys</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;labels&#39;</span><span class="p">])</span> <span class="c1"># Can specify only certain columns to move if desired</span>
 </pre></div>
 </div>
+<dl class="classmethod">
+<dt id="Fireworks.core.message.Message.from_objects">
+<em class="property">classmethod </em><code class="descname">from_objects</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.from_objects"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.from_objects" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a message by treating all of the provided values as atomic elments and ignoring length differences. This results in a Message
+of length 1. This can be useful if you want to treat an entire blob as data as a single unit. For example, if you want a row of the
+Message to contain the state of a neural network, one column could be ‘bias’, and the element could be an entire bias-vector, and
+another column could be ‘weights’, containing an entire weight matrix in a single row.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="Fireworks.core.message.Message.read">
+<em class="property">classmethod </em><code class="descname">read</code><span class="sig-paren">(</span><em>method</em>, <em>path</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the file located at a provided path using a given method and loads the data into a Message. This method uses the Pandas .read_
+functions and converts the resulting DataFrame to a Message. Thus, there is no way currently to go straight from data in a file to
+a TensorMessage. Additionally, only the methods in the read_methods dict at the top of the file are supported.</p>
+<p>You can provide additional positional and key-word arguments which will be passed to the relevant Pandas method to parameterize the
+read.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>method</strong> (<em>-</em>) – The method to read the file as. Must be one of: json, csv, excel, hdf, parquet, pickle, sql_table, stata, table.</li>
+<li><strong>path</strong> (<em>-</em>) – The location of the file. This file must exist, be readable, and must be the type specified by method.</li>
+<li><strong>*args</strong><strong>, </strong><strong>**kwargs</strong> (<em>-</em>) – <p>Additional arguments for the underlying Pandas function call.</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A Message representation of the loaded data.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li>message</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.message.Message.to">
+<code class="descname">to</code><span class="sig-paren">(</span><em>method</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts all elements of Message to dataframe and then calls df.to_x based on the given method
+This can be used to serialize and save Messages or convert them into a different format</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>method</strong> (<em>-</em>) – The method to save the file as. Must be one of: ‘json’, ‘dict’, ‘html’, ‘feather’, ‘latex’, ‘stata’, ‘msgpack’, ‘gbq’, ‘records’, ‘sparse’, ‘dense’, ‘string’, ‘clipboard’</li>
+<li><strong>*args</strong><strong>, </strong><strong>**kwargs</strong> (<em>-</em>) – <p>Additional arguments for the underlying Pandas <a href="#id9"><span class="problematic" id="id10">pd.to_</span></a> function call as desired. If the first argument (or kwarg
+path_or_buf) is provided, it will be used as a filepath to save to.</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li>Depending on the method chosen, this will save the Message to a file location and then return the converted Message (eg. to_json will return a json)</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.message.Message.to_csv">
+<code class="descname">to_csv</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts Message to a CSV.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.message.Message.to_pickle">
+<code class="descname">to_pickle</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_pickle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_pickle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts Message to a Python Pickle.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.message.Message.to_sql">
+<code class="descname">to_sql</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_sql"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_sql" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves Message to a SQL Database using pd.to_sql function.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.message.Message.to_dict">
+<code class="descname">to_dict</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts Message to a dict.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.message.Message.to_excel">
+<code class="descname">to_excel</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_excel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_excel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves Message to an Excel file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.message.Message.to_json">
+<code class="descname">to_json</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts Message to a JSON.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.message.Message.to_string">
+<code class="descname">to_string</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts Message to a string.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="Fireworks.core.message.Message.check_length">
 <code class="descname">check_length</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.check_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.check_length" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks that lengths of the internal tensor_message and dataframe are the same and equalto self.len
-If one of the two is empty (length 0) then, that is fine.</p>
+If one of the two is empty (length 0), then that is fine.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="Fireworks.core.message.Message.columns">
 <code class="descname">columns</code><a class="headerlink" href="#Fireworks.core.message.Message.columns" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns names of tensors in TensorMessage</p>
+<dd><p>Returns the names of columns in this Message</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.message.Message.keys">
 <code class="descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.keys" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns names of tensors in TensorMessage
+<dd><p>Returns names of keys in this Message.
 Note: This is the same as self.columns</p>
 </dd></dl>
 
@@ -198,7 +319,7 @@ For example:</p>
 <dl class="method">
 <dt id="Fireworks.core.message.Message.map">
 <code class="descname">map</code><span class="sig-paren">(</span><em>mapping</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.map" title="Permalink to this definition">¶</a></dt>
-<dd><p>Applies function mapping to message. If mapping is a dict, then maps will be applied to the correspondign keys as columns, leaving
+<dd><p>Applies function mapping to message. If mapping is a dict, then maps will be applied to the corresponding keys as columns, leaving
 columns not present in mapping untouched.
 In otherwords, mapping would be a dict of column_name:functions specifying the mappings.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -237,6 +358,24 @@ If columns corresponding to requested keys are not tensors, they will be convert
 </dd></dl>
 
 <dl class="method">
+<dt id="Fireworks.core.message.Message.to_tensors">
+<code class="descname">to_tensors</code><span class="sig-paren">(</span><em>keys=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_tensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_tensors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns message with columns indicated by keys converted to Tensors. If keys is None, all columns are converted.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>keys</strong> – Keys to get. Default = None, in which case all columns are mapped to Tensor.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A Message in which the desired columns are Tensors.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">message</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="Fireworks.core.message.Message.dataframe">
 <code class="descname">dataframe</code><span class="sig-paren">(</span><em>keys=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.dataframe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.dataframe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns message as a dataframe. If keys are specified, only returns those keys as a dataframe.</p>
@@ -266,24 +405,6 @@ If columns corresponding to requested keys are tensors, they will be converted (
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>keys</strong> – Keys to get. Default = None, in which case all tensors are mapped to DataFrame.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A Message in which the desired columns are DataFrames.</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">message</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="Fireworks.core.message.Message.to_tensors">
-<code class="descname">to_tensors</code><span class="sig-paren">(</span><em>keys=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.to_tensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.to_tensors" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns message with columns indicated by keys converted to Tensors. If keys is None, all columns are converted.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>keys</strong> – Keys to get. Default = None, in which case all columns are mapped to Tensor.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A Message in which the desired columns are Tensors.</td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">message</td>
 </tr>
@@ -367,10 +488,28 @@ message_b == message_c<p class="last">The last statement will evaluate to True</
 <dt id="Fireworks.core.message.TensorMessage">
 <em class="property">class </em><code class="descclassname">Fireworks.core.message.</code><code class="descname">TensorMessage</code><span class="sig-paren">(</span><em>message_dict=None</em>, <em>map_dict=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#TensorMessage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.TensorMessage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>A TensorMessage is a class for representing data meant for consumption by pytorch as a dictionary of tensors.</p>
+<p>A TensorMessage is a class for representing data meant for consumption by pytorch as a dictionary of tensors. It is analogous to a
+Pandas DataFrame, except all elements are PyTorch Tensors (or torch.nn.Parameter). This can be useful when working with PyTorch, as you
+can have your Models use column names to keep track of what each Tensor is for, and by parameterizing column names, you can make your
+Models somewhat generic (instead of taking x as an argument that must have a specific format, you take take a TensorMessage and act on
+columns that can be configured at runtime or in your script.)</p>
+<p>TensorMessages, along with DataFrames, constitute the components of a Message. We recommend using Messages rather than TensorMessages
+directly, as all of the functionality of TensorMessages is encapsulated by a Message, and this gives you the ability to seamlessly move
+data to and from Tensor format, so you can mix your deep learning tasks with other data science tasks that you would use Pandas for.</p>
 <dl class="method">
 <dt id="Fireworks.core.message.TensorMessage.keys">
 <code class="descname">keys</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#TensorMessage.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.TensorMessage.keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the column names of this TensorMessage, which as the keys of the internal tensor_dict.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Fireworks.core.message.TensorMessage.tensor_message">
+<code class="descname">tensor_message</code><a class="headerlink" href="#Fireworks.core.message.TensorMessage.tensor_message" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Fireworks.core.message.TensorMessage.df">
+<code class="descname">df</code><a class="headerlink" href="#Fireworks.core.message.TensorMessage.df" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -382,7 +521,7 @@ message_b == message_c<p class="last">The last statement will evaluate to True</
 <dl class="attribute">
 <dt id="Fireworks.core.message.TensorMessage.index">
 <code class="descname">index</code><a class="headerlink" href="#Fireworks.core.message.TensorMessage.index" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns index for internal tensors</p>
+<dd><p>Returns the index for internal tensors</p>
 </dd></dl>
 
 <dl class="method">
@@ -465,11 +604,21 @@ containing the remaining pairs.</p>
 <h2>Pipes<a class="headerlink" href="#pipes" title="Permalink to this headline">¶</a></h2>
 <p>With a uniform data structure for information transfer established, we can create functions and classes that are reusable because of the standardized I/O expectations. A Pipe object represents some transformation that is applied to data as it flows through a pipeline. For example, a pipeline could begin with a source that reads from the database, followed by one that cache those reads in memory, then one that applies embedding transformations to create tensors, and so on.</p>
 <p>These transformations are represented as classes rather than functions because we sometimes want to be able to apply transformations in a just-in-time or ahead-of-time manner, or have the transformations be dependent on some upstream or downstream aspect of the pipeline. For example, the Pipe that creates minibatches for training can convert its inputs to tensors and move them to GPU as a minibatch is created, using the tensor-conversion method implemented by an upstream Pipe. Or a Pipe that caches its inputs can prefetch objects to improve overall performance, and so on.</p>
-<span class="target" id="module-Fireworks.core.pipe"></span><dl class="class">
+<span class="target" id="module-Fireworks.core.pipe"></span><dl class="function">
+<dt id="Fireworks.core.pipe.recursive">
+<code class="descclassname">Fireworks.core.pipe.</code><code class="descname">recursive</code><span class="sig-paren">(</span><em>accumulate=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/pipe.html#recursive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.pipe.recursive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator that labels a Pipe method as recursive. This means, that method func will first be called on
+the Pipe’s inputs and then on the Pipe itself.
+If accumulate is set to True, then the result from calling the method on a given Pipe will be
+used as input to the next one. If False, then the original arguments will be used when calling
+the method each time.</p>
+</dd></dl>
+
+<dl class="class">
 <dt id="Fireworks.core.pipe.Pipe">
 <em class="property">class </em><code class="descclassname">Fireworks.core.pipe.</code><code class="descname">Pipe</code><span class="sig-paren">(</span><em>input=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/pipe.html#Pipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.pipe.Pipe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></a></p>
-<p>The core data structure in fireworks.
+<p>The core object of computation in fireworks.
 A Pipe can take Pipes as inputs, and its outputs can be streamed to other Pipes.
 All communication is done via Message objects.
 Method calls are deferred to input Pipes recursively until a Pipe that implements the method is reached.</p>
@@ -491,9 +640,54 @@ Method calls are deferred to input Pipes recursively until a Pipe that implement
 <code class="descname">name</code><em class="property"> = 'base_pipe'</em><a class="headerlink" href="#Fireworks.core.pipe.Pipe.name" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="attribute">
+<dt id="Fireworks.core.pipe.Pipe.stateful_attributes">
+<code class="descname">stateful_attributes</code><em class="property"> = []</em><a class="headerlink" href="#Fireworks.core.pipe.Pipe.stateful_attributes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.pipe.Pipe.get_state">
+<code class="descname">get_state</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/pipe.html#Pipe.get_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.pipe.Pipe.get_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>This returns the current state of the Pipe, which consists of the values of all attributes designated in the list ‘stateful_attributes’.
+This can be used to save and load a Pipe’s state.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>None</strong> (<em>-</em>) – </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">{…}, ‘external’: {…}}, where the ‘external’ subdict is empty. This is so that the representation
+is consistent with the get_state methods of Junctions and Models. We consider all attributes of a Pipe to be internal, and that is
+why the ‘external’ subdict is empty. See documentation on Component Map for more details on what we mean by that (note that Pipes
+don’t use Component_Maps to store state, but simply expose similar methods for compatilibity.)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><ul class="simple">
+<li>A dict of the form {‘internal’</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.pipe.Pipe.set_state">
+<code class="descname">set_state</code><span class="sig-paren">(</span><em>state</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/pipe.html#Pipe.set_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.pipe.Pipe.set_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the state of the pipe based on the provided state argument.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>state</strong> (<em>-</em>) – A dict of the form {‘internal’: {…}, ‘external’: {…}}. The ‘external’ dict will be ignored, because consider all
+attributes of a Pipe to be in internal (for simplicity). See Component_Map documentation for details.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="method">
 <dt id="Fireworks.core.pipe.Pipe.recursive_call">
-<code class="descname">recursive_call</code><span class="sig-paren">(</span><em>attribute</em>, <em>*args</em>, <em>ignore_first=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/pipe.html#Pipe.recursive_call"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.pipe.Pipe.recursive_call" title="Permalink to this definition">¶</a></dt>
+<code class="descname">recursive_call</code><span class="sig-paren">(</span><em>attribute</em>, <em>*args</em>, <em>ignore_first=True</em>, <em>call=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/pipe.html#Pipe.recursive_call"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.pipe.Pipe.recursive_call" title="Permalink to this definition">¶</a></dt>
 <dd><p>Recursively calls method/attribute on input until reaching an upstream Pipe that implements the method and
 returns the response as a message (empty if response is None).
 Recursive calls enable a stack of Pipes to behave as one entity; any method implemented by any component can be accessed
@@ -507,6 +701,7 @@ recursively.</p>
 <li><strong>args</strong> – The arguments if this is a recursive method call.</li>
 <li><strong>ignore_first</strong> – If True, then ignore whether or not the target attribute is implemented by self. This can be useful if a Pipe
 implements a method and wants to use an upstream call of the same method as well.</li>
+<li><strong>call</strong> – If True, and the attribute is a method, the method will be called. Otherwise, it will be returned as is.</li>
 <li><strong>kwargs</strong> – The kwargs is this is a recursive method call.</li>
 </ul>
 </td>
@@ -521,6 +716,12 @@ implements a method and wants to use an upstream call of the same method as well
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="Fireworks.core.pipe.Pipe.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/pipe.html#Pipe.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.pipe.Pipe.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method currently does nothing but pass on a ‘save’ method call to the input.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -528,7 +729,18 @@ implements a method and wants to use an upstream call of the same method as well
 <em class="property">class </em><code class="descclassname">Fireworks.core.pipe.</code><code class="descname">HookedPassThroughPipe</code><span class="sig-paren">(</span><em>input=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/pipe.html#HookedPassThroughPipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.pipe.HookedPassThroughPipe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.core.pipe.Pipe" title="Fireworks.core.pipe.Pipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.pipe.Pipe</span></code></a></p>
 <p>This Pipe has hooks which can be implemented by subclasses to modify the behavior of
-passed through calls.</p>
+passed through calls.
+You can define hooks for the following (magic) methods: __getitem__, __call__, and __next__.
+Whenever you call one of these method this will happen:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>The method will be recursively called on this Pipes input (if it exists)</li>
+<li>The appropriate hook function will be called on the result of that recursive call</li>
+<li>This will be the returned value.</li>
+</ol>
+</div></blockquote>
+<p>These hooks can make it easy to create pipes that ‘do something’ every time data is accessed in a certain way. For example, you could have
+the pipe apply some transform to the data.</p>
 <dl class="attribute">
 <dt id="Fireworks.core.pipe.HookedPassThroughPipe.name">
 <code class="descname">name</code><em class="property"> = 'Hooked-passthrough Pipe'</em><a class="headerlink" href="#Fireworks.core.pipe.HookedPassThroughPipe.name" title="Permalink to this definition">¶</a></dt>
@@ -768,7 +980,7 @@ but index 0 and 1 do not more.</p>
 <em class="property">class </em><code class="descclassname">Fireworks.toolbox.pipes.</code><code class="descname">BioSeqPipe</code><span class="sig-paren">(</span><em>path</em>, <em>input=None</em>, <em>filetype='fasta'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/pipes.html#BioSeqPipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.pipes.BioSeqPipe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.core.pipe.Pipe" title="Fireworks.core.pipe.Pipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.pipe.Pipe</span></code></a></p>
 <p>Class for representing biosequence data.
-Specifically, this class can read biological data files (such as fasta) and iterate throug them as a Pipe.
+Specifically, this class can read biological data files (such as fasta) and iterate through them as a Pipe.
 This can serve as the first Pipe in a pipeline for analyzing genomic data.</p>
 <dl class="attribute">
 <dt id="Fireworks.toolbox.pipes.BioSeqPipe.name">
@@ -777,9 +989,8 @@ This can serve as the first Pipe in a pipeline for analyzing genomic data.</p>
 
 <dl class="method">
 <dt id="Fireworks.toolbox.pipes.BioSeqPipe.reset">
-<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/pipes.html#BioSeqPipe.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.pipes.BioSeqPipe.reset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Resets the iterator to the beginning of the file. Specifically, it calls SeqIO.parse again as if reinstantiating the object.</p>
-</dd></dl>
+<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.toolbox.pipes.BioSeqPipe.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -821,9 +1032,8 @@ Pipes, every element of the dataset is accessible as if it were in memory.</p>
 
 <dl class="method">
 <dt id="Fireworks.toolbox.pipes.LoopingPipe.reset">
-<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/pipes.html#LoopingPipe.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.pipes.LoopingPipe.reset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calls reset on input Pipes and sets position to 0.</p>
-</dd></dl>
+<code class="descname">reset</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.toolbox.pipes.LoopingPipe.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.toolbox.pipes.LoopingPipe.compute_length">
@@ -872,7 +1082,9 @@ on the input and an update to the cache.</p>
 <dl class="method">
 <dt id="Fireworks.toolbox.pipes.CachingPipe.init_cache">
 <code class="descname">init_cache</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/pipes.html#CachingPipe.init_cache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.pipes.CachingPipe.init_cache" title="Permalink to this definition">¶</a></dt>
-<dd><p>This should initialize a cache object called self.cache</p>
+<dd><p>This initializes a cache object at self.cache. There are currently two types of Cache available; LRUCache and LFUCache, and you can
+choose which one by specifying the cache_type argument in the initializer. See Fireworks/core/cache.py for more information on
+Message caches.</p>
 </dd></dl>
 
 <dl class="method">
@@ -922,7 +1134,7 @@ containing the provided title of the input Pipe to to all outputs.</p>
 <p>Given an input Pipe that is iterable, enables repeat iteration.</p>
 <dl class="method">
 <dt id="Fireworks.toolbox.pipes.RepeaterPipe.reset">
-<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/pipes.html#RepeaterPipe.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.pipes.RepeaterPipe.reset" title="Permalink to this definition">¶</a></dt>
+<code class="descname">reset</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.toolbox.pipes.RepeaterPipe.reset" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -946,9 +1158,8 @@ the Pipe or calling __getitem__ will return different values.</p>
 
 <dl class="method">
 <dt id="Fireworks.toolbox.pipes.ShufflerPipe.reset">
-<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/pipes.html#ShufflerPipe.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.pipes.ShufflerPipe.reset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Triggers a shuffle on reset.</p>
-</dd></dl>
+<code class="descname">reset</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.toolbox.pipes.ShufflerPipe.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -971,9 +1182,24 @@ the Pipe or calling __getitem__ will return different values.</p>
 <p>Generates minibatches.</p>
 <dl class="method">
 <dt id="Fireworks.toolbox.pipes.BatchingPipe.reset">
-<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/pipes.html#BatchingPipe.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.pipes.BatchingPipe.reset" title="Permalink to this definition">¶</a></dt>
+<code class="descname">reset</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.toolbox.pipes.BatchingPipe.reset" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+</dd></dl>
+
+<dl class="class">
+<dt id="Fireworks.toolbox.pipes.FunctionPipe">
+<em class="property">class </em><code class="descclassname">Fireworks.toolbox.pipes.</code><code class="descname">FunctionPipe</code><span class="sig-paren">(</span><em>*args</em>, <em>function</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/pipes.html#FunctionPipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.pipes.FunctionPipe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#Fireworks.core.pipe.HookedPassThroughPipe" title="Fireworks.core.pipe.HookedPassThroughPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.pipe.HookedPassThroughPipe</span></code></a></p>
+<p>This Pipe is initialized with a function that is applied to all instances of __getitem__, __next__, and __call__.
+This can be useful for quickly inserting a function into the middle of a pipeline.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="Fireworks.toolbox.pipes.TensorPipe">
+<em class="property">class </em><code class="descclassname">Fireworks.toolbox.pipes.</code><code class="descname">TensorPipe</code><span class="sig-paren">(</span><em>*args</em>, <em>columns=None</em>, <em>cuda=True</em>, <em>device=0</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/pipes.html#TensorPipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.pipes.TensorPipe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#Fireworks.core.pipe.HookedPassThroughPipe" title="Fireworks.core.pipe.HookedPassThroughPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.pipe.HookedPassThroughPipe</span></code></a></p>
+<p>This Pipe converts Messages to tensors. You can specify which columns should be converted.</p>
 </dd></dl>
 
 </div>
@@ -992,6 +1218,48 @@ All communication is done via Message objects.</p>
 <p>Unlike Pipes, junctions do not automatically have recursive method calling. This is because they have multiple input sources,
 which would result in ambiguity. Instead, junctions are meant to act as bridges between multiple pipes in order to enable
 complex workflows which require more than a linear pipeline.</p>
+<p>Like Models, Junctions can have internal and external components in their state.</p>
+<dl class="method">
+<dt id="Fireworks.core.junction.Junction.check_components">
+<code class="descname">check_components</code><span class="sig-paren">(</span><em>components=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/junction.html#Junction.check_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.junction.Junction.check_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks to see if the provided components dict provides all necessary params for this model to run.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.junction.Junction.type_check">
+<code class="descname">type_check</code><span class="sig-paren">(</span><em>key</em>, <em>components</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/junction.html#Junction.type_check"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.junction.Junction.type_check" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Fireworks.core.junction.Junction.required_components">
+<code class="descname">required_components</code><a class="headerlink" href="#Fireworks.core.junction.Junction.required_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>This should be overridden by a subclass in order to specify components that should be provided during initialization. Otherwise,
+this will default to just return the components already present within the Model.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.junction.Junction.set_state">
+<code class="descname">set_state</code><span class="sig-paren">(</span><em>state</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/junction.html#Junction.set_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.junction.Junction.set_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.junction.Junction.get_state">
+<code class="descname">get_state</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/junction.html#Junction.get_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.junction.Junction.get_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.junction.Junction.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/junction.html#Junction.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.junction.Junction.save" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="Fireworks.core.junction.PyTorch_Junction">
+<em class="property">class </em><code class="descclassname">Fireworks.core.junction.</code><code class="descname">PyTorch_Junction</code><span class="sig-paren">(</span><em>*args</em>, <em>components=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/junction.html#PyTorch_Junction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.junction.PyTorch_Junction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#Fireworks.core.junction.Junction" title="Fireworks.core.junction.Junction"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.junction.Junction</span></code></a></p>
+<p>A PyTorch Junction can have automatically convert components to their PyTorch equivalents (eg. convert a numpy array or list to a
+torch.Tensor), and this can be useful when using the Junction for PyTorch related tasks.</p>
 </dd></dl>
 
 <span class="target" id="module-Fireworks.toolbox.junctions"></span><dl class="class">
@@ -1088,8 +1356,8 @@ of a Model using the freeze/unfreeze methods.</p>
 </div>
 <span class="target" id="module-Fireworks.core.model"></span><dl class="class">
 <dt id="Fireworks.core.model.Model">
-<em class="property">class </em><code class="descclassname">Fireworks.core.model.</code><code class="descname">Model</code><span class="sig-paren">(</span><em>components={}</em>, <em>*args</em>, <em>input=None</em>, <em>skip_module_init=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <a class="reference internal" href="#Fireworks.core.pipe.HookedPassThroughPipe" title="Fireworks.core.pipe.HookedPassThroughPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.pipe.HookedPassThroughPipe</span></code></a>, <a class="reference internal" href="#Fireworks.core.junction.Junction" title="Fireworks.core.junction.Junction"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.junction.Junction</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></a></p>
+<em class="property">class </em><code class="descclassname">Fireworks.core.model.</code><code class="descname">Model</code><span class="sig-paren">(</span><em>components={}</em>, <em>*args</em>, <em>input=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#Fireworks.core.pipe.HookedPassThroughPipe" title="Fireworks.core.pipe.HookedPassThroughPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.pipe.HookedPassThroughPipe</span></code></a>, <a class="reference internal" href="#Fireworks.core.junction.Junction" title="Fireworks.core.junction.Junction"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.junction.Junction</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></a></p>
 <p>Represents a statistical model which has a set of components, and a
 means for converting inputs into outputs. The model functions like a Pipe
 with respect to the input/output stream, and it functions like a Junction
@@ -1105,24 +1373,6 @@ required components.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Fireworks.core.model.Model.update_components">
-<code class="descname">update_components</code><span class="sig-paren">(</span><em>components=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.update_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.update_components" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="Fireworks.core.model.Model.check_components">
-<code class="descname">check_components</code><span class="sig-paren">(</span><em>components=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.check_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.check_components" title="Permalink to this definition">¶</a></dt>
-<dd><p>Checks to see if the provided components dict provides all necessary params for this model to run.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="Fireworks.core.model.Model.required_components">
-<code class="descname">required_components</code><a class="headerlink" href="#Fireworks.core.model.Model.required_components" title="Permalink to this definition">¶</a></dt>
-<dd><p>This should be overridden by a subclass in order to specify components that should be provided during initialization. Otherwise,
-this will default to just return the components already present within the Model.</p>
-</dd></dl>
-
-<dl class="method">
 <dt id="Fireworks.core.model.Model.forward">
 <code class="descname">forward</code><span class="sig-paren">(</span><em>message</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Represents a forward pass application of the model to an input. Must be implemented by a subclass.
@@ -1130,22 +1380,119 @@ This should return a Message.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Fireworks.core.model.Model.freeze">
-<code class="descname">freeze</code><span class="sig-paren">(</span><em>components=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.freeze"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.freeze" title="Permalink to this definition">¶</a></dt>
-<dd><p>Freezes the given components of the model (or all of them if none are specified) in order to prevent gradient updates.
-This means setting requires_grad to false for specified components so that these components
-are not updated during training.</p>
+<dt id="Fireworks.core.model.Model.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>*args</em>, <em>method='json'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Aggregates this model’s components into a single Message and saves them using the chosen method.
+You can use any method that Messages support writing to via the <a href="#id11"><span class="problematic" id="id12">to_</span></a> method, and you can
+provide additional key-word arguments as needed to support this.
+If the save method involves a path, then the path will be modified for each component and the state_dict.
+For the state_dict, the path will be torch_{name}-{path}, and for each component it will be {key}_{path}
+where name is either the name of the class or self.__name__ if it is defined. key is the value of the key in
+the components dictionary.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Fireworks.core.model.Model.unfreeze">
-<code class="descname">unfreeze</code><span class="sig-paren">(</span><em>components=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.unfreeze"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.unfreeze" title="Permalink to this definition">¶</a></dt>
-<dd><p>Unfreezes the given components of the model (or all of them if none are specified) in order to prevent gradient updates.
-This means setting requires_grad to true for specified components so that these components
-are updated during training.</p>
+<dt id="Fireworks.core.model.Model.load_state">
+<code class="descname">load_state</code><span class="sig-paren">(</span><em>*args</em>, <em>method='json'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.load_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.load_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the data in the given save file into the state dict.</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="Fireworks.core.model.Model.get_state">
+<code class="descname">get_state</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.get_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.get_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>This returns the current state of the Pipe, which consists of the values of all attributes designated in the list ‘stateful_attributes’.
+This can be used to save and load a Pipe’s state.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>None</strong> (<em>-</em>) – </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">{…}, ‘external’: {…}}, where the ‘external’ subdict is empty. This is so that the representation
+is consistent with the get_state methods of Junctions and Models. We consider all attributes of a Pipe to be internal, and that is
+why the ‘external’ subdict is empty. See documentation on Component Map for more details on what we mean by that (note that Pipes
+don’t use Component_Maps to store state, but simply expose similar methods for compatilibity.)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><ul class="simple">
+<li>A dict of the form {‘internal’</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.Model.set_state">
+<code class="descname">set_state</code><span class="sig-paren">(</span><em>state</em>, <em>reset=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.set_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.set_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the state of the pipe based on the provided state argument.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>state</strong> (<em>-</em>) – A dict of the form {‘internal’: {…}, ‘external’: {…}}. The ‘external’ dict will be ignored, because consider all
+attributes of a Pipe to be in internal (for simplicity). See Component_Map documentation for details.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.Model.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>message</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.Model.compile">
+<code class="descname">compile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.compile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.compile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.Model.enable_inference">
+<code class="descname">enable_inference</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.enable_inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.enable_inference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.Model.enable_inference_all">
+<code class="descname">enable_inference_all</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.core.model.Model.enable_inference_all" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.Model.disable_inference">
+<code class="descname">disable_inference</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.disable_inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.disable_inference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.Model.disable_inference_all">
+<code class="descname">disable_inference_all</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.core.model.Model.disable_inference_all" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.Model.enable_updates">
+<code class="descname">enable_updates</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.enable_updates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.enable_updates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.Model.enable_updates_all">
+<code class="descname">enable_updates_all</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.core.model.Model.enable_updates_all" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.Model.disable_updates">
+<code class="descname">disable_updates</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#Model.disable_updates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.Model.disable_updates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.Model.disable_updates_all">
+<code class="descname">disable_updates_all</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.core.model.Model.disable_updates_all" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="Fireworks.core.model.identity">
+<code class="descclassname">Fireworks.core.model.</code><code class="descname">identity</code><span class="sig-paren">(</span><em>message</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#identity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.identity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.core.model.freeze_module">
@@ -1164,6 +1511,373 @@ are updated during training.</p>
 <code class="descclassname">Fireworks.core.model.</code><code class="descname">model_from_module</code><span class="sig-paren">(</span><em>module_class</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#model_from_module"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.model_from_module" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given the class definition for a pytorch module, returns a model that
 encapsulates that module.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Fireworks.core.model.to_parameter">
+<code class="descclassname">Fireworks.core.model.</code><code class="descname">to_parameter</code><span class="sig-paren">(</span><em>component</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#to_parameter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.to_parameter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempts to convert a component to Pytorch Parameter if it is a tensor-like. This is required for using that component during model training.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="Fireworks.core.model.PyTorch_Model">
+<em class="property">class </em><code class="descclassname">Fireworks.core.model.</code><code class="descname">PyTorch_Model</code><span class="sig-paren">(</span><em>components={}</em>, <em>*args</em>, <em>input=None</em>, <em>skip_module_init=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#PyTorch_Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.PyTorch_Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <a class="reference internal" href="#Fireworks.core.model.Model" title="Fireworks.core.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.model.Model</span></code></a>, <a class="reference internal" href="#Fireworks.core.junction.PyTorch_Junction" title="Fireworks.core.junction.PyTorch_Junction"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.junction.PyTorch_Junction</span></code></a></p>
+<dl class="method">
+<dt id="Fireworks.core.model.PyTorch_Model.state_dict">
+<code class="descname">state_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#PyTorch_Model.state_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.PyTorch_Model.state_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary containing a whole state of the module.</p>
+<p>Both parameters and persistent buffers (e.g. running averages) are
+included. Keys are corresponding parameter and buffer names.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a dictionary containing a whole state of the module</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">module</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+<span class="go">[&#39;bias&#39;, &#39;weight&#39;]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.PyTorch_Model.all_parameters">
+<code class="descname">all_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#PyTorch_Model.all_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.PyTorch_Model.all_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of every PyTorch parameter that this Model depends on that is unfrozen.
+This is useful for providing a parameters list to an optimizer.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.PyTorch_Model.set_state">
+<code class="descname">set_state</code><span class="sig-paren">(</span><em>state</em>, <em>reset=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#PyTorch_Model.set_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.PyTorch_Model.set_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the state of the pipe based on the provided state argument.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>state</strong> (<em>-</em>) – A dict of the form {‘internal’: {…}, ‘external’: {…}}. The ‘external’ dict will be ignored, because consider all
+attributes of a Pipe to be in internal (for simplicity). See Component_Map documentation for details.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.PyTorch_Model.get_state">
+<code class="descname">get_state</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#PyTorch_Model.get_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.PyTorch_Model.get_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns state after serializing internal state.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.PyTorch_Model.freeze">
+<code class="descname">freeze</code><span class="sig-paren">(</span><em>components=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#PyTorch_Model.freeze"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.PyTorch_Model.freeze" title="Permalink to this definition">¶</a></dt>
+<dd><p>Freezes the given components of the model (or all of them if none are specified) in order to prevent gradient updates.
+This means setting requires_grad to false for specified components so that these components
+are not updated during training.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.model.PyTorch_Model.unfreeze">
+<code class="descname">unfreeze</code><span class="sig-paren">(</span><em>components=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/model.html#PyTorch_Model.unfreeze"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.model.PyTorch_Model.unfreeze" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unfreezes the given components of the model (or all of them if none are specified) in order to prevent gradient updates.
+This means setting requires_grad to true for specified components so that these components
+are updated during training.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-Fireworks.core.component_map">
+<span id="state"></span><h2>State<a class="headerlink" href="#module-Fireworks.core.component_map" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="Fireworks.core.component_map.Component_Map">
+<em class="property">class </em><code class="descclassname">Fireworks.core.component_map.</code><code class="descname">Component_Map</code><span class="sig-paren">(</span><em>components</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/component_map.html#Component_Map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.component_map.Component_Map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+<p>Each of the main objects that can be used to construct pipelines (Pipes, Junctions, and Models) have a means for tracking their internal
+state. For Pipes, this is handled by a simple dictionary, but for Junctions and Models we use this class which satisfies the more complex
+needs for these objects.
+In particular, a Component_Map can track whether a variable is internal or external to a given object, and if it’s external, whom the
+variable belongs to. This lets us dynamically assign a variable of one object to to a component of a Junction or Model while maintaining
+the distinction that the assigned variable is not internal to Junction or Model.
+This distinction can be useful for variables such as hyperparameters or runtime configurations (eg. whether to use Cuda) that one does
+not want to store alongside variables like model weights. You can also have a Model ‘borrow’ variables from another Model while maintaining
+this distinciton (eg. use the first two layers from this other model, then use the remainder of the layers using internal weights), and
+this can be useful when training Models (you could have your optimizer operate only on a Model’s internal parameters, treating everything
+else as constant.)
+These are a just few examples of how this abstraction can be useful, and in simpler terms, it is essentially a means to deliberately pass
+variables by reference, which is not how Python’s memory model operates by default, but it can be extremely helpful when doing machine
+learning.
+The details of the interaction with a Component_Map are abstracted away by Junctions and Models. Hence, you shouldn’t have to directly
+interact with a Component_Map. Instead, you can generally just call set_state and get_state on Junctions and Models to get serialized
+representations of the Component_Maps.</p>
+<p>The format of these serialization is a dict of the form {‘external’: {…}, ‘internal’: {…}}.
+The ‘internal’ dict contains a mapping between variable names and those variables.
+The ‘external’ dict contains a mapping between variable names and the object that those variables belong to. In this way, a Component_Map
+can keep track of the owner of the linked variable and also get its value as needed. Hence, Junctions and Models can simply use that
+variable as if it were internal, and this makes it easy to swap variables around without changing syntax (eg. replace some internal
+component of a Model with an attribute of some other object on the fly.)</p>
+<p>A Component_Map behaves like a dict with the special property that if you assign an tuple of the form (obj, x) to the dict, where
+x is a string, then the Component_Map will treat that as a ‘pass by reference’ assignment. In other words, it will assume that you
+want to externally link the variable obj.x to the Component_Map. For example, if you do this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">A</span> <span class="o">=</span> <span class="n">some_object</span><span class="p">()</span>
+<span class="n">cm</span> <span class="o">=</span> <span class="n">Component_Map</span><span class="p">()</span>
+<span class="n">cm</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now whenever you call cm[‘a’], you will get whatever is returned by A.x.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cm</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">x</span> <span class="c1"># This evaluates to True.</span>
+<span class="n">cm</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="n">A</span><span class="o">.</span><span class="n">x</span> <span class="c1"># This also evaluates to True, because the assignment is by reference.</span>
+</pre></div>
+</div>
+<p>If you cm.get_state(), the ‘external’ dict will contain a reference to A.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="n">cm</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+<span class="n">external</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s1">&#39;external&#39;</span><span class="p">]</span>
+<span class="n">external</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">)</span> <span class="c1"># This evaluates to True.</span>
+</pre></div>
+</div>
+<p>On the other hand, if you do this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cm</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">x</span> <span class="c1"># Don&#39;t pass by reference.</span>
+<span class="n">cm</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">x</span> <span class="c1"># This evaluates to True.</span>
+<span class="n">cm</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="n">A</span><span class="o">.</span><span class="n">x</span> <span class="c1"># This may or may not be True because Python sometimes assigns by reference and sometimes copies data depending on the situation.</span>
+</pre></div>
+</div>
+<p>This will be treated as an internal assignment. Note that PyTorch implements logic for enforcing pass-by-reference for torch.nn.Parameter
+objects. Hence, if A.x was a Parameter, then the assignment will be by reference. However, we will have no way of knowing who the
+‘owner’ of the Parameter is, and by using Component_Maps, we also are able to extend this functionality to any Python object. If
+you now get the state, it will be in the ‘internal’ dict.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="n">cm</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+<span class="n">internal</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s1">&#39;internal&#39;</span><span class="p">]</span>
+<span class="n">internal</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">A</span><span class="o">.</span><span class="n">x</span> <span class="c1"># This evaluates to True. If A.x is vector/tensor-valued, you may get a vector/tensor of 1&#39;s.</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="Fireworks.core.component_map.Component_Map.setitem_hook">
+<code class="descname">setitem_hook</code><span class="sig-paren">(</span><em>key</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/component_map.html#Component_Map.setitem_hook"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.component_map.Component_Map.setitem_hook" title="Permalink to this definition">¶</a></dt>
+<dd><p>This can be overridden by a subclass in order to implement specific actions
+that should take place before an attribute is set.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.component_map.Component_Map.set_state">
+<code class="descname">set_state</code><span class="sig-paren">(</span><em>state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/component_map.html#Component_Map.set_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.component_map.Component_Map.set_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method can be used to apply a serialized representation of state to a Component_Map at once. This is used for loading in saved
+data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>state</strong> – A dict of the form {‘external’: {…}, ‘internal’: {…}}. The elements of this dict will be assigned to the Component_Map.
+Note that this will not reset the Component_Map, so if there were previous elements already present, those will remain
+in the Component_Map.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.component_map.Component_Map.get_state">
+<code class="descname">get_state</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/component_map.html#Component_Map.get_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.component_map.Component_Map.get_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>This returns a serialized representation of the state of the Component_Map.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>None</strong> – </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A dict of the form {‘external’: {…}, ‘internal’: {…}}. See above documentation for more information.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">state</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="Fireworks.core.component_map.PyTorch_Component_Map">
+<em class="property">class </em><code class="descclassname">Fireworks.core.component_map.</code><code class="descname">PyTorch_Component_Map</code><span class="sig-paren">(</span><em>components</em>, <em>model=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/component_map.html#PyTorch_Component_Map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.component_map.PyTorch_Component_Map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#Fireworks.core.component_map.Component_Map" title="Fireworks.core.component_map.Component_Map"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.component_map.Component_Map</span></code></a></p>
+<p>This is a subclass of Component_Map with additional functionality for dealing with PyTorch data structures. PyTorch has a lot of logic
+in the background to keep track of Parameters and gradients and where objects are located in memory. The PyTorch_Component_Map has
+a modified __setitem__ method which ensures that there are no conflicts with any of these background operations by PyTorch.
+In particular, a PyTorch_Component_Map can have a (PyTorch) Model assigned to it, and whenever __setitem__ is called, the item is
+1) Converted to a torch.nn.Parameter object if possible. This is essential for computing gradients and training the parameter.
+2) Recursively assigned if necessary. This concept is best explained with an example. Say you have a neural network with a convolutional</p>
+<blockquote>
+<div><p>layer,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="n">model</span> <span class="o">=</span> <span class="n">some_pytorch_model</span><span class="p">()</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">conv1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span> <span class="c1"># This represents a 4x4 convolutional layer with 4 channels.</span>
+
+<span class="s1">&#39;model.conv1&#39;</span> <span class="ow">is</span> <span class="n">itself</span> <span class="n">a</span> <span class="n">PyTorch</span> <span class="n">Module</span> <span class="k">with</span> <span class="n">its</span> <span class="n">own</span> <span class="n">internal</span> <span class="n">state</span><span class="p">,</span> <span class="ow">and</span> <span class="ow">in</span> <span class="n">general</span><span class="p">,</span> <span class="n">models</span> <span class="n">can</span> <span class="n">have</span> <span class="n">models</span> <span class="n">that</span> <span class="n">have</span> <span class="n">models</span><span class="p">,</span>
+<span class="ow">and</span> <span class="n">so</span> <span class="n">on</span><span class="o">.</span> <span class="n">In</span> <span class="n">other</span> <span class="n">words</span><span class="p">,</span> <span class="s1">&#39;model.conv1&#39;</span> <span class="n">could</span> <span class="n">itself</span> <span class="n">have</span> <span class="n">variables</span> <span class="n">that</span> <span class="n">are</span> <span class="n">Modules</span><span class="o">/</span><span class="n">Models</span> <span class="ow">and</span> <span class="n">so</span> <span class="n">on</span><span class="o">.</span> <span class="n">When</span> <span class="n">you</span> <span class="n">get</span> <span class="n">the</span> <span class="n">state</span>
+<span class="nb">dict</span> <span class="k">for</span> <span class="n">the</span> <span class="n">original</span> <span class="n">model</span><span class="p">,</span> <span class="n">you</span> <span class="n">will</span> <span class="n">get</span> <span class="n">nested</span> <span class="n">dictionaries</span><span class="o">.</span> <span class="n">These</span> <span class="n">can</span> <span class="n">still</span> <span class="n">be</span> <span class="n">serialized</span> <span class="ow">and</span> <span class="n">saved</span> <span class="n">to</span> <span class="n">a</span> <span class="n">file</span> <span class="n">like</span> <span class="n">normal</span><span class="p">,</span> <span class="n">but</span>
+<span class="n">when</span> <span class="n">we</span> <span class="n">call</span> <span class="n">set_state</span><span class="p">,</span> <span class="n">we</span> <span class="n">want</span> <span class="n">to</span> <span class="n">make</span> <span class="n">sure</span> <span class="n">that</span> <span class="n">we</span> <span class="n">assign</span> <span class="n">these</span> <span class="n">nested</span> <span class="n">dictionary</span> <span class="n">elements</span> <span class="n">to</span> <span class="n">the</span> <span class="n">correct</span> <span class="n">submodules</span><span class="o">.</span>
+
+<span class="p">::</span>
+
+    <span class="n">state</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+    <span class="n">internal</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s1">&#39;internal&#39;</span><span class="p">]</span>
+    <span class="n">internal</span><span class="p">[</span><span class="s1">&#39;conv1&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;weights&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;This is some Tensor&#39;</span><span class="p">],</span> <span class="s1">&#39;bias&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;This is some vector&#39;</span><span class="p">]}</span>
+
+<span class="n">If</span> <span class="n">we</span> <span class="n">naively</span> <span class="n">called</span> <span class="n">model</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="n">to</span> <span class="n">load</span> <span class="n">some</span> <span class="n">other</span> <span class="n">state</span> <span class="kn">from</span> <span class="nn">a</span> <span class="n">file</span><span class="p">,</span> <span class="n">then</span> <span class="n">we</span> <span class="n">would</span> <span class="n">end</span> <span class="n">up</span> <span class="n">assigning</span> <span class="n">a</span> <span class="n">nested</span>
+<span class="n">dictionary</span> <span class="n">to</span> <span class="n">the</span> <span class="n">value</span> <span class="n">of</span> <span class="n">model</span><span class="o">.</span><span class="n">conv1</span><span class="o">.</span> <span class="n">What</span> <span class="n">we</span> <span class="n">actually</span> <span class="n">want</span> <span class="ow">is</span><span class="p">:</span>
+
+<span class="p">::</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">conv1</span><span class="p">)</span> <span class="c1"># This is a PyTorch Module</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">conv1</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span> <span class="c1"># This is a Tensor</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">conv1</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span> <span class="c1"># This is a Tensor</span>
+
+<span class="n">PyTorch_Component_Map</span> <span class="n">checks</span> <span class="k">if</span> <span class="n">the</span> <span class="n">attribute</span> <span class="n">being</span> <span class="n">assigned</span> <span class="n">to</span> <span class="ow">is</span> <span class="n">a</span> <span class="n">PyTorch_Model</span> <span class="ow">or</span> <span class="p">(</span><span class="n">PyTorch</span><span class="p">)</span> <span class="n">Module</span> <span class="ow">and</span> <span class="n">performs</span> <span class="n">this</span> <span class="nb">type</span>
+<span class="n">of</span> <span class="n">assignment</span><span class="o">.</span>
+</pre></div>
+</div>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><dl class="first docutils">
+<dt>‘Registered’ to the Model. This is something that PyTorch does whenever you assign a value to a PyTorch Module and is essential</dt>
+<dd>for proper functioning of PyTorch methods/functions, such as getting a state_dict, submodules, etc.</dd>
+</dl>
+</li>
+</ol>
+<p>This additional logic is important, because in general, all of the layers of a Neural Network are implemented as Modules and PyTorch
+Modules inherently has a nested structure.</p>
+<dl class="method">
+<dt id="Fireworks.core.component_map.PyTorch_Component_Map.hook">
+<code class="descname">hook</code><span class="sig-paren">(</span><em>key</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/component_map.html#PyTorch_Component_Map.hook"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.component_map.PyTorch_Component_Map.hook" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is used to (try to) convert objects to torch.nn.Parameter objects upon assignment. If a value has tensor-like structure (ie. is
+a list or ndarray), then it will automatically be converted.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.component_map.PyTorch_Component_Map.setitem_hook">
+<code class="descname">setitem_hook</code><span class="sig-paren">(</span><em>key</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/component_map.html#PyTorch_Component_Map.setitem_hook"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.component_map.PyTorch_Component_Map.setitem_hook" title="Permalink to this definition">¶</a></dt>
+<dd><p>This assigns the above hook to setitem_hook so that it will be triggered upon every __setitem__ call.</p>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-Fireworks.core.scaffold"></span><dl class="class">
+<dt id="Fireworks.core.scaffold.Scaffold">
+<em class="property">class </em><code class="descclassname">Fireworks.core.scaffold.</code><code class="descname">Scaffold</code><span class="sig-paren">(</span><em>to_attach=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/scaffold.html#Scaffold"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.scaffold.Scaffold" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A Scaffold can keep track of the internal state of objects in a pipeline. This can be used to save and load the entire state of a
+pipeline, allowing one to pause and resume a project, take snapshots, and log the internal state of components as an experiment proceeds.
+The current implementation of Scaffold is very simple; you attach objects to the Scaffold while providing a name that serves as an
+identifier for that object. You can then call the serialize method to get a dictionary of the current states of all attached objects,
+the save method to save those serialized states to a given folder, or load to update the states of attached objects using data in
+a provided directory.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scaffold</span> <span class="o">=</span> <span class="n">Scaffold</span><span class="p">()</span>
+<span class="c1"># Attach components as desired</span>
+<span class="n">scaffold</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">A</span><span class="p">)</span>
+<span class="n">scaffold</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">B</span><span class="p">)</span>
+<span class="o">.</span>
+<span class="o">.</span>
+<span class="o">.</span>
+<span class="c1"># This will save the current state of attached objects in folder &#39;save_directory&#39;. The filenames will be based on the identifiers</span>
+<span class="c1"># eg. &#39;a.json&#39;, &#39;b.json&#39;, etc.</span>
+<span class="n">scaffold</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s1">&#39;save_directory&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">)</span>
+<span class="c1"># This will read files in folder &#39;save_directory2&#39; and set the state of attached objects based on identifiers.</span>
+<span class="c1"># eg. the components attached with identifier &#39;a&#39; will load from &#39;a.json&#39; and so on. Note that the provided method must be</span>
+<span class="c1"># consistent with the filetypes in the save directory.</span>
+<span class="n">scaffold</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s1">&#39;save_directory2&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">)</span>
+
+<span class="c1"># This will produce a dictionary of identifiers to state object serializations (see Component_Map documentation for details).</span>
+<span class="c1"># You could use this dictionary to log state information however you want. For example, you could log the current weights of</span>
+<span class="c1"># neural network layers in your model for later plotting.</span>
+
+<span class="n">state</span> <span class="o">=</span> <span class="n">scaffold</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="Fireworks.core.scaffold.Scaffold.attach">
+<code class="descname">attach</code><span class="sig-paren">(</span><em>name</em>, <em>obj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/scaffold.html#Scaffold.attach"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.scaffold.Scaffold.attach" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attaches an object to the Scaffold with a provided identifier. The Scaffold can then track the object’s internal state, enabling one
+to access, save, and load the serialized states of all tracked objects at once.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> – The identifier for the object.</li>
+<li><strong>obj</strong> – The object to attach. Note that each object must implement a get_state method which returns a dictionary of the
+form {‘external’: {…}, ‘internal’: {…}}. Pipes, Junctions, and Models satisfy this criteria.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.scaffold.Scaffold.serialize">
+<code class="descname">serialize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/scaffold.html#Scaffold.serialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.scaffold.Scaffold.serialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary containing serialized representations of all objects tracked by the scaffold. See Component_Map documentation
+for more information on these serializations.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>None</strong> – </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A dict of the form {key: state}, where state is a dict of the form {‘external’: {…}, ‘internal’: {…}} corresponding to
+the internal and external state of objects tracked by the Scaffold. See Component_Map documentation for more information on state.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">state</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.scaffold.Scaffold.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>path</em>, <em>method='json'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/scaffold.html#Scaffold.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.scaffold.Scaffold.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves serialized representation of all objects linked to Scaffold using a desired method (json, csv, pickle, etc.)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>path</strong> – The folder to save serializations to. This folder must exist and be writable by the program.</li>
+<li><strong>method</strong> – The method for saving. This must be one of the methods support by the Message.to(…) method (see Message documentation)
+, as state dicts are converted to Messages and saved using Message.to(…).</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.scaffold.Scaffold.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>path</em>, <em>method='json'</em>, <em>reset=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/scaffold.html#Scaffold.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.scaffold.Scaffold.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads serialized representations of all objects linked to Scaffold using the given names in the given path.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>path</strong> – The folder to load serializations from. This folder must exist and be readable by the program.</li>
+<li><strong>method</strong> – The method for loading. This must be one of the methods support by the Message.load(…) method (see Message
+documentation), as that method is used to read the files.
+Note that load will only look for files corresponding to the provided method that also have the correspponding suffix
+(eg. json filenames must end with ‘.json’, pickles files with ‘.pickle’, etc.). So if you have files in the foler that
+were not saved as the given method, or have different filename suffixes, they will be ignored.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -1208,6 +1922,11 @@ it does so, enabling one to easily incorporate database queries into a Source pi
 <code class="descname">rollback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/database.html#TablePipe.rollback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.database.TablePipe.rollback" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rollbacks transactions in current session that haven’t been committed yet.</p>
 </dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.extensions.database.TablePipe.reset_session">
+<code class="descname">reset_session</code><span class="sig-paren">(</span><em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/database.html#TablePipe.reset_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.database.TablePipe.reset_session" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.extensions.database.TablePipe.insert">
@@ -1348,10 +2067,9 @@ default, this will be set to an instance of declarative_base from SQLalchemy.</l
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.core.pipe.Pipe" title="Fireworks.core.pipe.Pipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.pipe.Pipe</span></code></a></p>
 <p>Pipe that can iterate through the output of a database query.</p>
 <dl class="method">
-<dt id="Fireworks.extensions.database.DBPipe.reset">
-<code class="descname">reset</code><span class="sig-paren">(</span><em>entities=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/database.html#DBPipe.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.database.DBPipe.reset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Resets DBPipe by reperforming the query, so that it is now at the beginning of the query.</p>
-</dd></dl>
+<dt id="Fireworks.extensions.database.DBPipe.reset_session">
+<code class="descname">reset_session</code><span class="sig-paren">(</span><em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/database.html#DBPipe.reset_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.database.DBPipe.reset_session" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.extensions.database.DBPipe.filter">
@@ -1434,12 +2152,6 @@ added by the create_table function.</li>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="function">
-<dt id="Fireworks.extensions.database.convert">
-<code class="descclassname">Fireworks.extensions.database.</code><code class="descname">convert</code><span class="sig-paren">(</span><em>value</em>, <em>sqltype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/database.html#convert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.database.convert" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts a given value to a value that SQLalchemy can read.</p>
 </dd></dl>
 
 <dl class="function">
@@ -1655,25 +2367,6 @@ create the file using some other library.</li>
 
 </dd></dl>
 
-<dl class="function">
-<dt id="Fireworks.extensions.experiment.filter_columns">
-<code class="descclassname">Fireworks.extensions.experiment.</code><code class="descname">filter_columns</code><span class="sig-paren">(</span><em>message</em>, <em>columns=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/experiment.html#filter_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.experiment.filter_columns" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns only the given columns of message or everything if columns is None.
-If tensor columns are requested, they are converted to ndarray first.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>columns</strong> – Columns to keep. Default = None, meaning return the Message as is.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Message with the filetered columns.</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">message</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 </div>
 <div class="section" id="factory">
 <h2>Factory<a class="headerlink" href="#factory" title="Permalink to this headline">¶</a></h2>
@@ -1708,11 +2401,33 @@ name implies. The SQLFactory stores them in a relational database table. Because
 <p>Additionally, to reduce memory and network bandwidth usage, the SQLFactory table caches information in local memory while regularly syncing
 with the database.</p>
 <p>Currently, all of these steps take place on a single thread, but in the future we will be able to automatically parallelize and distribute them.</p>
-<span class="target" id="module-Fireworks.extensions.factory"></span><dl class="class">
+<span class="target" id="module-Fireworks.extensions.factory"></span><dl class="function">
+<dt id="Fireworks.extensions.factory.update">
+<code class="descclassname">Fireworks.extensions.factory.</code><code class="descname">update</code><span class="sig-paren">(</span><em>bundle: dict</em>, <em>parameters: dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/factory.html#update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.factory.update" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>- A dictionary of key</strong> (<em>parameters</em>) – (obj, atr). Obj is the object referred to, and attr is a string with the name of the attribute to be assigned.</li>
+<li><strong>- A dictionary of key</strong> – value. Wherever keys match, obj.attr will be set to value.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
 <dt id="Fireworks.extensions.factory.Factory">
-<em class="property">class </em><code class="descclassname">Fireworks.extensions.factory.</code><code class="descname">Factory</code><span class="sig-paren">(</span><em>trainer</em>, <em>metrics_dict</em>, <em>generator</em>, <em>eval_dataloader</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/factory.html#Factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.factory.Factory" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Base class for parallel hyperparameter optimization in pytorch using queues.</p>
+<em class="property">class </em><code class="descclassname">Fireworks.extensions.factory.</code><code class="descname">Factory</code><span class="sig-paren">(</span><em>*args</em>, <em>components=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/factory.html#Factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.factory.Factory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#Fireworks.core.junction.Junction" title="Fireworks.core.junction.Junction"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.junction.Junction</span></code></a></p>
+<p>Base class for hyperparameter optimization in pytorch using queues.</p>
+<dl class="attribute">
+<dt id="Fireworks.extensions.factory.Factory.required_components">
+<code class="descname">required_components</code><em class="property"> = {'eval_set': &lt;class 'object'&gt;, 'metrics': &lt;class 'dict'&gt;, 'parameterizer': &lt;class 'function'&gt;, 'trainer': &lt;class 'function'&gt;}</em><a class="headerlink" href="#Fireworks.extensions.factory.Factory.required_components" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="Fireworks.extensions.factory.Factory.get_connection">
 <code class="descname">get_connection</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/factory.html#Factory.get_connection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.factory.Factory.get_connection" title="Permalink to this definition">¶</a></dt>
@@ -1734,6 +2449,11 @@ with the database.</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="Fireworks.extensions.factory.Factory.train">
+<code class="descname">train</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/factory.html#Factory.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.factory.Factory.train" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="Fireworks.extensions.factory.Factory.after">
 <code class="descname">after</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/factory.html#Factory.after"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.factory.Factory.after" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -1742,7 +2462,7 @@ with the database.</p>
 
 <dl class="class">
 <dt id="Fireworks.extensions.factory.LocalMemoryFactory">
-<em class="property">class </em><code class="descclassname">Fireworks.extensions.factory.</code><code class="descname">LocalMemoryFactory</code><span class="sig-paren">(</span><em>trainer</em>, <em>metrics_dict</em>, <em>generator</em>, <em>eval_dataloader</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/factory.html#LocalMemoryFactory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.factory.LocalMemoryFactory" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">Fireworks.extensions.factory.</code><code class="descname">LocalMemoryFactory</code><span class="sig-paren">(</span><em>*args</em>, <em>components=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/factory.html#LocalMemoryFactory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.factory.LocalMemoryFactory" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.extensions.factory.Factory" title="Fireworks.extensions.factory.Factory"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.extensions.factory.Factory</span></code></a></p>
 <p>Factory that stores parameters in memory.</p>
 <dl class="method">
@@ -1764,9 +2484,14 @@ with the database.</p>
 
 <dl class="class">
 <dt id="Fireworks.extensions.factory.SQLFactory">
-<em class="property">class </em><code class="descclassname">Fireworks.extensions.factory.</code><code class="descname">SQLFactory</code><span class="sig-paren">(</span><em>*args</em>, <em>params_table</em>, <em>metrics_tables</em>, <em>engine</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/factory.html#SQLFactory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.factory.SQLFactory" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">Fireworks.extensions.factory.</code><code class="descname">SQLFactory</code><span class="sig-paren">(</span><em>*args</em>, <em>components=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/factory.html#SQLFactory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.factory.SQLFactory" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.extensions.factory.Factory" title="Fireworks.extensions.factory.Factory"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.extensions.factory.Factory</span></code></a></p>
 <p>Factory that stores parameters in SQLalchemy database while caching them locally.</p>
+<dl class="attribute">
+<dt id="Fireworks.extensions.factory.SQLFactory.required_components">
+<code class="descname">required_components</code><em class="property"> = {'engine': &lt;class 'object'&gt;, 'eval_set': &lt;class 'object'&gt;, 'metrics': &lt;class 'dict'&gt;, 'metrics_tables': &lt;class 'object'&gt;, 'parameterizer': &lt;class 'function'&gt;, 'params_table': &lt;class 'object'&gt;, 'trainer': &lt;class 'function'&gt;}</em><a class="headerlink" href="#Fireworks.extensions.factory.SQLFactory.required_components" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="Fireworks.extensions.factory.SQLFactory.get_connection">
 <code class="descname">get_connection</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/factory.html#SQLFactory.get_connection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.factory.SQLFactory.get_connection" title="Permalink to this definition">¶</a></dt>
@@ -1861,43 +2586,97 @@ Each index value corresponds to a one-hot vector.</p>
 <dl class="function">
 <dt id="Fireworks.toolbox.text.too_big">
 <code class="descclassname">Fireworks.toolbox.text.</code><code class="descname">too_big</code><span class="sig-paren">(</span><em>dataset</em>, <em>start</em>, <em>end</em>, <em>dim=300</em>, <em>cutoff=620000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/text.html#too_big"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.text.too_big" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates if a batch consisting of dataset[start:end] is too big based on cutoff.</p>
+<dd><p>Calculates if a batch consisting of dataset[start:end] is too big based on cutoff. This can be used for constructing dynamic batches.</p>
 </dd></dl>
 
 <span class="target" id="module-Fireworks.utils.utils"></span><dl class="attribute">
 <dt id="Fireworks.utils.utils.one_hot">
 <code class="descclassname">Fireworks.utils.utils.</code><code class="descname">one_hot</code><a class="reference internal" href="_modules/Fireworks/utils/utils.html#one_hot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.utils.utils.one_hot" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>This converts an integer to a one-hot vector, which is a format that is often used by statistical classifiers to represent predictions.
+:param - index: The index in the one-hot array to set as 1
+:param - max: The size of the one-hot array.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A one-hot array, which consists of all 0s except a 1 at a certain index which corresponds to the label classification.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><ul class="simple">
+<li>hot</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.utils.utils.index_to_list">
 <code class="descclassname">Fireworks.utils.utils.</code><code class="descname">index_to_list</code><span class="sig-paren">(</span><em>index</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/utils/utils.html#index_to_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.utils.utils.index_to_list" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts an index to a list.</p>
+<dd><p>Converts an index to a list. This is used by some of the methods in message.py.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.utils.utils.slice_to_list">
 <code class="descclassname">Fireworks.utils.utils.</code><code class="descname">slice_to_list</code><span class="sig-paren">(</span><em>s</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/utils/utils.html#slice_to_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.utils.utils.slice_to_list" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts a slice object to a list of indices</p>
+<dd><p>Converts a slice object to a list of indices. This is used by some of the methods in message.py.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.utils.utils.get_indices">
 <code class="descclassname">Fireworks.utils.utils.</code><code class="descname">get_indices</code><span class="sig-paren">(</span><em>values</em>, <em>listlike</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/utils/utils.html#get_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.utils.utils.get_indices" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the indices in litlike that match elements in values</p>
+<dd><p>Returns the indices in litlike that match elements in values. This is used by some of the methods in message.py.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="Fireworks.utils.utils.slice_length">
 <code class="descclassname">Fireworks.utils.utils.</code><code class="descname">slice_length</code><span class="sig-paren">(</span><em>orange</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/utils/utils.html#slice_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.utils.utils.slice_length" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the length of the index corresponding to a slice.
-For example, slice(0,4,2) has a length of two.</p>
+For example, slice(0,4,2) has a length of two.
+This is used by some of the methods in message.py.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Fireworks.utils.utils.subset_dict">
+<code class="descclassname">Fireworks.utils.utils.</code><code class="descname">subset_dict</code><span class="sig-paren">(</span><em>dictionary</em>, <em>keys</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/utils/utils.html#subset_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.utils.utils.subset_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dict that contains all key,value pairs in dictionary where the key is one of the provided keys.
+This is used by some of the methods in message.py.</p>
 </dd></dl>
 
 <span class="target" id="module-Fireworks.toolbox.preprocessing"></span><dl class="function">
 <dt id="Fireworks.toolbox.preprocessing.train_test_split">
 <code class="descclassname">Fireworks.toolbox.preprocessing.</code><code class="descname">train_test_split</code><span class="sig-paren">(</span><em>pipe</em>, <em>test=0.2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/preprocessing.html#train_test_split"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.preprocessing.train_test_split" title="Permalink to this definition">¶</a></dt>
-<dd><p>Splits input pipe into a training pipe and a test pipe.</p>
+<dd><p>Splits input pipe into a training pipe and a test pipe. The indices representing the input pipe are shuffled, and assigned to the training
+and test sets randomly based on the proportions specified.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pipe</strong> (<em>-</em>) – A pipe which represents the data to be split up.</li>
+<li><strong>test</strong> (<em>-</em>) – The proportion of the set that should be returns as test set. This should be between 0 and 1.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><dl class="docutils">
+<dt>A pipe that represents the training data. You can call __getitem__, __next__, etc. on this pipe and it will transparently</dt>
+<dd><p class="first last">provide elements from the shuffled training set.</p>
+</dd>
+</dl>
+<ul class="simple">
+<li>test_pipe: Analogous to the train_pipe, this represents the test data, which is shuffled and disjoint from the training data.</li>
+</ul>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li>train_pipe</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -1912,12 +2691,17 @@ For example, slice(0,4,2) has a length of two.</p>
 
 <dl class="class">
 <dt id="Fireworks.toolbox.preprocessing.Normalizer">
-<em class="property">class </em><code class="descclassname">Fireworks.toolbox.preprocessing.</code><code class="descname">Normalizer</code><span class="sig-paren">(</span><em>components={}</em>, <em>*args</em>, <em>input=None</em>, <em>skip_module_init=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/preprocessing.html#Normalizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.preprocessing.Normalizer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#Fireworks.core.model.Model" title="Fireworks.core.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.model.Model</span></code></a></p>
-<p>Normalizes Data by Mean and Variance. Analogous to sklearn.preprocessing.Normalizer</p>
+<em class="property">class </em><code class="descclassname">Fireworks.toolbox.preprocessing.</code><code class="descname">Normalizer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/preprocessing.html#Normalizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.preprocessing.Normalizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#Fireworks.core.model.PyTorch_Model" title="Fireworks.core.model.PyTorch_Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.model.PyTorch_Model</span></code></a></p>
+<p>Normalizes Data by Mean and Variance. Analogous to sklearn.preprocessing.Normalizer
+This Model uses a one-pass method to estimate the sample variance which is not guaranteed to be numerically stable.</p>
+<p>The functionality is implemented using hooks. Every time data is accessed from upstream pipes, this Model updates its estimate of the
+population mean and variance using the update() method. If self._inference_enabled is set to True, then the data will also be normalized
+based on those estimates. Means and variances are calculated on a per-column basis. You can also disable/enable the updating of these
+estimate by calling self.enable_updates / self.disable_updates.</p>
 <dl class="attribute">
 <dt id="Fireworks.toolbox.preprocessing.Normalizer.required_components">
-<code class="descname">required_components</code><em class="property"> = ['mean', 'variance']</em><a class="headerlink" href="#Fireworks.toolbox.preprocessing.Normalizer.required_components" title="Permalink to this definition">¶</a></dt>
+<code class="descname">required_components</code><em class="property"> = ['mean', 'variance', 'count', 'rolling_sum', 'rolling_squares']</em><a class="headerlink" href="#Fireworks.toolbox.preprocessing.Normalizer.required_components" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -1934,21 +2718,27 @@ required components.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Fireworks.toolbox.preprocessing.Normalizer.fit">
-<code class="descname">fit</code><span class="sig-paren">(</span><em>dataset=None</em>, <em>continuamos=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/preprocessing.html#Normalizer.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.preprocessing.Normalizer.fit" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="Fireworks.toolbox.preprocessing.Normalizer.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>batch</em>, <em>method=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/preprocessing.html#Normalizer.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.preprocessing.Normalizer.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates internal tracking of mean and variance given a batch.</p>
+</dd></dl>
 
 <dl class="method">
-<dt id="Fireworks.toolbox.preprocessing.Normalizer.reset">
-<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/preprocessing.html#Normalizer.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.preprocessing.Normalizer.reset" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="Fireworks.toolbox.preprocessing.Normalizer.compile">
+<code class="descname">compile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/preprocessing.html#Normalizer.compile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.preprocessing.Normalizer.compile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes mean and variance given internal rolling sum and squares.</p>
+</dd></dl>
 
 </dd></dl>
 
 <span class="target" id="module-Fireworks.utils.events"></span><dl class="function">
 <dt id="Fireworks.utils.events.visdom_loss_handler">
 <code class="descclassname">Fireworks.utils.events.</code><code class="descname">visdom_loss_handler</code><span class="sig-paren">(</span><em>modules_dict</em>, <em>model_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/utils/events.html#visdom_loss_handler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.utils.events.visdom_loss_handler" title="Permalink to this definition">¶</a></dt>
-<dd><p>Attaches plots and metrics to trainer.</p>
+<dd><p>Attaches plots and metrics to trainer.
+This handler creates or connects to an environment on a running Visdom dashboard and creates a line plot that tracks the loss function of a
+training loop as a function of the number of iterations. This can be attached to an Ignite Engine, and the training closure must
+have ‘loss’ as one of the keys in its return dict for this plot to be made.
+See documentation for Ignite (<a class="reference external" href="https://github.com/pytorch/ignite">https://github.com/pytorch/ignite</a>) and Visdom (<a class="reference external" href="https://github.com/facebookresearch/visdom">https://github.com/facebookresearch/visdom</a>) for more information.</p>
 </dd></dl>
 
 <span class="target" id="module-Fireworks.utils.exceptions"></span><dl class="exception">
@@ -1979,8 +2769,8 @@ required components.</p>
       &copy;2018, Saad Khan.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
       <a href="_sources/Fireworks.rst.txt"

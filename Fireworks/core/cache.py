@@ -137,14 +137,6 @@ class MessageCache(ABC):
         for key, value in self.pointers.items():
             self.pointers[key] -= f(value)
         self.pointers = bidict(self.pointers)
-        # temp_dict = {}
-        # i = -1
-        # for key, internal_index in self.pointers.items():
-        #     temp_dict[key] = self.pointers[key] - f(internal_index)
-        #     self.pointers[key] = i
-        #     i -= 1
-        # for key, internal_index in self.pointers.items():
-        #     self.pointers[key] = temp_dict[key]
 
     def _permute(self, permutation, target = None):
         """
@@ -173,14 +165,6 @@ class MessageCache(ABC):
 
     def search(self, **kwargs):
         pass
-
-    # def free(self, n):
-    #     """ Ensure there is enough free space for n elements. """
-    #     free_space = self.max_size - self.size
-    #     if n > free_space:
-    #         self._free(n-free_space)
-    #
-    # def _free(self, n): pass
 
     @property
     def size(self):

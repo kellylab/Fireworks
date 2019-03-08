@@ -3,7 +3,7 @@ Project
 
 History
 ----------
-Saad Khan began working on Fireworks in June 2018. It was open sourced in October 2018.
+Saad Khan began working on Fireworks in June 2018. It was open sourced in January 2019.
 
 Committers
 ----------
@@ -19,7 +19,4 @@ Resources
 Roadmap
 ----------
 
-    - Add examples and flesh out documentation
-    - Full test coverage
-    - Performance improvements
-    - Parallel/asynchronous execution support
+    - TBD

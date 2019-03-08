@@ -7,14 +7,14 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Index &#8212; Fireworks 0.2.0 documentation</title>
+    <title>Index &#8212; Fireworks 0.3.0 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="#" />
     <link rel="search" title="Search" href="search.html" />
    
@@ -65,6 +65,14 @@
     </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
         </div>
       </div>
       <div class="documentwrapper">
@@ -113,6 +121,8 @@
       </ul></li>
       <li><a href="Fireworks.html#Fireworks.extensions.database.DBPipe.all">all() (Fireworks.extensions.database.DBPipe method)</a>
 </li>
+      <li><a href="Fireworks.html#Fireworks.core.model.PyTorch_Model.all_parameters">all_parameters() (Fireworks.core.model.PyTorch_Model method)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="Fireworks.html#Fireworks.core.message.Message.append">append() (Fireworks.core.message.Message method)</a>
@@ -124,6 +134,8 @@
       <li><a href="Fireworks.html#Fireworks.toolbox.text.apply_embeddings">apply_embeddings() (in module Fireworks.toolbox.text)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.toolbox.preprocessing.apply_noise">apply_noise() (in module Fireworks.toolbox.preprocessing)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.scaffold.Scaffold.attach">attach() (Fireworks.core.scaffold.Scaffold method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -153,7 +165,7 @@
 </li>
       <li><a href="Fireworks.html#Fireworks.toolbox.text.character_tokenizer">character_tokenizer() (in module Fireworks.toolbox.text)</a>
 </li>
-      <li><a href="Fireworks.html#Fireworks.core.model.Model.check_components">check_components() (Fireworks.core.model.Model method)</a>
+      <li><a href="Fireworks.html#Fireworks.core.junction.Junction.check_components">check_components() (Fireworks.core.junction.Junction method)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.toolbox.pipes.CachingPipe.check_input">check_input() (Fireworks.toolbox.pipes.CachingPipe method)</a>
 
@@ -181,7 +193,15 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="Fireworks.html#Fireworks.extensions.database.TablePipe.commit">commit() (Fireworks.extensions.database.TablePipe method)</a>
 </li>
+      <li><a href="Fireworks.html#Fireworks.core.model.Model.compile">compile() (Fireworks.core.model.Model method)</a>
+
+      <ul>
+        <li><a href="Fireworks.html#Fireworks.toolbox.preprocessing.Normalizer.compile">(Fireworks.toolbox.preprocessing.Normalizer method)</a>
+</li>
+      </ul></li>
       <li><a href="Fireworks.html#Fireworks.core.message.complement">complement() (in module Fireworks.core.message)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.component_map.Component_Map">Component_Map (class in Fireworks.core.component_map)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.toolbox.pipes.CachingPipe.compute_length">compute_length() (Fireworks.toolbox.pipes.CachingPipe method)</a>
 
@@ -191,8 +211,6 @@
         <li><a href="Fireworks.html#Fireworks.core.message.compute_length">(in module Fireworks.core.message)</a>
 </li>
       </ul></li>
-      <li><a href="Fireworks.html#Fireworks.extensions.database.convert">convert() (in module Fireworks.extensions.database)</a>
-</li>
       <li><a href="Fireworks.html#Fireworks.core.message.Message.cpu">cpu() (Fireworks.core.message.Message method)</a>
 
       <ul>
@@ -221,8 +239,6 @@
 </li>
       <li><a href="Fireworks.html#Fireworks.extensions.database.DBPipe">DBPipe (class in Fireworks.extensions.database)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="Fireworks.html#Fireworks.core.cache.MessageCache.delete">delete() (Fireworks.core.cache.MessageCache method)</a>
 
       <ul>
@@ -232,15 +248,35 @@
 </li>
       </ul></li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="Fireworks.html#Fireworks.core.message.TensorMessage.df">df (Fireworks.core.message.TensorMessage attribute)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.model.Model.disable_inference">disable_inference() (Fireworks.core.model.Model method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.model.Model.disable_inference_all">disable_inference_all() (Fireworks.core.model.Model method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.model.Model.disable_updates">disable_updates() (Fireworks.core.model.Model method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.model.Model.disable_updates_all">disable_updates_all() (Fireworks.core.model.Model method)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="Fireworks.html#Fireworks.utils.exceptions.EndHyperparameterOptimization">EndHyperparameterOptimization</a>
+      <li><a href="Fireworks.html#Fireworks.core.model.Model.enable_inference">enable_inference() (Fireworks.core.model.Model method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.model.Model.enable_inference_all">enable_inference_all() (Fireworks.core.model.Model method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.model.Model.enable_updates">enable_updates() (Fireworks.core.model.Model method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="Fireworks.html#Fireworks.core.model.Model.enable_updates_all">enable_updates_all() (Fireworks.core.model.Model method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.utils.exceptions.EndHyperparameterOptimization">EndHyperparameterOptimization</a>
+</li>
       <li><a href="Fireworks.html#Fireworks.extensions.experiment.Experiment">Experiment (class in Fireworks.extensions.experiment)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.core.message.extract_tensors">extract_tensors() (in module Fireworks.core.message)</a>
@@ -255,11 +291,11 @@
 </li>
       <li><a href="Fireworks.html#Fireworks.extensions.database.DBPipe.filter">filter() (Fireworks.extensions.database.DBPipe method)</a>
 </li>
-      <li><a href="Fireworks.html#Fireworks.extensions.experiment.filter_columns">filter_columns() (in module Fireworks.extensions.experiment)</a>
-</li>
       <li><a href="Fireworks.html#module-Fireworks">Fireworks (module)</a>
 </li>
       <li><a href="Fireworks.html#module-Fireworks.core.cache">Fireworks.core.cache (module)</a>
+</li>
+      <li><a href="Fireworks.html#module-Fireworks.core.component_map">Fireworks.core.component_map (module)</a>
 </li>
       <li><a href="Fireworks.html#module-Fireworks.core.junction">Fireworks.core.junction (module)</a>
 </li>
@@ -268,6 +304,8 @@
       <li><a href="Fireworks.html#module-Fireworks.core.model">Fireworks.core.model (module)</a>
 </li>
       <li><a href="Fireworks.html#module-Fireworks.core.pipe">Fireworks.core.pipe (module)</a>
+</li>
+      <li><a href="Fireworks.html#module-Fireworks.core.scaffold">Fireworks.core.scaffold (module)</a>
 </li>
       <li><a href="Fireworks.html#module-Fireworks.extensions.database">Fireworks.extensions.database (module)</a>
 </li>
@@ -291,8 +329,6 @@
 </li>
       <li><a href="Fireworks.html#module-Fireworks.utils.utils">Fireworks.utils.utils (module)</a>
 </li>
-      <li><a href="Fireworks.html#Fireworks.toolbox.preprocessing.Normalizer.fit">fit() (Fireworks.toolbox.preprocessing.Normalizer method)</a>
-</li>
       <li><a href="Fireworks.html#Fireworks.core.model.Model.forward">forward() (Fireworks.core.model.Model method)</a>
 
       <ul>
@@ -307,9 +343,13 @@
         <li><a href="Fireworks.html#Fireworks.core.cache.RankingCache.free">(Fireworks.core.cache.RankingCache method)</a>
 </li>
       </ul></li>
-      <li><a href="Fireworks.html#Fireworks.core.model.Model.freeze">freeze() (Fireworks.core.model.Model method)</a>
+      <li><a href="Fireworks.html#Fireworks.core.model.PyTorch_Model.freeze">freeze() (Fireworks.core.model.PyTorch_Model method)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.core.model.freeze_module">freeze_module() (in module Fireworks.core.model)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.message.Message.from_objects">from_objects() (Fireworks.core.message.Message class method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.toolbox.pipes.FunctionPipe">FunctionPipe (class in Fireworks.toolbox.pipes)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -325,8 +365,6 @@
         <li><a href="Fireworks.html#Fireworks.extensions.factory.SQLFactory.get_connection">(Fireworks.extensions.factory.SQLFactory method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="Fireworks.html#Fireworks.extensions.experiment.Experiment.get_engine">get_engine() (Fireworks.extensions.experiment.Experiment method)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.core.cache.get_indices">get_indices() (in module Fireworks.core.cache)</a>
@@ -335,18 +373,34 @@
         <li><a href="Fireworks.html#Fireworks.utils.utils.get_indices">(in module Fireworks.utils.utils)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="Fireworks.html#Fireworks.extensions.experiment.Experiment.get_session">get_session() (Fireworks.extensions.experiment.Experiment method)</a>
 </li>
+      <li><a href="Fireworks.html#Fireworks.core.component_map.Component_Map.get_state">get_state() (Fireworks.core.component_map.Component_Map method)</a>
+
+      <ul>
+        <li><a href="Fireworks.html#Fireworks.core.junction.Junction.get_state">(Fireworks.core.junction.Junction method)</a>
+</li>
+        <li><a href="Fireworks.html#Fireworks.core.model.Model.get_state">(Fireworks.core.model.Model method)</a>
+</li>
+        <li><a href="Fireworks.html#Fireworks.core.model.PyTorch_Model.get_state">(Fireworks.core.model.PyTorch_Model method)</a>
+</li>
+        <li><a href="Fireworks.html#Fireworks.core.pipe.Pipe.get_state">(Fireworks.core.pipe.Pipe method)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="H">H</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="Fireworks.html#Fireworks.core.pipe.HookedPassThroughPipe">HookedPassThroughPipe (class in Fireworks.core.pipe)</a>
+      <li><a href="Fireworks.html#Fireworks.core.component_map.PyTorch_Component_Map.hook">hook() (Fireworks.core.component_map.PyTorch_Component_Map method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="Fireworks.html#Fireworks.core.pipe.HookedPassThroughPipe">HookedPassThroughPipe (class in Fireworks.core.pipe)</a>
+</li>
       <li><a href="Fireworks.html#Fireworks.toolbox.junctions.HubJunction">HubJunction (class in Fireworks.toolbox.junctions)</a>
 </li>
   </ul></td>
@@ -355,6 +409,8 @@
 <h2 id="I">I</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="Fireworks.html#Fireworks.core.model.identity">identity() (in module Fireworks.core.model)</a>
+</li>
       <li><a href="Fireworks.html#Fireworks.core.message.Message.index">index (Fireworks.core.message.Message attribute)</a>
 
       <ul>
@@ -425,6 +481,8 @@
 </li>
       <li><a href="Fireworks.html#Fireworks.core.cache.LFUCache">LFUCache (class in Fireworks.core.cache)</a>
 </li>
+      <li><a href="Fireworks.html#Fireworks.core.scaffold.Scaffold.load">load() (Fireworks.core.scaffold.Scaffold method)</a>
+</li>
       <li><a href="Fireworks.html#Fireworks.toolbox.text.load_embeddings">load_embeddings() (in module Fireworks.toolbox.text)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.extensions.experiment.Experiment.load_experiment">load_experiment() (Fireworks.extensions.experiment.Experiment method)</a>
@@ -436,6 +494,8 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="Fireworks.html#Fireworks.extensions.experiment.Experiment.load_metadata">load_metadata() (Fireworks.extensions.experiment.Experiment method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.model.Model.load_state">load_state() (Fireworks.core.model.Model method)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.extensions.factory.LocalMemoryFactory">LocalMemoryFactory (class in Fireworks.extensions.factory)</a>
 </li>
@@ -557,8 +617,6 @@
 </li>
       <li><a href="Fireworks.html#Fireworks.extensions.database.parse_columns">parse_columns() (in module Fireworks.extensions.database)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="Fireworks.html#Fireworks.extensions.database.parse_columns_and_types">parse_columns_and_types() (in module Fireworks.extensions.database)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.core.message.Message.permute">permute() (Fireworks.core.message.Message method)</a>
@@ -567,9 +625,17 @@
         <li><a href="Fireworks.html#Fireworks.core.message.TensorMessage.permute">(Fireworks.core.message.TensorMessage method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="Fireworks.html#Fireworks.core.pipe.Pipe">Pipe (class in Fireworks.core.pipe)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.core.cache.pointer_adjustment_function">pointer_adjustment_function() (in module Fireworks.core.cache)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.component_map.PyTorch_Component_Map">PyTorch_Component_Map (class in Fireworks.core.component_map)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.junction.PyTorch_Junction">PyTorch_Junction (class in Fireworks.core.junction)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.model.PyTorch_Model">PyTorch_Model (class in Fireworks.core.model)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -589,9 +655,11 @@
 </li>
       <li><a href="Fireworks.html#Fireworks.core.cache.RankingCache">RankingCache (class in Fireworks.core.cache)</a>
 </li>
-      <li><a href="Fireworks.html#Fireworks.extensions.factory.Factory.read">read() (Fireworks.extensions.factory.Factory method)</a>
+      <li><a href="Fireworks.html#Fireworks.core.message.Message.read">read() (Fireworks.core.message.Message class method)</a>
 
       <ul>
+        <li><a href="Fireworks.html#Fireworks.extensions.factory.Factory.read">(Fireworks.extensions.factory.Factory method)</a>
+</li>
         <li><a href="Fireworks.html#Fireworks.extensions.factory.LocalMemoryFactory.read">(Fireworks.extensions.factory.LocalMemoryFactory method)</a>
 </li>
         <li><a href="Fireworks.html#Fireworks.extensions.factory.SQLFactory.read">(Fireworks.extensions.factory.SQLFactory method)</a>
@@ -599,23 +667,29 @@
       </ul></li>
       <li><a href="Fireworks.html#Fireworks.extensions.factory.SQLFactory.read_db">read_db() (Fireworks.extensions.factory.SQLFactory method)</a>
 </li>
+      <li><a href="Fireworks.html#Fireworks.core.pipe.recursive">recursive() (in module Fireworks.core.pipe)</a>
+</li>
       <li><a href="Fireworks.html#Fireworks.core.pipe.Pipe.recursive_call">recursive_call() (Fireworks.core.pipe.Pipe method)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.extensions.database.reflect_table">reflect_table() (in module Fireworks.extensions.database)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.toolbox.pipes.RepeaterPipe">RepeaterPipe (class in Fireworks.toolbox.pipes)</a>
 </li>
-      <li><a href="Fireworks.html#Fireworks.core.model.Model.required_components">required_components (Fireworks.core.model.Model attribute)</a>
+      <li><a href="Fireworks.html#Fireworks.core.junction.Junction.required_components">required_components (Fireworks.core.junction.Junction attribute)</a>
 
       <ul>
+        <li><a href="Fireworks.html#Fireworks.extensions.factory.Factory.required_components">(Fireworks.extensions.factory.Factory attribute)</a>
+</li>
+        <li><a href="Fireworks.html#Fireworks.extensions.factory.SQLFactory.required_components">(Fireworks.extensions.factory.SQLFactory attribute)</a>
+</li>
         <li><a href="Fireworks.html#Fireworks.toolbox.preprocessing.Normalizer.required_components">(Fireworks.toolbox.preprocessing.Normalizer attribute)</a>
 </li>
       </ul></li>
-      <li><a href="Fireworks.html#Fireworks.extensions.database.DBPipe.reset">reset() (Fireworks.extensions.database.DBPipe method)</a>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="Fireworks.html#Fireworks.toolbox.junctions.ClockworkHubJunction.reset">reset() (Fireworks.toolbox.junctions.ClockworkHubJunction method)</a>
 
       <ul>
-        <li><a href="Fireworks.html#Fireworks.toolbox.junctions.ClockworkHubJunction.reset">(Fireworks.toolbox.junctions.ClockworkHubJunction method)</a>
-</li>
         <li><a href="Fireworks.html#Fireworks.toolbox.junctions.HubJunction.reset">(Fireworks.toolbox.junctions.HubJunction method)</a>
 </li>
         <li><a href="Fireworks.html#Fireworks.toolbox.pipes.BatchingPipe.reset">(Fireworks.toolbox.pipes.BatchingPipe method)</a>
@@ -628,11 +702,13 @@
 </li>
         <li><a href="Fireworks.html#Fireworks.toolbox.pipes.ShufflerPipe.reset">(Fireworks.toolbox.pipes.ShufflerPipe method)</a>
 </li>
-        <li><a href="Fireworks.html#Fireworks.toolbox.preprocessing.Normalizer.reset">(Fireworks.toolbox.preprocessing.Normalizer method)</a>
+      </ul></li>
+      <li><a href="Fireworks.html#Fireworks.extensions.database.DBPipe.reset_session">reset_session() (Fireworks.extensions.database.DBPipe method)</a>
+
+      <ul>
+        <li><a href="Fireworks.html#Fireworks.extensions.database.TablePipe.reset_session">(Fireworks.extensions.database.TablePipe method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="Fireworks.html#Fireworks.extensions.database.TablePipe.rollback">rollback() (Fireworks.extensions.database.TablePipe method)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.toolbox.junctions.SwitchJunction.route">route (Fireworks.toolbox.junctions.SwitchJunction attribute)</a>
@@ -655,8 +731,42 @@
         <li><a href="Fireworks.html#Fireworks.toolbox.junctions.RandomHubJunction.sample_inputs">(Fireworks.toolbox.junctions.RandomHubJunction method)</a>
 </li>
       </ul></li>
+      <li><a href="Fireworks.html#Fireworks.core.junction.Junction.save">save() (Fireworks.core.junction.Junction method)</a>
+
+      <ul>
+        <li><a href="Fireworks.html#Fireworks.core.model.Model.save">(Fireworks.core.model.Model method)</a>
+</li>
+        <li><a href="Fireworks.html#Fireworks.core.pipe.Pipe.save">(Fireworks.core.pipe.Pipe method)</a>
+</li>
+        <li><a href="Fireworks.html#Fireworks.core.scaffold.Scaffold.save">(Fireworks.core.scaffold.Scaffold method)</a>
+</li>
+      </ul></li>
+      <li><a href="Fireworks.html#Fireworks.core.scaffold.Scaffold">Scaffold (class in Fireworks.core.scaffold)</a>
+</li>
       <li><a href="Fireworks.html#Fireworks.core.cache.MessageCache.search">search() (Fireworks.core.cache.MessageCache method)</a>
 </li>
+      <li><a href="Fireworks.html#Fireworks.core.scaffold.Scaffold.serialize">serialize() (Fireworks.core.scaffold.Scaffold method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.component_map.Component_Map.set_state">set_state() (Fireworks.core.component_map.Component_Map method)</a>
+
+      <ul>
+        <li><a href="Fireworks.html#Fireworks.core.junction.Junction.set_state">(Fireworks.core.junction.Junction method)</a>
+</li>
+        <li><a href="Fireworks.html#Fireworks.core.model.Model.set_state">(Fireworks.core.model.Model method)</a>
+</li>
+        <li><a href="Fireworks.html#Fireworks.core.model.PyTorch_Model.set_state">(Fireworks.core.model.PyTorch_Model method)</a>
+</li>
+        <li><a href="Fireworks.html#Fireworks.core.pipe.Pipe.set_state">(Fireworks.core.pipe.Pipe method)</a>
+</li>
+      </ul></li>
+      <li><a href="Fireworks.html#Fireworks.core.component_map.Component_Map.setitem_hook">setitem_hook() (Fireworks.core.component_map.Component_Map method)</a>
+
+      <ul>
+        <li><a href="Fireworks.html#Fireworks.core.component_map.PyTorch_Component_Map.setitem_hook">(Fireworks.core.component_map.PyTorch_Component_Map method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="Fireworks.html#Fireworks.toolbox.pipes.ShufflerPipe.shuffle">shuffle() (Fireworks.toolbox.pipes.ShufflerPipe method)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.toolbox.pipes.ShufflerPipe">ShufflerPipe (class in Fireworks.toolbox.pipes)</a>
@@ -665,8 +775,6 @@
 </li>
       <li><a href="Fireworks.html#Fireworks.utils.utils.slice_length">slice_length() (in module Fireworks.utils.utils)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="Fireworks.html#Fireworks.core.cache.slice_to_list">slice_to_list() (in module Fireworks.core.cache)</a>
 
       <ul>
@@ -681,7 +789,13 @@
 </li>
       <li><a href="Fireworks.html#Fireworks.extensions.factory.SQLFactory">SQLFactory (class in Fireworks.extensions.factory)</a>
 </li>
+      <li><a href="Fireworks.html#Fireworks.core.model.PyTorch_Model.state_dict">state_dict() (Fireworks.core.model.PyTorch_Model method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.pipe.Pipe.stateful_attributes">stateful_attributes (Fireworks.core.pipe.Pipe attribute)</a>
+</li>
       <li><a href="Fireworks.html#Fireworks.toolbox.pipes.LoopingPipe.step_forward">step_forward() (Fireworks.toolbox.pipes.LoopingPipe method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.utils.utils.subset_dict">subset_dict() (in module Fireworks.utils.utils)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.toolbox.junctions.SwitchJunction">SwitchJunction (class in Fireworks.toolbox.junctions)</a>
 </li>
@@ -695,17 +809,39 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="Fireworks.html#Fireworks.extensions.database.TablePipe">TablePipe (class in Fireworks.extensions.database)</a>
 </li>
+      <li><a href="Fireworks.html#Fireworks.core.message.TensorMessage.tensor_message">tensor_message (Fireworks.core.message.TensorMessage attribute)</a>
+</li>
       <li><a href="Fireworks.html#Fireworks.core.message.TensorMessage">TensorMessage (class in Fireworks.core.message)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.toolbox.pipes.TensorPipe">TensorPipe (class in Fireworks.toolbox.pipes)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.core.message.Message.tensors">tensors() (Fireworks.core.message.Message method)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.toolbox.pipes.Title2LabelPipe">Title2LabelPipe (class in Fireworks.toolbox.pipes)</a>
 </li>
+      <li><a href="Fireworks.html#Fireworks.core.message.Message.to">to() (Fireworks.core.message.Message method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.message.Message.to_csv">to_csv() (Fireworks.core.message.Message method)</a>
+</li>
       <li><a href="Fireworks.html#Fireworks.core.message.Message.to_dataframe">to_dataframe() (Fireworks.core.message.Message method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.message.Message.to_dict">to_dict() (Fireworks.core.message.Message method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.message.Message.to_excel">to_excel() (Fireworks.core.message.Message method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="Fireworks.html#Fireworks.core.message.Message.to_json">to_json() (Fireworks.core.message.Message method)</a>
+</li>
       <li><a href="Fireworks.html#Fireworks.extensions.database.to_message">to_message() (in module Fireworks.extensions.database)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.model.to_parameter">to_parameter() (in module Fireworks.core.model)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.message.Message.to_pickle">to_pickle() (Fireworks.core.message.Message method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.message.Message.to_sql">to_sql() (Fireworks.core.message.Message method)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.message.Message.to_string">to_string() (Fireworks.core.message.Message method)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.toolbox.pipes.LabelerPipe.to_tensor">to_tensor() (Fireworks.toolbox.pipes.LabelerPipe method)</a>
 </li>
@@ -713,7 +849,11 @@
 </li>
       <li><a href="Fireworks.html#Fireworks.toolbox.text.too_big">too_big() (in module Fireworks.toolbox.text)</a>
 </li>
+      <li><a href="Fireworks.html#Fireworks.extensions.factory.Factory.train">train() (Fireworks.extensions.factory.Factory method)</a>
+</li>
       <li><a href="Fireworks.html#Fireworks.toolbox.preprocessing.train_test_split">train_test_split() (in module Fireworks.toolbox.preprocessing)</a>
+</li>
+      <li><a href="Fireworks.html#Fireworks.core.junction.Junction.type_check">type_check() (Fireworks.core.junction.Junction method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -721,22 +861,26 @@
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="Fireworks.html#Fireworks.core.model.Model.unfreeze">unfreeze() (Fireworks.core.model.Model method)</a>
+      <li><a href="Fireworks.html#Fireworks.core.model.PyTorch_Model.unfreeze">unfreeze() (Fireworks.core.model.PyTorch_Model method)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.core.model.unfreeze_module">unfreeze_module() (in module Fireworks.core.model)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.core.cache.UnlimitedCache">UnlimitedCache (class in Fireworks.core.cache)</a>
 </li>
-      <li><a href="Fireworks.html#Fireworks.extensions.database.DBPipe.update">update() (Fireworks.extensions.database.DBPipe method)</a>
+      <li><a href="Fireworks.html#Fireworks.core.model.Model.update">update() (Fireworks.core.model.Model method)</a>
 
       <ul>
+        <li><a href="Fireworks.html#Fireworks.extensions.database.DBPipe.update">(Fireworks.extensions.database.DBPipe method)</a>
+</li>
         <li><a href="Fireworks.html#Fireworks.extensions.database.TablePipe.update">(Fireworks.extensions.database.TablePipe method)</a>
+</li>
+        <li><a href="Fireworks.html#Fireworks.toolbox.preprocessing.Normalizer.update">(Fireworks.toolbox.preprocessing.Normalizer method)</a>
+</li>
+        <li><a href="Fireworks.html#Fireworks.extensions.factory.update">(in module Fireworks.extensions.factory)</a>
 </li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="Fireworks.html#Fireworks.core.model.Model.update_components">update_components() (Fireworks.core.model.Model method)</a>
-</li>
       <li><a href="Fireworks.html#Fireworks.core.cache.LFUCache.update_rank">update_rank() (Fireworks.core.cache.LFUCache method)</a>
 
       <ul>
@@ -782,8 +926,8 @@
       &copy;2018, Saad Khan.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
 

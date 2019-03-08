@@ -34,7 +34,6 @@ def load_experiment(experiment_path): # TODO: clean up attribute assignments for
 
 class Experiment:
     # NOTE: For now, we assume that the underlying database is sqlite on local disk
-    # QUESTION: Should we implement an __eq__ method for experiments?
     # TODO: Expand to support nonlocal databases
 
     def __init__(self, experiment_name, db_path, description=None, load=False):
@@ -56,13 +55,6 @@ class Experiment:
             self.init_metadata()
 
         self.filenames = os.listdir(os.path.join(self.db_path,self.save_path)) # Refresh list of filenames
-        # Create/open save directory
-        # if not os.path.exists(save_dir):
-        #     try:
-        #         os.makedirs(save_dir)
-        #     except Error as e:
-        #         print("Could not create save directory {save_dir}. Please check permissions and try again: {error}".format(save_dir=save_dir, error=e))
-        # self.save_dir = save_dir
 
     def load_experiment(self, path=None, experiment_name=None):
         """
@@ -163,24 +155,9 @@ class Experiment:
                 with statement to auto-close the file.
         """
         self.filenames = os.listdir(os.path.join(self.db_path,self.save_path)) # Refresh list of filenames
-        # if filename in self.filenames:
-        #     raise IOError("A file named {filename} already exists in this experiments directory ({directory})".format(filename=filename, directory=self.save_path))
         path = os.path.join(self.db_path,self.save_path, filename)
         if string_only:
             return path
         else:
             return open(path, *args)
         self.filenames = os.listdir(os.path.join(self.db_path,self.save_path)) # Refresh list of filenames
-
-def filter_columns(message, columns = None):
-    """
-    Returns only the given columns of message or everything if columns is None.
-    If tensor columns are requested, they are converted to ndarray first.
-
-    Args:
-        columns: Columns to keep. Default = None, meaning return the Message as is.
-
-    Returns:
-        message: Message with the filetered columns.
-    """
-    return message # TODO: Implement this

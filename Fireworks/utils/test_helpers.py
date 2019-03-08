@@ -16,6 +16,9 @@ from torch.nn import Parameter
 from random import randint
 
 test_dir = Fireworks.test_dir
+"""
+This file contains numerous mock objects which are used by the tests.
+"""
 
 class one_way_dummy(Pipe):
 
