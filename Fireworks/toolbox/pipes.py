@@ -502,6 +502,7 @@ class IndexMapperPipe(Pipe):
             raise ValueError("The number of input indices does not match the number of output indices.")
         self.pointers = UnlimitedCache()
         self.pointers[input_indices] = Message({'output':output_indices})
+        self._current_index = 0
 
     def check_input(self):
         # for name, pipe in self.inputs.items():
@@ -511,11 +512,25 @@ class IndexMapperPipe(Pipe):
         if not hasattr(pipe, '__getitem__'):
             raise ValueError("Input Pipes must be indexable.")
 
+    def __iter__(self):
+
+        self._current_index = 0
+        return self
+
+    def __next__(self):
+
+        try:
+            iteration = self[self._current_index]
+            self._current_index += 1
+            return iteration
+        except (KeyError, IndexError) as e:
+            raise StopIteration
+
     def __getitem__(self, index):
 
         index = index_to_list(index)
-        # return Fireworks.merge([pipe[self.pointers[index]['output'].values] for pipe in self.inputs.values()])
-        return self.input[self.pointers[index]['output'].values]
+
+        return self.input[self.pointers[index]['output'].values.tolist()]
 
     def __len__(self):
         return len(self.pointers)
@@ -584,7 +599,31 @@ class TensorPipe(HookedPassThroughPipe):
         if self.cuda:
             return message.to_tensors(self.columns).cuda(device=self.device, keys=self.columns)
         else:
-            return message.to_tensors(self.columns)
+           return message.to_tensors(self.columns)
+
+
+    def _call_hook(self, message): return self._hook(message)
+
+    def _next_hook(self, message): return self._hook(message)
+
+    def _getitem_hook(self, message): return self._hook(message)
+
+class GradientPipe(HookedPassThroughPipe):
+    """
+    This Pipe sets requires_grad=True for Tensor Columns. This is necessary for computing gradients when training a model.
+    You can specify which columns should be converted.
+    """
+    def __init__(self, *args, columns=None, cuda=True, device=0, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.columns = columns
+        self.cuda = cuda and torch.cuda.is_available()
+        self.device = device
+
+    def _hook(self, message):
+
+        message.enable_gradients(self.columns)
+        return message
 
     def _call_hook(self, message): return self._hook(message)
 

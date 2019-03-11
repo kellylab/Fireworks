@@ -26,7 +26,7 @@ def default_training_closure(model, optimizer, loss_fn):
         loss.backward()
         optimizer.step()
 
-        return {'loss': loss, 'optimizer': optimizer.state_dict(), 'output': output}
+        return {'loss': loss.detach().cpu().numpy(), 'optimizer': optimizer.state_dict(), 'output': output}
 
     return update_function
 
@@ -81,7 +81,7 @@ class IgniteJunction(Junction):
         'ReduceLROnPlateau': ['mode', 'factor', 'patience', 'verbose', 'threshold', 'threshold_mode', 'cooldown', 'min_lr', 'eps'],
     }
 
-    def __init__(self, components, loss, optimizer, scheduler=None, update_function=default_training_closure, **kwargs):
+    def __init__(self, components, loss, optimizer, scheduler=None, update_function=default_training_closure, visdom=True, **kwargs):
 
         Junction.__init__(self, components = components)
         # Initialize engine
@@ -93,7 +93,8 @@ class IgniteJunction(Junction):
         self.engine = Engine(self.update_function)
 
         # Configure metrics and events
-        self.attach_events(environment='default', description='')
+        if visdom:
+            self.attach_events(environment='default', description='')
 
     def train(self, dataset = None, max_epochs=10):
 
@@ -128,7 +129,7 @@ class IgniteJunction(Junction):
                      update='append',
                      win=train_loss_window)
 
-        if save_file is not None:
-            save_interval = 50
-            handler = ModelCheckpoint('/tmp/models', save_file, save_interval = save_interval, n_saved=5, create_dir=True, require_empty=False)
-            self.engine.add_event_handler(Events.ITERATION_COMPLETED, handler, {'model': model})
+        # if save_file is not None:
+        #     save_interval = 50
+        #     handler = ModelCheckpoint('/tmp/models', save_file, save_interval = save_interval, n_saved=5, create_dir=True, require_empty=False)
+        #     self.engine.add_event_handler(Events.ITERATION_COMPLETED, handler, {'model': model})
