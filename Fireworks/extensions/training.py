@@ -1,4 +1,4 @@
-from Fireworks import Junction, Model
+from Fireworks import Junction, Model, Message
 from Fireworks.utils import subset_dict
 import torch
 from torch import optim
@@ -9,6 +9,7 @@ import visdom
 import datetime
 import numpy as np
 import types
+from copy import deepcopy
 
 def default_training_closure(model, optimizer, loss_fn):
     """
@@ -26,7 +27,7 @@ def default_training_closure(model, optimizer, loss_fn):
         loss.backward()
         optimizer.step()
 
-        return {'loss': loss.detach().cpu().numpy(), 'optimizer': optimizer.state_dict(), 'output': output}
+        return {'loss': loss.detach().cpu().numpy(), 'optimizer': optimizer.state_dict(), 'state': model.get_state(), 'output': output}
 
     return update_function
 
@@ -84,8 +85,9 @@ class IgniteJunction(Junction):
     def __init__(self, components, loss, optimizer, scheduler=None, update_function=default_training_closure, visdom=True, **kwargs):
 
         Junction.__init__(self, components = components)
+        parameters = [x for x in self.model.all_parameters() if x.requires_grad]
         # Initialize engine
-        self.optimizer = self.optimizers[optimizer](self.model.all_parameters(), **subset_dict(kwargs, self.optimizer_kwargs[optimizer]))
+        self.optimizer = self.optimizers[optimizer](parameters, **subset_dict(kwargs, self.optimizer_kwargs[optimizer]))
         if scheduler is not None:
             self.optimizer = self.schedulers[scheduler](self.optimizer, **subset_dict(kwargs, self.scheduler_kwargs[scheduler]))
         self.loss = loss
@@ -94,12 +96,17 @@ class IgniteJunction(Junction):
 
         # Configure metrics and events
         if visdom:
+            self.model_state = Message()
             self.attach_events(environment='default', description='')
 
     def train(self, dataset = None, max_epochs=10):
 
         dataset = dataset or self.dataset
         self.engine.run(dataset, max_epochs=max_epochs)
+
+    def add_event_handler(self, *args, **kwargs):
+
+        self.engine.add_event_handler(*args, **kwargs)
 
     def attach_events(self, environment, description, save_file = None):
 
@@ -128,6 +135,14 @@ class IgniteJunction(Junction):
                      Y=np.array([engine.state.output['loss']]),
                      update='append',
                      win=train_loss_window)
+
+        @self.engine.on(Events.ITERATION_COMPLETED)
+        def log_model_state(engine):
+            iter = (engine.state.iteration-1)
+            if iter % log_interval == 0:
+                current_state = Message.from_objects(deepcopy(engine.state.output['state']))
+                current_state['iteration'] = [iter]
+                self.model_state = self.model_state.append(current_state)
 
         # if save_file is not None:
         #     save_interval = 50
