@@ -13,7 +13,7 @@ from copy import deepcopy
 
 def default_training_closure(model, optimizer, loss_fn):
     """
-    This is function produces a simple training loop that can be used for many situations. During each loop, the model is applied to the
+    This function produces a simple training loop that can be used for many situations. During each loop, the model is applied to the
     current batch, the loss_fn computes a loss, gradients are computed on the loss, and the optimizer updates its parameters using those
     gradients. The update function returns a dictionary containing the loss, the current value of the optimizer (ie. the gradients), and
     the output of the model.
@@ -30,6 +30,19 @@ def default_training_closure(model, optimizer, loss_fn):
         return {'loss': loss.detach().cpu().numpy(), 'optimizer': optimizer.state_dict(), 'state': model.get_state(), 'output': output}
 
     return update_function
+
+def default_evaluation_closure(model, optimizer, loss_fn):
+    """
+    This function produces an evaluation loop that evaluates the model on the input data and computes the loss function but does not update
+    the model. The optimizer is ignored.
+    """
+    def eval_function(engine, batch):
+        output = model(batch)
+        loss = loss_fn(output)
+
+        return {'loss': loss.detach().cpu().numpy(), 'state': model.get_state(), 'output': output}
+
+    return eval_function
 
 class IgniteJunction(Junction):
     """
@@ -96,7 +109,7 @@ class IgniteJunction(Junction):
 
         # Configure metrics and events
         if visdom:
-            self.model_state = Message()
+            # self.model_state = Message()
             self.attach_events(environment='default', description='')
 
     def train(self, dataset = None, max_epochs=10):
@@ -104,9 +117,17 @@ class IgniteJunction(Junction):
         dataset = dataset or self.dataset
         self.engine.run(dataset, max_epochs=max_epochs)
 
+    def run(self, *args, **kwargs):
+        """ Alias for train """
+        self.train(*args, **kwargs)
+
     def add_event_handler(self, *args, **kwargs):
 
         self.engine.add_event_handler(*args, **kwargs)
+
+    def has_event_handler(self, *args, **kwargs):
+
+        return self.engine.has_event_handler(*args, **kwargs)
 
     def attach_events(self, environment, description, save_file = None):
 
@@ -136,13 +157,13 @@ class IgniteJunction(Junction):
                      update='append',
                      win=train_loss_window)
 
-        @self.engine.on(Events.ITERATION_COMPLETED)
-        def log_model_state(engine):
-            iter = (engine.state.iteration-1)
-            if iter % log_interval == 0:
-                current_state = Message.from_objects(deepcopy(engine.state.output['state']))
-                current_state['iteration'] = [iter]
-                self.model_state = self.model_state.append(current_state)
+        # @self.engine.on(Events.ITERATION_COMPLETED)
+        # def log_model_state(engine):
+        #     iter = (engine.state.iteration-1)
+        #     if iter % log_interval == 0:
+        #         current_state = Message.from_objects(deepcopy(engine.state.output['state']))
+        #         current_state['iteration'] = [iter]
+        #         self.model_state = self.model_state.append(current_state)
 
         # if save_file is not None:
         #     save_interval = 50

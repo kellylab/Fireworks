@@ -6,13 +6,18 @@ from Fireworks.toolbox import ShufflerPipe, BatchingPipe, TensorPipe, GradientPi
 from Fireworks.toolbox.preprocessing import train_test_split, Normalizer
 from Fireworks.utils.exceptions import EndHyperparameterOptimization
 from ignite.engine import Events
+from ignite.metrics import Metric
+from ignite.exceptions import NotComputableError
 import numpy as np
 from random import randint
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from sqlalchemy import Table, Column, Integer, String, JSON, create_engine
 from Fireworks.extensions.database import TablePipe, create_table
+from Fireworks.extensions import LocalMemoryFactory
+from Fireworks.extensions.training import default_training_closure, default_evaluation_closure
 from itertools import combinations
+from copy import deepcopy
 
 def generate_data(n=1000):
 
@@ -44,7 +49,6 @@ class NonlinearModel(PyTorch_Model):
 
         return message
 
-
 # Construct data, split into train/eval/test, and get get_minibatches
 data, params = generate_data(n=1000)
 train, test = train_test_split(data, test=.25)
@@ -75,7 +79,23 @@ model_state['iteration'] = [0]
 # table = create_table('ok', columns=[Column('state', JSON), Column('iteration', Integer)])
 # bob = TablePipe(table, engine)
 
+class ModelSaverMetric(Metric):
+
+    def __init__(self, output_transform=lambda x:x, log_interval=100):
+        self.model_state = Message()
+        Metric.__init__(self, output_transform=output_transform)
+        self.log_interval = log_interval
+
+    def iteration_completed(self, engine):
+            iter = (engine.state.iteration-1)
+            if iter % self.log_interval == 0:
+                current_state = Message.from_objects(deepcopy(engine.state.output['state']))
+                current_state['iteration'] = [iter]
+                self.model_state = self.model_state.append(current_state)
+
 trainer = IgniteJunction({'model': model, 'dataset': dataset}, loss=loss, optimizer='Adam', lr=.05)
+model_state_metric = ModelSaverMetric()
+model_state_metric.attach(trainer, 'state')
 
 # Specify parameters and metrics construction. Initialize Experiment(s).
 test_set = Normalizer(input=TensorPipe(test, columns=['x','y']))
@@ -86,7 +106,7 @@ y_initial = model(x)['y_pred'].detach().numpy()
 
 initial_loss = loss(model(test_set[0:250]))
 
-trainer.train(max_epochs=50)
+trainer.train(max_epochs=5)
 
 final_loss = loss(model(test_set[0:250]))
 
@@ -116,7 +136,7 @@ def animate(frame):
     print(title)
     ax.set_title(title)
 
-ani = FuncAnimation(fig, animate, trainer.model_state, interval=1000)
+ani = FuncAnimation(fig, animate, model_state_metric.model_state, interval=1000)
 plt.show()
 
 
@@ -137,9 +157,11 @@ def get_trainer(ignite_junction):
     def train_from_params(parameters):
 
         model = make_model(parameters)
-        trainer.components['model'] = model
+        ignite_junction.components['model'] = model
+        ignite_junction.update_function = default_training_closure(ignite_junction.model, ignite_junction.optimizer, ignite_junction.loss)
         ignite_junction.train(max_epochs=50)
-        return model
+        ignite_junction.update_function = default_evaluation_closure(ignite_junction.model, ignite_junction.optimizer, ignite_junction.loss)
+        return ignite_junction
 
     return train_from_params
 
@@ -160,5 +182,31 @@ class Parameterizer:
         except StopIteration:
             raise EndHyperparameterOptimization
 
-# factory = LocalMemoryFactory(components={'trainer': get_trainer(trainer), 'eval_set': test', })
+class AccuracyMetric(Metric):
+
+    def __init__(self, output_transform = lambda x:x):
+        Metric.__init__(self, output_transform=output_transform)
+
+    def reset(self):
+        self.l2 = 0.
+        self.num_examples = 0
+
+    def update(self, output):
+        self.l2 += output['loss']
+        self.num_examples += len(output['output'])
+
+    def compute(self):
+
+        if self.num_examples == 0:
+            raise NotComputableError(
+                "Metric must have at least one example before it can be computed."
+            )
+        return Message({'average loss': [self.l2 / self.num_examples]}).to_dataframe()
+
+factory = LocalMemoryFactory(components={
+    'trainer': get_trainer(trainer),
+    'eval_set': test_set,
+    'parameterizer': Parameterizer(),
+    'metrics': {'accuracy': AccuracyMetric()}
+    })
 # Alter regularization weight, number of parameters

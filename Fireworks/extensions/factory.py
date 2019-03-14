@@ -48,7 +48,7 @@ class Factory(Junction):
                 for name, metric in self.metrics.items():
                     metric.attach(evaluator, name) # TODO: Make sure this resets the metric
                 # Running the evaluator should perform training on the dataset followed by evlaution and return evaluation metrics
-                evaluator.run(self.eval_set)
+                evaluator.run(self.eval_set, max_epochs=1)
                 # Evaluate the metrics that were attached to the evaluator
                 computed_metrics = {name: metric.compute() for name, metric in self.metrics.items()}
                 self.write(params, computed_metrics)
