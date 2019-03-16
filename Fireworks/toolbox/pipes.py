@@ -293,7 +293,6 @@ class CachingPipe(Pipe):
         # Retrieve from cache existing elements
         in_cache_elements = self.cache[in_cache] # elements in cache corresponding to indices in cache
         # Update cache to have other elements
-        # not_in_cache_elements = Fireworks.merge([pipe[not_in_cache] for pipe in self.inputs.values()])
         not_in_cache_elements = self.input[not_in_cache]
         self.cache[not_in_cache] = not_in_cache_elements
         # Reorder and merge requested elements
@@ -304,7 +303,6 @@ class CachingPipe(Pipe):
         permutation = indices.copy()
         for i,j in zip(indices, count()):
             permutation[i] = j
-        # permutation = in_cache_indices.extend(not_in_cache_indices)
         message = message.permute(permutation)
         # Implicit update of internal knowledge of length
         if len(index) and self.length is None and not self.infinite:

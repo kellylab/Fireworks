@@ -7,7 +7,6 @@ from Fireworks.toolbox.preprocessing import train_test_split, Normalizer
 import numpy as np
 from random import randint
 
-
 def generate_data(n=1000):
 
     a = randint(-10,10)

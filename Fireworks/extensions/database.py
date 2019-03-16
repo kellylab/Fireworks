@@ -225,6 +225,10 @@ class DBPipe(Pipe):
         else:
             self.columns_and_types = columns_and_types
 
+    def reset(self):
+
+        self.__iter__()
+        
     def __iter__(self):
 
         self.iterator = self.query.__iter__()

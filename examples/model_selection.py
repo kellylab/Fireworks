@@ -5,7 +5,7 @@ from Fireworks.extensions import IgniteJunction
 from Fireworks.utils.exceptions import EndHyperparameterOptimization
 from ignite.metrics import Metric
 from ignite.exceptions import NotComputableError
-from Fireworks.extensions import LocalMemoryFactory
+from Fireworks.extensions import LocalMemoryFactory, Experiment
 from Fireworks.extensions.training import default_training_closure, default_evaluation_closure
 from itertools import combinations, count
 
@@ -89,6 +89,10 @@ class AccuracyMetric(Metric):
         return Message({'average-loss': [self.l2 / self.num_examples]}).to_dataframe()
 
 if __name__=="__main__":
+
+    description = "In this experiment, we will compare the performance of different polynomial models when regressed against data generated from a random polynomial."
+    experiment = Experiment("model_selection", description=description)
+
     factory = LocalMemoryFactory(components={
         'trainer': get_trainer(train_set, loss, optimizer='Adam', lr=.1),
         'eval_set': test_set,
@@ -130,5 +134,14 @@ if __name__=="__main__":
 
         ax.set_title(title)
 
+    params, metrics = factory.read()
+    accuracy_file = experiment.open('accuracy.csv', string_only=True)
+    metrics['accuracy'].to('csv', path=accuracy_file)
+    model_state_file = experiment.open('model_states.csv', string_only=True)
+    metrics['model_state'].to('csv', path=model_state_file)
+    params_file = experiment.open('params.csv', string_only=True)
+    params.to('csv', path=params_file)
+
     ani = FuncAnimation(fig, animate, zip(factory.params, factory.computed_metrics['model_state']), interval=3000)
+    ani.save(experiment.open("models.mp4", string_only=True)) # This will only work if you have ffmpeg installed.
     plt.show()

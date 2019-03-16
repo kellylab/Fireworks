@@ -6,7 +6,7 @@ from copy import deepcopy
 from collections import Hashable
 from Fireworks.utils import index_to_list, slice_length
 
-to_methods = ['json', 'dict', 'html', 'feather', 'latex', 'stata', 'msgpack', 'gbq', 'records', 'sparse', 'dense', 'string', 'clipboard']
+to_methods = ['csv', 'json', 'dict', 'html', 'feather', 'latex', 'stata', 'msgpack', 'gbq', 'records', 'sparse', 'dense', 'string', 'clipboard']
 read_methods = {
     'json': pd.read_json, 'csv': pd.read_csv, 'excel': pd.read_excel, 'hdf': pd.read_hdf, 'parquet': pd.read_parquet,
     'pickle': pd.read_pickle, 'sql_table': pd.read_sql_table, 'state': pd.read_stata, 'table': pd.read_table,
