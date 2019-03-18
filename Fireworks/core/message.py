@@ -249,6 +249,10 @@ class Message:
         self._current_index = 0
         return self
 
+    def reset(self):
+
+        return self.__iter__()
+    
     def __next__(self):
 
         try:

@@ -16,7 +16,7 @@
     <script type="text/javascript" src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="API Reference" href="Fireworks.html" />
+    <link rel="next" title="Contents" href="Example.html" />
     <link rel="prev" title="Installation" href="Installation.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
@@ -44,13 +44,15 @@
 <li class="toctree-l1"><a class="reference internal" href="License.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#basic-operations">Basic Operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#chaining-pipes-junctions-and-models">Chaining Pipes, Junctions, and Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#messages">Messages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chaining-pipes-and-junctions">Chaining Pipes and Junctions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#using-databases">Using Databases</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#saving-and-loading">Saving and Loading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model-training">Model Training</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#hyperparameter-optimization">Hyperparameter Optimization</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="Example.html">Contents</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Fireworks.html">API Reference</a></li>
 </ul>
 
@@ -59,7 +61,7 @@
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
       <li>Previous: <a href="Installation.html" title="previous chapter">Installation</a></li>
-      <li>Next: <a href="Fireworks.html" title="next chapter">API Reference</a></li>
+      <li>Next: <a href="Example.html" title="next chapter">Contents</a></li>
   </ul></li>
 </ul>
 </div>
@@ -93,32 +95,115 @@
             
   <div class="section" id="tutorial">
 <h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="basic-operations">
-<h2>Basic Operations<a class="headerlink" href="#basic-operations" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="messages">
+<h2>Messages<a class="headerlink" href="#messages" title="Permalink to this headline">¶</a></h2>
 <blockquote>
-<div><ul class="simple">
-<li>Message usage</li>
-<li>Constructing a Pipeline</li>
-</ul>
+<div><blockquote>
+<div><p>For the most part, you can use Messages like dataframes. That is, you can call Fireworks.Message() instead of pd.DataFrame(). There are a few key differences.
+First, Messages don’t have a way to adjust their index. In Pandas, you can choose how the rows of a DataFrame are indexed. For example, the rows could refer
+to timestamps or dates. Here, the only way to index rows is by number (ie. the nth row is accessed by calling message[n]). This simplifies usage when feeding
+data to a statistical model which only cares about getting the next batch of data.
+Secondly, Messages can have torch.Tensor objects inside them. You can set a column of a Message to a torch.Tensor, and operations like append and indexing will work
+as you expect.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">a</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">a</span><span class="p">})</span>
+<span class="k">print</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="o">&gt;&gt;</span>  <span class="n">Message</span> <span class="k">with</span>
+<span class="o">&gt;&gt;</span>  <span class="n">Tensors</span><span class="p">:</span>
+<span class="o">&gt;&gt;</span>  <span class="n">TensorMessage</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;ok&#39;</span><span class="p">:</span> <span class="n">tensor</span><span class="p">([[</span> <span class="mf">0.3087</span><span class="p">,</span>  <span class="mf">0.9619</span><span class="p">,</span>  <span class="mf">0.5176</span><span class="p">],</span>
+<span class="o">&gt;&gt;</span>         <span class="p">[</span> <span class="mf">0.2747</span><span class="p">,</span>  <span class="mf">0.6640</span><span class="p">,</span>  <span class="mf">0.2813</span><span class="p">]])}</span>
+<span class="o">&gt;&gt;</span>  <span class="n">Metadata</span><span class="p">:</span>
+<span class="o">&gt;&gt;</span>  <span class="n">Empty</span> <span class="n">DataFrame</span>
+<span class="o">&gt;&gt;</span> <span class="n">Columns</span><span class="p">:</span> <span class="p">[]</span>
+<span class="o">&gt;&gt;</span> <span class="n">Index</span><span class="p">:</span> <span class="p">[]</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">b</span><span class="p">})</span>
+<span class="k">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
+<span class="o">&gt;&gt;</span> <span class="mi">6</span>
+<span class="k">assert</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">][</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<span class="k">assert</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">6</span><span class="p">][</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">b</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>Internally, the Message stores torch.Tensors in an object called a TensorMessage, which is analogous to a DataFrame. All other types of data are stored inside
+a DataFrame. You can move data to and from these two formats as well.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>message = message.to_dataframe([&#39;x&#39;]) # Leave blank to move all tensor columns
+print(type(message[&#39;x&#39;]))
+&gt;&gt; &lt;class &#39;pandas.core.series.Series&#39;&gt;
+message = message.to_tensors([&#39;x&#39;]) # Leave blank to move all dataframe columns
+print(type(message[&#39;x&#39;]))
+&gt;&gt; &lt;class &#39;torch.Tensor&#39;&gt;
+</pre></div>
+</div>
+<p>You can also move tensors to and from different devices.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">cuda</span><span class="p">(</span><span class="n">device_num</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">])</span> <span class="c1"># Leave blank to default to device 0 and all tensor columns</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">cpu</span><span class="p">(</span><span class="n">keys</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">])</span> <span class="c1"># Leave blank to default to all tensor columns</span>
+</pre></div>
+</div>
 </div></blockquote>
 </div>
-<div class="section" id="chaining-pipes-junctions-and-models">
-<h2>Chaining Pipes, Junctions, and Models<a class="headerlink" href="#chaining-pipes-junctions-and-models" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="chaining-pipes-and-junctions">
+<h2>Chaining Pipes and Junctions<a class="headerlink" href="#chaining-pipes-and-junctions" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><p>Pipes have a single input, whereas Junctions can have multiple. Having a single input makes recursive method calling well defined; a Pipe can simply refers to its one input.
+On the other hand, there is ambiguity when doing this for multiple inputs. Should all of the inputs be called or only one? What order should they be called? How should the outputs be combined?
+Because of this, Pipes have defined methods for recursive method calling which makes it easy to compose them. Junctions don’t have these by default so that the logic can be implemented on
+an individual basis. Let’s look at an example of composing Pipes:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">Fireworks.toolbox.pipes</span> <span class="kn">import</span> <span class="n">BatchingPipe</span><span class="p">,</span> <span class="n">TensorPipe</span>
+<span class="kn">from</span> <span class="nn">Fireworks</span> <span class="kn">import</span> <span class="n">Message</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="n">message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">({</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">100</span><span class="p">)})</span>
+<span class="n">shuffler</span> <span class="o">=</span> <span class="n">ShufflerPipe</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">message</span><span class="p">)</span>
+<span class="n">minibatcher</span> <span class="o">=</span> <span class="n">BatchingPipe</span><span class="p">(</span><span class="n">shuffler</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">25</span><span class="p">)</span>
+<span class="n">train_set</span> <span class="o">=</span> <span class="n">TensorPipe</span><span class="p">(</span><span class="n">minibatcher</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">train_set</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In this example, we start off with some message as the first input. This could alternatively be some Pipe that reads in data from a database, file, etc.
+As we loop through the last pipe, train_set, the following steps occur at each loop:</p>
 <blockquote>
 <div><ul class="simple">
-<li>Explain the difference</li>
-<li>Explain recursive method calling</li>
-<li>Examples</li>
+<li>train_set calls for the next element from its input, minibatcher.</li>
+<li>minibatcher calls for the next 25 elements from its input, shuffler. This corresponds to the next batch.</li>
+<li>shuffler return 25 elements from its input, message, to minibatcher. The elements are randomly chosen based on a precomputed shuffle that resets on every full loop through the dataset.</li>
+<li>minibatcher returns the 25 elements to its output, train_set</li>
+<li>train_set converts the columns of its 25 element batch to torch.Tensors and returns the batch. If cuda is installed and enabled, this also moves those tensors to the GPU.</li>
 </ul>
+</div></blockquote>
+<p>During each step of this process, the elements being returned are Messages. Because of this, the Pipes are decoupled and be re-used and re-composed. Pipes upstream in the pipeline can handle
+‘formatting’ tasks such as reading in the data and constructing batches, whereas more downstream pipes can perform preprocessing transformations on those batches, such as normalization, vectorization,
+and moving data to the GPU. Each successive Pipe adds an additional layer of abstraction, and from the perspective of a downstream Pipe, the input is the only thing that it needs to worry about.</p>
+<p>Lets look at a more involved example involving Junctions:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">Fireworks.toolbox.pipes</span> <span class="kn">import</span> <span class="n">LoopingPipe</span><span class="p">,</span> <span class="n">CachingPipe</span><span class="p">,</span> <span class="n">ShufflerPipe</span><span class="p">,</span> <span class="n">BatchingPipe</span><span class="p">,</span> <span class="n">TensorPipe</span>
+<span class="kn">from</span> <span class="nn">Fireworks.toolbox.junctions</span> <span class="kn">import</span> <span class="n">RandomHubJunction</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">Fireworks</span> <span class="kn">import</span> <span class="n">Message</span>
+
+<span class="n">a</span> <span class="o">=</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">100</span><span class="p">)})</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">200</span><span class="p">)})</span>
+<span class="n">sampler</span> <span class="o">=</span> <span class="n">RandomHubJunction</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span><span class="n">a</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span><span class="n">b</span><span class="p">})</span>
+<span class="n">looper</span> <span class="o">=</span> <span class="n">LoopingPipe</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span>
+<span class="n">cache</span> <span class="o">=</span> <span class="n">CachingPipe</span><span class="p">(</span><span class="n">looper</span><span class="p">,</span> <span class="n">cache_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="n">shuffler</span> <span class="o">=</span> <span class="n">ShufflerPipe</span><span class="p">(</span><span class="n">cache</span><span class="p">)</span>
+<span class="n">minibatcher</span> <span class="o">=</span> <span class="n">BatchingPipe</span><span class="p">(</span><span class="n">shuffler</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+<span class="n">train_set</span> <span class="o">=</span> <span class="n">TensorPipe</span><span class="p">(</span><span class="n">minibatcher</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">train_set</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The RandomHubJunction randomly samples elements from its multiple inputs during iteration. Here, we use this to combine two different data sets (a and b) into a single stream. The RandomHubJunction can only
+iterate through its inputs in a forward direction; you can’t access items by index (eg. sampled[n]). The LoopingPipe creates the illusion of this functionality by moving the iteration forwards in order to get
+a requested element. For example, you can call looper[20], and this will return the element that is returned by iterating through sampler 20 times. The CachingPipe stores this information in memory as the name implies.
+This can be useful for working with extremely large datasets or inputs that are expensive to produce.</p>
 </div></blockquote>
 </div>
 <div class="section" id="using-databases">
 <h2>Using Databases<a class="headerlink" href="#using-databases" title="Permalink to this headline">¶</a></h2>
 <blockquote>
-<div><ul class="simple">
-<li>Example</li>
-</ul>
-</div></blockquote>
+<div>Fireworks provides utilities for having (relational) database queries server as the starting point for a pipeline and for writing Messsages into a database.</div></blockquote>
 </div>
 <div class="section" id="saving-and-loading">
 <h2>Saving and Loading<a class="headerlink" href="#saving-and-loading" title="Permalink to this headline">¶</a></h2>
@@ -128,6 +213,9 @@
 <li>Scaffold example</li>
 </ul>
 </div></blockquote>
+</div>
+<div class="section" id="model-training">
+<h2>Model Training<a class="headerlink" href="#model-training" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="hyperparameter-optimization">
 <h2>Hyperparameter Optimization<a class="headerlink" href="#hyperparameter-optimization" title="Permalink to this headline">¶</a></h2>

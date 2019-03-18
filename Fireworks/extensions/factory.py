@@ -8,7 +8,6 @@ from sqlalchemy import Column
 from sqlalchemy_utils import JSONType as JSON
 from collections import defaultdict
 import types
-import ipdb
 
 def update(bundle: dict, parameters: dict):
     """
@@ -121,7 +120,6 @@ class SQLFactory(Factory):
 
     def write(self, params, metrics):
 
-        # ipdb.set_trace()
         # if len(params) != len(metrics):
         #     raise ValueError("Parameters and Metrics messages must be equal length.")
         params = Message(params)

@@ -42,6 +42,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../License.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Example.html">Contents</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Fireworks.html">API Reference</a></li>
 </ul>
 
@@ -101,7 +102,7 @@
 <span class="sd">    This junction takes multiple sources implementing __next__ as input and implements a new __next__ method that samples</span>
 <span class="sd">    its input sources.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">check_inputs</span><span class="p">()</span>
@@ -123,16 +124,19 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span><span class="o">.</span><span class="fm">__next__</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span> <span class="c1"># Remove sample from available_inputs list</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">available_inputs</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_inputs</span><span class="p">:</span> <span class="c1"># Set of inputs is empty, because they have all finished iterating</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_available_inputs</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_available_inputs</span><span class="p">:</span> <span class="c1"># Set of inputs is empty, because they have all finished iterating</span>
                 <span class="k">raise</span> <span class="ne">StopIteration</span>
             <span class="k">else</span><span class="p">:</span> <span class="c1"># Recursively try again</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__next__</span><span class="p">()</span>
 
 <div class="viewcode-block" id="HubJunction.reset"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.junctions.HubJunction.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">source</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">source</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">available_inputs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="c1"># Keep track of which sources have not yet run out.</span></div>
+            <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="s1">&#39;_available_inputs&#39;</span><span class="p">:</span>
+                <span class="n">source</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_available_inputs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="c1"># Keep track of which sources have not yet run out.</span>
+        <span class="k">if</span> <span class="s1">&#39;_available_inputs&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_available_inputs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_available_inputs</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s1">&#39;_available_inputs&#39;</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
@@ -152,7 +156,7 @@
     <span class="c1"># TODO: Add support for weighted random sampling</span>
 
 <div class="viewcode-block" id="RandomHubJunction.sample_inputs"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.junctions.RandomHubJunction.sample_inputs">[docs]</a>    <span class="k">def</span> <span class="nf">sample_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">available_inputs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div></div>
+        <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_available_inputs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div></div>
 
 <div class="viewcode-block" id="ClockworkHubJunction"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.junctions.ClockworkHubJunction">[docs]</a><span class="k">class</span> <span class="nc">ClockworkHubJunction</span><span class="p">(</span><span class="n">HubJunction</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -162,7 +166,7 @@
 
 <div class="viewcode-block" id="ClockworkHubJunction.reset"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.junctions.ClockworkHubJunction.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cycle_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="n">name</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">count</span><span class="p">(),</span><span class="bp">self</span><span class="o">.</span><span class="n">available_inputs</span><span class="p">)}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cycle_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="n">name</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">count</span><span class="p">(),</span><span class="bp">self</span><span class="o">.</span><span class="n">_available_inputs</span><span class="p">)}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current_cycle</span> <span class="o">=</span> <span class="mi">0</span></div>
 
 <div class="viewcode-block" id="ClockworkHubJunction.sample_inputs"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.junctions.ClockworkHubJunction.sample_inputs">[docs]</a>    <span class="k">def</span> <span class="nf">sample_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -174,7 +178,7 @@
         <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
             <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cycle_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_cycle</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">current_cycle</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_cycle</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cycle_dict</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">sample</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_inputs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">sample</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_available_inputs</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">sample</span></div></div>
 
 <div class="viewcode-block" id="SwitchJunction"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.toolbox.junctions.SwitchJunction">[docs]</a><span class="k">class</span> <span class="nc">SwitchJunction</span><span class="p">(</span><span class="n">Junction</span><span class="p">):</span>

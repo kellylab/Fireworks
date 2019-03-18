@@ -42,6 +42,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../License.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Example.html">Contents</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Fireworks.html">API Reference</a></li>
 </ul>
 
@@ -91,7 +92,7 @@
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">Hashable</span>
 <span class="kn">from</span> <span class="nn">Fireworks.utils</span> <span class="k">import</span> <span class="n">index_to_list</span><span class="p">,</span> <span class="n">slice_length</span>
 
-<span class="n">to_methods</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="s1">&#39;dict&#39;</span><span class="p">,</span> <span class="s1">&#39;html&#39;</span><span class="p">,</span> <span class="s1">&#39;feather&#39;</span><span class="p">,</span> <span class="s1">&#39;latex&#39;</span><span class="p">,</span> <span class="s1">&#39;stata&#39;</span><span class="p">,</span> <span class="s1">&#39;msgpack&#39;</span><span class="p">,</span> <span class="s1">&#39;gbq&#39;</span><span class="p">,</span> <span class="s1">&#39;records&#39;</span><span class="p">,</span> <span class="s1">&#39;sparse&#39;</span><span class="p">,</span> <span class="s1">&#39;dense&#39;</span><span class="p">,</span> <span class="s1">&#39;string&#39;</span><span class="p">,</span> <span class="s1">&#39;clipboard&#39;</span><span class="p">]</span>
+<span class="n">to_methods</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;csv&#39;</span><span class="p">,</span> <span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="s1">&#39;dict&#39;</span><span class="p">,</span> <span class="s1">&#39;html&#39;</span><span class="p">,</span> <span class="s1">&#39;feather&#39;</span><span class="p">,</span> <span class="s1">&#39;latex&#39;</span><span class="p">,</span> <span class="s1">&#39;stata&#39;</span><span class="p">,</span> <span class="s1">&#39;msgpack&#39;</span><span class="p">,</span> <span class="s1">&#39;gbq&#39;</span><span class="p">,</span> <span class="s1">&#39;records&#39;</span><span class="p">,</span> <span class="s1">&#39;sparse&#39;</span><span class="p">,</span> <span class="s1">&#39;dense&#39;</span><span class="p">,</span> <span class="s1">&#39;string&#39;</span><span class="p">,</span> <span class="s1">&#39;clipboard&#39;</span><span class="p">]</span>
 <span class="n">read_methods</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;json&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_json</span><span class="p">,</span> <span class="s1">&#39;csv&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">,</span> <span class="s1">&#39;excel&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">,</span> <span class="s1">&#39;hdf&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_hdf</span><span class="p">,</span> <span class="s1">&#39;parquet&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">,</span>
     <span class="s1">&#39;pickle&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_pickle</span><span class="p">,</span> <span class="s1">&#39;sql_table&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql_table</span><span class="p">,</span> <span class="s1">&#39;state&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_stata</span><span class="p">,</span> <span class="s1">&#39;table&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_table</span><span class="p">,</span>
@@ -193,6 +194,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">check_length</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="n">length</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_index</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># For iteration</span>
 
 <div class="viewcode-block" id="Message.from_objects"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.message.Message.from_objects">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_objects</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -326,6 +329,24 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Every element of the message, including tensors and arrays, must have the same length unless one or both are None.&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+<div class="viewcode-block" id="Message.reset"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.message.Message.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">()</span></div>
+    
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">iteration</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_current_index</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_index</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">return</span> <span class="n">iteration</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">StopIteration</span>
 
     <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -580,6 +601,11 @@
         <span class="n">appended_tensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">tensor_message</span><span class="p">)</span>
         <span class="n">appended_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">Message</span><span class="p">(</span><span class="n">appended_tensors</span><span class="p">,</span> <span class="n">appended_df</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Message.enable_gradients"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.message.Message.enable_gradients">[docs]</a>    <span class="k">def</span> <span class="nf">enable_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="n">columns</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">tensor_message</span><span class="o">.</span><span class="n">columns</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span></div>
 
 <div class="viewcode-block" id="Message.merge"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.message.Message.merge">[docs]</a>    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -1042,6 +1068,14 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># NOTE: Index currently has no meaning, because messages are currently required to be indexed from 0:length</span>
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">RangeIndex</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TensorMessage.enable_gradients"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.message.TensorMessage.enable_gradients">[docs]</a>    <span class="k">def</span> <span class="nf">enable_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="n">columns</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span></div>
+
+<div class="viewcode-block" id="TensorMessage.disable_gradients"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.message.TensorMessage.disable_gradients">[docs]</a>    <span class="k">def</span> <span class="nf">disable_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="TensorMessage.append"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.core.message.TensorMessage.append">[docs]</a>    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
