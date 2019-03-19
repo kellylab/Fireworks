@@ -113,19 +113,63 @@ Chaining Pipes and Junctions
 Using Databases
 ------------------------------
 
-    It's often useful to use a database queriy as the starting point for a pipeline, or to write data in the form of a Message into a database.
+    It's often useful to use a database query as the starting point for a pipeline, or to write data in the form of a Message into a database.
+    The database module is built on top of SQLalchemy and facilitates this. Let's say you have a SQL alchemy table (a subclass of declarative_base)
+    which describes your schema and an engine object which can connect to the database. You can create a TablePipe which can query this database
+    as follows:
+
+    .. code-block:: python
+
+       from Fireworks.extensions.database import TablePipe
+
+       db = TablePipe(table, engine)
+       query_all = db.query()
+       for row in query_all:
+           print(row) # This will print every column in the table as Messages
+        query_some = db.query(['column_1','column_2'])
+        for row in query_some:
+           print(row) # This will print only 'column_1' and 'column_2'
+
+      When you use the query method, the object returned is a DBPipe. This can serve as input to a pipeline, as it is iterable.
+      Additionally, you can make your query more precise by applying filters which apply predicates. This lets you make
+      queries of the form "SELECT a FROM b WHERE c" and so on.
+
+      .. code-block:: python
+
+         filtered = query_some.filter('column_n', 'between', 5,9) # "SELECT column_1, column_2 FROM table WHERE column_n BEWEEN 4 AND 8"
+         filtered.all() # Returns the entire query as a single Message
+
+      The allowed predicates correspond to the allowed filters in SQLalchemy (see https://docs.sqlalchemy.org/en/latest/orm/query.html#the-query-object for more information.)
+      You can also insert Messages into this table, assuming the column names and data types align with the table's schema. Along with this,
+      you can rollback and commit operations.
+
+      .. code-block:: python
+
+         db.insert(message)
+         db.rollback() # The insertion will be undone
+         db.insert(message)
+         db.commit() # The transaction will be committed to the db
+
+
 
 Saving and Loading
 ------------------------------
 
     All of the core structures in Fireworks have methods for serializing their state, which makes it straightforward to save and load Pipes, Junctions, and Models. On any of these objects, you can call the get_state()
     method to get a dictionary-serialized representation of their current state. You can also call set_state() to update this state.
-    
+
+    .. code-block:: python
+
+    The returned state object consists of two dictionaries, internal and external.
+
+    Not all pipes keep strict track of internal state. Thus, many Pipes may return an empty dictionary when get_state is called.
+
     - Experiment example
     - Scaffold example
 
 Model Training
 ------------------------------
+
 
 
 Hyperparameter Optimization
