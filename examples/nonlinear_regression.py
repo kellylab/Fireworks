@@ -17,9 +17,9 @@ experiment = Experiment("nonlinear_regression", description=description)
 
 train_set, test_set, params = get_data(n=1000)
 
-# model = NonlinearModel()
-model = NonlinearModel(components={'d': [0], 'e':[0]})
-model.freeze(['d','e'])
+model = NonlinearModel()
+# model = NonlinearModel(components={'d': [0], 'e':[0]})
+# model.freeze(['d','e'])
 
 # Construct training closure and train using ignite
 base_loss = torch.nn.MSELoss()
@@ -62,7 +62,7 @@ if __name__== "__main__":
     initial_state = model.get_state()
     Message.from_objects(initial_state).to('json', path=file_path)
 
-    trainer.train(max_epochs=100)
+    trainer.train(max_epochs=30)
 
     final_loss = loss(model(test_set[0:250]))
     print("Final loss on test set:: {0}".format(final_loss))
