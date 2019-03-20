@@ -49,6 +49,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
     'sphinx.ext.napoleon',
+    'sphinxcontrib.youtube',
 ]
 
 autodoc_member_order = 'bysource'

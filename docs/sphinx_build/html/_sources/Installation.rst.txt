@@ -17,6 +17,7 @@ Install from source
 -----------------------
 
 For development purposes, you can download the source repository and install the latest version directly.
+There are additional libraries required for some of the tests. They are indicated in full-requirements.txt.
 
 ::
 
@@ -24,3 +25,4 @@ For development purposes, you can download the source repository and install the
     cd Fireworks
     (optional) virtualenv fireworks / vf create fireworks / etc.
     pip install .
+    pip install -r full-requirements.txt

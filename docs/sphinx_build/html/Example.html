@@ -45,7 +45,11 @@
 <li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#making-a-model">Making a Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#nonlinear-regression">Nonlinear Regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model-selection">Model Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-databases">Using Databases</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model-selection-with-databases">Model Selection With Databases</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="Fireworks.html">API Reference</a></li>
@@ -90,8 +94,344 @@
             
   <div class="section" id="examples">
 <h1>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="making-a-model">
+<h2>Making a Model<a class="headerlink" href="#making-a-model" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">NonlinearModel</span><span class="p">(</span><span class="n">PyTorch_Model</span><span class="p">):</span>
+
+    <span class="n">required_components</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">init_default_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="n">letter</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_column</span> <span class="o">=</span> <span class="s1">&#39;x&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_column</span> <span class="o">=</span> <span class="s1">&#39;y_pred&#39;</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">in_column</span><span class="p">]</span>
+        <span class="n">message</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">out_column</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">d</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">e</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">4</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">message</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div>
 <div class="section" id="nonlinear-regression">
 <h2>Nonlinear Regression<a class="headerlink" href="#nonlinear-regression" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">generate_data</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="n">randint</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">randint</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">randint</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">errors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">.</span><span class="mi">5</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">-</span> <span class="mi">50</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">c</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span>
+
+    <span class="k">return</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span> <span class="s1">&#39;errors&#39;</span><span class="p">:</span> <span class="n">errors</span><span class="p">}),</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="n">a</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="n">b</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="n">c</span><span class="p">}</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+
+    <span class="n">data</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test</span><span class="o">=.</span><span class="mi">25</span><span class="p">)</span>
+
+    <span class="n">shuffler</span> <span class="o">=</span> <span class="n">ShufflerPipe</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+    <span class="n">minibatcher</span> <span class="o">=</span> <span class="n">BatchingPipe</span><span class="p">(</span><span class="n">shuffler</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">25</span><span class="p">)</span>
+    <span class="n">train_set</span> <span class="o">=</span> <span class="n">TensorPipe</span><span class="p">(</span><span class="n">minibatcher</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;y&#39;</span><span class="p">])</span>
+
+    <span class="n">test_set</span> <span class="o">=</span> <span class="n">TensorPipe</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;y&#39;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">train_set</span><span class="p">,</span> <span class="n">test_set</span><span class="p">,</span> <span class="n">params</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">description</span> <span class="o">=</span> <span class="s2">&quot;In this experiment, we are training a polynomial model using least squares regression to fit data generated by a random polynomial.&quot;</span>
+<span class="n">experiment</span> <span class="o">=</span> <span class="n">Experiment</span><span class="p">(</span><span class="s2">&quot;nonlinear_regression&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">)</span>
+
+<span class="n">train_set</span><span class="p">,</span> <span class="n">test_set</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">get_data</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">NonlinearModel</span><span class="p">()</span>
+
+<span class="c1"># Construct training closure and train using ignite</span>
+<span class="n">base_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span>
+<span class="n">loss</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">batch</span><span class="p">:</span> <span class="n">base_loss</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s1">&#39;y_pred&#39;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">])</span>
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">IgniteJunction</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span> <span class="s1">&#39;dataset&#39;</span><span class="p">:</span> <span class="n">train_set</span><span class="p">},</span> <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="s1">&#39;Adam&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="o">=.</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">ModelSaverMetric</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_transform</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span><span class="n">x</span><span class="p">,</span> <span class="n">log_interval</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_state</span> <span class="o">=</span> <span class="n">Message</span><span class="p">()</span>
+        <span class="n">Metric</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_transform</span><span class="o">=</span><span class="n">output_transform</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_interval</span> <span class="o">=</span> <span class="n">log_interval</span>
+
+    <span class="k">def</span> <span class="nf">iteration_completed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
+            <span class="nb">iter</span> <span class="o">=</span> <span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">iter</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_interval</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">current_state</span> <span class="o">=</span> <span class="n">Message</span><span class="o">.</span><span class="n">from_objects</span><span class="p">(</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">]))</span>
+                <span class="n">current_state</span><span class="p">[</span><span class="s1">&#39;iteration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">iter</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_state</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_state</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Return most recent model state</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_state</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_state</span><span class="p">[</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_state_metric</span> <span class="o">=</span> <span class="n">ModelSaverMetric</span><span class="p">()</span>
+<span class="n">model_state_metric</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="s1">&#39;state&#39;</span><span class="p">)</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;x&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="o">.</span><span class="mi">2</span><span class="p">)})</span><span class="o">.</span><span class="n">to_tensors</span><span class="p">()</span>
+
+<span class="c1"># Run initial evaluation</span>
+<span class="n">y_initial</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="s1">&#39;y_pred&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+<span class="n">initial_loss</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">test_set</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">250</span><span class="p">]))</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;Initial loss on test set: {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">initial_loss</span><span class="p">))</span>
+
+<span class="c1"># Save initial state of model</span>
+<span class="n">file_path</span> <span class="o">=</span> <span class="n">experiment</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;initial_model&#39;</span><span class="p">,</span> <span class="n">string_only</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">initial_state</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+<span class="n">Message</span><span class="o">.</span><span class="n">from_objects</span><span class="p">(</span><span class="n">initial_state</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">file_path</span><span class="p">)</span>
+
+<span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">max_epochs</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+
+<span class="n">final_loss</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">test_set</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">250</span><span class="p">]))</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;Final loss on test set:: {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">final_loss</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Visualize functions</span>
+<span class="n">true_model</span> <span class="o">=</span> <span class="n">NonlinearModel</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:[</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]],</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]],</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]],</span> <span class="s1">&#39;d&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;e&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">]})</span>
+
+<span class="n">y_true</span> <span class="o">=</span> <span class="n">true_model</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="s1">&#39;y_pred&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+<span class="n">y_final</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="s1">&#39;y_pred&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+<span class="c1"># Save model states during training</span>
+<span class="n">file_path</span> <span class="o">=</span> <span class="n">experiment</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;model_states&#39;</span><span class="p">,</span> <span class="n">string_only</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">model_states</span> <span class="o">=</span> <span class="n">model_state_metric</span><span class="o">.</span><span class="n">model_state</span>
+<span class="n">Message</span><span class="o">.</span><span class="n">from_objects</span><span class="p">(</span><span class="n">initial_state</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">file_path</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">animate</span><span class="p">(</span><span class="n">frame</span><span class="p">):</span>
+
+    <span class="n">current_state</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;internal&#39;</span><span class="p">:</span> <span class="n">frame</span><span class="p">[</span><span class="s1">&#39;internal&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;external&#39;</span><span class="p">:</span> <span class="p">{}}</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">current_state</span><span class="p">)</span>
+
+    <span class="n">y_predicted</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="s1">&#39;y_pred&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">xdata</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+    <span class="n">ydata</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y_predicted</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">y_true</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">ydata</span><span class="p">,</span> <span class="s1">&#39;g&#39;</span><span class="p">)</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;Iteration: {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">frame</span><span class="p">[</span><span class="s1">&#39;iteration&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+
+<span class="n">ani</span> <span class="o">=</span> <span class="n">FuncAnimation</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">animate</span><span class="p">,</span> <span class="n">model_state_metric</span><span class="o">.</span><span class="n">model_state</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="n">ani</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">experiment</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;models.mp4&quot;</span><span class="p">,</span> <span class="n">string_only</span><span class="o">=</span><span class="bp">True</span><span class="p">))</span> <span class="c1"># This will only work if you have ffmpeg installed.</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<iframe src="https://www.youtube.com/embed/WJw-iIegq3o" style="border: 0; height: 345px; width: 560px">
+</iframe></div></blockquote>
+</div>
+<div class="section" id="model-selection">
+<h2>Model Selection<a class="headerlink" href="#model-selection" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">make_model</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
+    <span class="n">temp_parameters</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+    <span class="n">include</span> <span class="o">=</span> <span class="p">[</span><span class="n">letter</span> <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="s1">&#39;c&#39;</span><span class="p">,</span><span class="s1">&#39;d&#39;</span><span class="p">,</span><span class="s1">&#39;e&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">]</span>
+    <span class="n">exclude</span> <span class="o">=</span> <span class="p">[</span><span class="n">letter</span> <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="s1">&#39;c&#39;</span><span class="p">,</span><span class="s1">&#39;d&#39;</span><span class="p">,</span><span class="s1">&#39;e&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">letter</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">exclude</span><span class="p">:</span>
+        <span class="n">temp_parameters</span><span class="p">[</span><span class="n">letter</span><span class="p">]</span> <span class="o">=</span>  <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">NonlinearModel</span><span class="p">(</span><span class="n">temp_parameters</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">exclude</span><span class="p">:</span> <span class="c1"># Prevent training from taking place for these parameters</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">freeze</span><span class="p">(</span><span class="n">letter</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">model</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_trainer</span><span class="p">(</span><span class="n">train_set</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">train_from_params</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
+
+        <span class="n">model</span> <span class="o">=</span> <span class="n">make_model</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="n">trainer</span> <span class="o">=</span> <span class="n">IgniteJunction</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span> <span class="s1">&#39;dataset&#39;</span><span class="p">:</span> <span class="n">train_set</span><span class="p">},</span> <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Now training model for parameters {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameters</span><span class="p">))</span>
+        <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">max_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">evaluator</span> <span class="o">=</span> <span class="n">IgniteJunction</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span> <span class="s1">&#39;dataset&#39;</span><span class="p">:</span> <span class="n">train_set</span><span class="p">},</span> <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">update_function</span><span class="o">=</span><span class="n">default_evaluation_closure</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Now evaluating trained model.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">trainer</span>
+
+    <span class="k">return</span> <span class="n">train_from_params</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Parameterizer</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">possible_params</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="s1">&#39;c&#39;</span><span class="p">,</span><span class="s1">&#39;d&#39;</span><span class="p">,</span><span class="s1">&#39;e&#39;</span><span class="p">]</span>
+        <span class="k">def</span> <span class="nf">generator</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)):</span>
+                <span class="k">for</span> <span class="n">combination</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">(</span><span class="n">possible_params</span><span class="p">,</span><span class="n">i</span><span class="p">):</span>
+                    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="n">param</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">combination</span><span class="p">}</span>
+                    <span class="k">yield</span> <span class="n">params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generator</span> <span class="o">=</span> <span class="n">generator</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">past_params</span><span class="p">,</span> <span class="n">metrics</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">__next__</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">params</span> <span class="o">==</span> <span class="p">{}:</span>
+                <span class="k">raise</span> <span class="n">EndHyperparameterOptimization</span>
+            <span class="k">return</span> <span class="n">params</span>
+
+        <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">EndHyperparameterOptimization</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">AccuracyMetric</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_transform</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span><span class="n">x</span><span class="p">):</span>
+        <span class="n">Metric</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_transform</span><span class="o">=</span><span class="n">output_transform</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">l2</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_examples</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">l2</span> <span class="o">+=</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_examples</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;output&#39;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_examples</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NotComputableError</span><span class="p">(</span>
+                <span class="s2">&quot;Metric must have at least one example before it can be computed.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;average-loss&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">l2</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_examples</span><span class="p">]})</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">description</span> <span class="o">=</span> <span class="s2">&quot;In this experiment, we will compare the performance of different polynomial models when regressed against data generated from a random polynomial.&quot;</span>
+<span class="n">experiment</span> <span class="o">=</span> <span class="n">Experiment</span><span class="p">(</span><span class="s2">&quot;model_selection&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">)</span>
+
+<span class="n">factory</span> <span class="o">=</span> <span class="n">LocalMemoryFactory</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">{</span>
+    <span class="s1">&#39;trainer&#39;</span><span class="p">:</span> <span class="n">get_trainer</span><span class="p">(</span><span class="n">train_set</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="s1">&#39;Adam&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="o">=.</span><span class="mi">1</span><span class="p">),</span>
+    <span class="s1">&#39;eval_set&#39;</span><span class="p">:</span> <span class="n">test_set</span><span class="p">,</span>
+    <span class="s1">&#39;parameterizer&#39;</span><span class="p">:</span> <span class="n">Parameterizer</span><span class="p">(),</span>
+    <span class="s1">&#39;metrics&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="n">AccuracyMetric</span><span class="p">(),</span> <span class="s1">&#39;model_state&#39;</span><span class="p">:</span> <span class="n">ModelSaverMetric</span><span class="p">()}</span>
+    <span class="p">})</span>
+
+<span class="n">factory</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">params</span><span class="p">,</span> <span class="n">metrics</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">accuracy_file</span> <span class="o">=</span> <span class="n">experiment</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;accuracy.csv&#39;</span><span class="p">,</span> <span class="n">string_only</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;csv&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">accuracy_file</span><span class="p">)</span>
+<span class="n">model_state_file</span> <span class="o">=</span> <span class="n">experiment</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;model_states.csv&#39;</span><span class="p">,</span> <span class="n">string_only</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;model_state&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;csv&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">model_state_file</span><span class="p">)</span>
+<span class="n">params_file</span> <span class="o">=</span> <span class="n">experiment</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;params.csv&#39;</span><span class="p">,</span> <span class="n">string_only</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">params</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;csv&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">params_file</span><span class="p">)</span>
+</pre></div>
+</div>
+<iframe src="https://www.youtube.com/embed/yEZ7EvC9Zxc&amp;t=5s" style="border: 0; height: 345px; width: 560px">
+</iframe></div></blockquote>
+</div>
+<div class="section" id="using-databases">
+<h2>Using Databases<a class="headerlink" href="#using-databases" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">Float</span><span class="p">),</span>
+    <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">Float</span><span class="p">),</span>
+    <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;errors&#39;</span><span class="p">,</span> <span class="n">Float</span><span class="p">),</span>
+<span class="p">]</span>
+
+<span class="n">table</span> <span class="o">=</span> <span class="n">create_table</span><span class="p">(</span><span class="s2">&quot;nonlinear_regression&quot;</span><span class="p">,</span> <span class="n">columns</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">write_data</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;example.sqlite&#39;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">FileNotFoundError</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">create_engine</span><span class="p">(</span><span class="s1">&#39;sqlite:///{0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">TablePipe</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">engine</span><span class="p">)</span>
+
+    <span class="n">data</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="o">+</span><span class="s2">&quot;_params&quot;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">params</span><span class="p">))</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">load_data</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;example.sqlite&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">FileNotFoundError</span><span class="p">(</span><span class="s2">&quot;File {0} does not exist.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;_params&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">create_engine</span><span class="p">(</span><span class="s1">&#39;sqlite:///{0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">DBPipe</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">engine</span><span class="p">)</span> <span class="c1"># Default query is SELECT * FROM table</span>
+
+    <span class="k">return</span> <span class="n">db</span><span class="p">,</span> <span class="n">params</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;example.sqlite&#39;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="o">+</span><span class="s1">&#39;_params&#39;</span><span class="p">):</span>
+        <span class="n">write_data</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+
+    <span class="n">data</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">load_data</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="n">looper</span> <span class="o">=</span> <span class="n">LoopingPipe</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">cache</span> <span class="o">=</span> <span class="n">CachingPipe</span><span class="p">(</span><span class="n">looper</span><span class="p">,</span> <span class="n">cache_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+    <span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">test</span><span class="o">=.</span><span class="mi">25</span><span class="p">)</span>
+
+    <span class="n">shuffler</span> <span class="o">=</span> <span class="n">ShufflerPipe</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+    <span class="n">minibatcher</span> <span class="o">=</span> <span class="n">BatchingPipe</span><span class="p">(</span><span class="n">shuffler</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">25</span><span class="p">)</span>
+    <span class="n">train_set</span> <span class="o">=</span> <span class="n">TensorPipe</span><span class="p">(</span><span class="n">minibatcher</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;y&#39;</span><span class="p">])</span>
+
+    <span class="n">test_set</span> <span class="o">=</span> <span class="n">TensorPipe</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;y&#39;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">train_set</span><span class="p">,</span> <span class="n">test_set</span><span class="p">,</span> <span class="n">params</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="model-selection-with-databases">
+<h2>Model Selection With Databases<a class="headerlink" href="#model-selection-with-databases" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">description</span> <span class="o">=</span> <span class="s2">&quot;Model selection for nonlinear regression. We are comparing the regression accuracy of different polynomial models fit to data generated by a random polynomial.&quot;</span>
+<span class="n">experiment</span> <span class="o">=</span> <span class="n">Experiment</span><span class="p">(</span><span class="s2">&quot;model_selection_db&quot;</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">)</span>
+<span class="c1"># SQL factory</span>
+<span class="n">params_table</span> <span class="o">=</span> <span class="n">create_table</span><span class="p">(</span><span class="s1">&#39;params&#39;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+    <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">Integer</span><span class="p">),</span> <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">Integer</span><span class="p">),</span> <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="n">Integer</span><span class="p">),</span> <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="n">Integer</span><span class="p">),</span> <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="n">Integer</span><span class="p">)</span>
+    <span class="p">])</span>
+<span class="n">metrics_tables</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="n">create_table</span><span class="p">(</span><span class="s1">&#39;accuracy&#39;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">Column</span><span class="p">(</span><span class="s1">&#39;average-loss&#39;</span><span class="p">,</span> <span class="n">Float</span><span class="p">)])}</span>
+<span class="c1"># engine = create_engine(&#39;sqlite:///model_selection.sqlite&#39;)</span>
+<span class="n">engine</span> <span class="o">=</span> <span class="n">experiment</span><span class="o">.</span><span class="n">get_engine</span><span class="p">(</span><span class="s1">&#39;factory.sqlite&#39;</span><span class="p">)</span>
+<span class="n">factory</span> <span class="o">=</span> <span class="n">SQLFactory</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">{</span>
+    <span class="s1">&#39;trainer&#39;</span><span class="p">:</span> <span class="n">get_trainer</span><span class="p">(</span><span class="n">train_set</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="s1">&#39;Adam&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="o">=.</span><span class="mi">1</span><span class="p">),</span>
+    <span class="s1">&#39;eval_set&#39;</span><span class="p">:</span> <span class="n">test_set</span><span class="p">,</span>
+    <span class="s1">&#39;parameterizer&#39;</span><span class="p">:</span> <span class="n">Parameterizer</span><span class="p">(),</span>
+    <span class="s1">&#39;metrics&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="n">AccuracyMetric</span><span class="p">()},</span>
+    <span class="s1">&#39;engine&#39;</span><span class="p">:</span> <span class="n">engine</span><span class="p">,</span>
+    <span class="s1">&#39;params_table&#39;</span><span class="p">:</span> <span class="n">params_table</span><span class="p">,</span>
+    <span class="s1">&#39;metrics_tables&#39;</span><span class="p">:</span> <span class="n">metrics_tables</span><span class="p">,</span>
+    <span class="p">})</span>
+
+<span class="n">factory</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+<span class="n">params_table</span> <span class="o">=</span> <span class="n">DBPipe</span><span class="p">(</span><span class="s1">&#39;params&#39;</span><span class="p">,</span> <span class="n">factory</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">params_table</span><span class="o">.</span><span class="n">all</span><span class="p">())</span>
+<span class="n">accuracy_table</span> <span class="o">=</span> <span class="n">DBPipe</span><span class="p">(</span><span class="s1">&#39;accuracy&#39;</span><span class="p">,</span> <span class="n">factory</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">accuracy_table</span><span class="o">.</span><span class="n">all</span><span class="p">())</span>
+</pre></div>
+</div>
+</div></blockquote>
 </div>
 </div>
 
