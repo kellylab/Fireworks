@@ -2,7 +2,7 @@ from functools import lru_cache
 import math
 import numpy as np
 from Fireworks.toolbox import pipes as pl
-from Fireworks import PyTorch_Model
+from Fireworks import Model, PyTorch_Model
 from collections import defaultdict
 
 """
