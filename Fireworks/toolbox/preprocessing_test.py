@@ -1,7 +1,7 @@
 import numpy as np
 from Fireworks import Message
 from Fireworks.toolbox import preprocessing as pr
-from Fireworks.toolbox import CachingPipe
+from Fireworks.toolbox import CachingPipe, TensorPipe
 from Fireworks.utils.test_helpers import generate_linear_model_data
 import numpy as np
 from .pipes import ShufflerPipe, BatchingPipe
@@ -17,7 +17,7 @@ def test_Normalizer():
     n = 1000
     data = Message({'ok': np.random.normal(a,b,n), 'good': np.random.normal(c,d,n)})
     shuffler = ShufflerPipe(data)
-    batcher = BatchingPipe(shuffler)
+    batcher = TensorPipe(BatchingPipe(shuffler))
     normie = pr.Normalizer(input=batcher)
     normie.disable_inference()
     assert normie.count == 0
@@ -36,6 +36,7 @@ def test_Normalizer():
     normie.disable_updates()
     normie.enable_inference()
     batch = normie[0:100]
+    batch = batch.to_dataframe()
     mok = np.mean(batch['ok'])
     vok = np.var(batch['ok'])
     mood = np.mean(batch['good'])

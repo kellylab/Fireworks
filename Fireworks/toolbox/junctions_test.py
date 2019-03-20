@@ -15,7 +15,7 @@ def test_junction():
 
     angry = jn.RandomHubJunction(components={'dumbo': dumbo, 'bumbo': bumbo, 'gumbo': gumbo})
     angry.reset()
-    assert angry.available_inputs == set(['dumbo', 'bumbo', 'gumbo'])
+    assert angry._available_inputs == set(['dumbo', 'bumbo', 'gumbo'])
     numbaz = Message()
 
     counter = lambda l,i: sum([1 for x in l if x == i]) # Counts how often i appears in l
