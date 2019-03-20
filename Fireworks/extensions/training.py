@@ -1,4 +1,4 @@
-from Fireworks import Junction, Model
+from Fireworks import Junction, Model, Message
 from Fireworks.utils import subset_dict
 import torch
 from torch import optim
@@ -9,10 +9,11 @@ import visdom
 import datetime
 import numpy as np
 import types
+from copy import deepcopy
 
 def default_training_closure(model, optimizer, loss_fn):
     """
-    This is function produces a simple training loop that can be used for many situations. During each loop, the model is applied to the
+    This function produces a simple training loop that can be used for many situations. During each loop, the model is applied to the
     current batch, the loss_fn computes a loss, gradients are computed on the loss, and the optimizer updates its parameters using those
     gradients. The update function returns a dictionary containing the loss, the current value of the optimizer (ie. the gradients), and
     the output of the model.
@@ -26,9 +27,22 @@ def default_training_closure(model, optimizer, loss_fn):
         loss.backward()
         optimizer.step()
 
-        return {'loss': loss, 'optimizer': optimizer.state_dict(), 'output': output}
+        return {'loss': loss.detach().cpu().numpy(), 'optimizer': optimizer.state_dict(), 'state': model.get_state(), 'output': output}
 
     return update_function
+
+def default_evaluation_closure(model, optimizer, loss_fn):
+    """
+    This function produces an evaluation loop that evaluates the model on the input data and computes the loss function but does not update
+    the model. The optimizer is ignored.
+    """
+    def eval_function(engine, batch):
+        output = model(batch)
+        loss = loss_fn(output)
+
+        return {'loss': loss.detach().cpu().numpy(), 'state': model.get_state(), 'output': output}
+
+    return eval_function
 
 class IgniteJunction(Junction):
     """
@@ -81,11 +95,12 @@ class IgniteJunction(Junction):
         'ReduceLROnPlateau': ['mode', 'factor', 'patience', 'verbose', 'threshold', 'threshold_mode', 'cooldown', 'min_lr', 'eps'],
     }
 
-    def __init__(self, components, loss, optimizer, scheduler=None, update_function=default_training_closure, **kwargs):
+    def __init__(self, components, loss, optimizer, scheduler=None, update_function=default_training_closure, visdom=True, **kwargs):
 
         Junction.__init__(self, components = components)
+        parameters = [x for x in self.model.all_parameters() if x.requires_grad]
         # Initialize engine
-        self.optimizer = self.optimizers[optimizer](self.model.all_parameters(), **subset_dict(kwargs, self.optimizer_kwargs[optimizer]))
+        self.optimizer = self.optimizers[optimizer](parameters, **subset_dict(kwargs, self.optimizer_kwargs[optimizer]))
         if scheduler is not None:
             self.optimizer = self.schedulers[scheduler](self.optimizer, **subset_dict(kwargs, self.scheduler_kwargs[scheduler]))
         self.loss = loss
@@ -93,12 +108,26 @@ class IgniteJunction(Junction):
         self.engine = Engine(self.update_function)
 
         # Configure metrics and events
-        self.attach_events(environment='default', description='')
+        if visdom:
+            # self.model_state = Message()
+            self.attach_events(environment='default', description='')
 
     def train(self, dataset = None, max_epochs=10):
 
         dataset = dataset or self.dataset
         self.engine.run(dataset, max_epochs=max_epochs)
+
+    def run(self, *args, **kwargs):
+        """ Alias for train """
+        self.train(*args, **kwargs)
+
+    def add_event_handler(self, *args, **kwargs):
+
+        self.engine.add_event_handler(*args, **kwargs)
+
+    def has_event_handler(self, *args, **kwargs):
+
+        return self.engine.has_event_handler(*args, **kwargs)
 
     def attach_events(self, environment, description, save_file = None):
 
@@ -128,7 +157,15 @@ class IgniteJunction(Junction):
                      update='append',
                      win=train_loss_window)
 
-        if save_file is not None:
-            save_interval = 50
-            handler = ModelCheckpoint('/tmp/models', save_file, save_interval = save_interval, n_saved=5, create_dir=True, require_empty=False)
-            self.engine.add_event_handler(Events.ITERATION_COMPLETED, handler, {'model': model})
+        # @self.engine.on(Events.ITERATION_COMPLETED)
+        # def log_model_state(engine):
+        #     iter = (engine.state.iteration-1)
+        #     if iter % log_interval == 0:
+        #         current_state = Message.from_objects(deepcopy(engine.state.output['state']))
+        #         current_state['iteration'] = [iter]
+        #         self.model_state = self.model_state.append(current_state)
+
+        # if save_file is not None:
+        #     save_interval = 50
+        #     handler = ModelCheckpoint('/tmp/models', save_file, save_interval = save_interval, n_saved=5, create_dir=True, require_empty=False)
+        #     self.engine.add_event_handler(Events.ITERATION_COMPLETED, handler, {'model': model})

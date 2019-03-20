@@ -48,7 +48,7 @@ class Factory(Junction):
                 for name, metric in self.metrics.items():
                     metric.attach(evaluator, name) # TODO: Make sure this resets the metric
                 # Running the evaluator should perform training on the dataset followed by evlaution and return evaluation metrics
-                evaluator.run(self.eval_set)
+                evaluator.run(self.eval_set, max_epochs=1)
                 # Evaluate the metrics that were attached to the evaluator
                 computed_metrics = {name: metric.compute() for name, metric in self.metrics.items()}
                 self.write(params, computed_metrics)
@@ -120,9 +120,9 @@ class SQLFactory(Factory):
 
     def write(self, params, metrics):
 
-        if len(params) != len(metrics):
-            raise ValueError("Parameters and Metrics messages must be equal length.")
-
+        # if len(params) != len(metrics):
+        #     raise ValueError("Parameters and Metrics messages must be equal length.")
+        params = Message(params)
         for key, metric in metrics.items():
             self.computed_metrics[key] = self.computed_metrics[key].append(metric)
             self.metrics_pipes[key].insert(metric)

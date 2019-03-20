@@ -1,9 +1,12 @@
 import numpy as np
 from Fireworks import Message
 from Fireworks.toolbox import preprocessing as pr
+from Fireworks.toolbox import CachingPipe
+from Fireworks.utils.test_helpers import generate_linear_model_data
 import numpy as np
 from .pipes import ShufflerPipe, BatchingPipe
 import math
+from itertools import count
 
 def test_Normalizer():
 
@@ -56,3 +59,33 @@ def test_Normalizer():
     assert (abs(means['good']) < .4).all()
     assert (abs(variances['ok'] - 1) < .4).all()
     assert (abs(variances['good'] - 1) < .4).all()
+
+    assert normie.mean['good'] != normie2.mean['good']
+    assert normie.mean['ok'] != normie2.mean['ok']
+    state = normie.get_state()
+    normie2.set_state(state, reset=False)
+    assert normie.mean['good'] == normie2.mean['good']
+    assert normie.mean['ok'] == normie2.mean['ok']
+
+def test_train_test_split():
+
+    # Test using a Message as input
+    data, metadata = generate_linear_model_data(50)
+    train, test = pr.train_test_split(data)
+    assert len(train) == 40
+    assert len(test) == 10
+    train[0:20]
+    test[0:4]
+    for train_row,i in zip(train,count()): # Check that training set and test set are different
+        for test_row,j in zip(test, count()):
+             assert (train_row != test_row)
+
+    # Test using a Pipe as input
+    cache = CachingPipe(data)
+    train2, test2 = pr.train_test_split(cache)
+    train2[0:20]
+    test2[0:3]
+
+    for train_row in train2: # Check that training set and test set are different
+        for test_row in test2:
+            assert train_row != test_row

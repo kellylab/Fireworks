@@ -102,6 +102,7 @@ class Component_Map(dict):
         if type(val) is tuple and len(val) is 2 and type(val[1]) is str and hasattr(val[0], val[1]):
             # Very specific test to check if the intention is to link an attribute inside of another
             # object to this Component Map rather than simply set the value of the key to a tuple.
+
             if key in self._internal_components:
                 # Delete from internal components if this key already exists
                 del self[key]
@@ -163,6 +164,7 @@ class Component_Map(dict):
                    in the Component_Map.
         """
         for key, value in {**state['internal'], **state['external']}.items():
+
             self[key] = value
 
     def get_state(self):
@@ -247,6 +249,14 @@ class PyTorch_Component_Map(Component_Map):
                     # Convert state dict to a dict of tensors
                     val = {k:torch.Tensor(v) for k,v in val.items()}
                     submodule.load_state_dict(val)
+                elif isinstance(submodule, dict): # It was supposed to be a dict
+                    Component_Map.__setitem__(self, key, val)
+                    if self.model is not None:
+                        val = self[key]
+                        i = self.model._flags['components_initialized']
+                        self.model._flags['components_initialized'] = 0
+                        setattr(self.model, key, val)
+                        self.model._flags['components_initialized'] = i
         else:
             Component_Map.__setitem__(self, key, val)
             if self.model is not None:

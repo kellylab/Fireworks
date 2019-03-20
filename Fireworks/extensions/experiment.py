@@ -36,7 +36,7 @@ class Experiment:
     # NOTE: For now, we assume that the underlying database is sqlite on local disk
     # TODO: Expand to support nonlocal databases
 
-    def __init__(self, experiment_name, db_path, description=None, load=False):
+    def __init__(self, experiment_name, db_path=".", description=None, load=False):
 
         self.name = experiment_name
         self.db_path = db_path

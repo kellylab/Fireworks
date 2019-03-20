@@ -66,7 +66,7 @@ def test_init_set():
     assert m[3:6] == dummy_2
     m[7:10] = dummy_message
     assert m[7:10] == dummy_message
-
+    
 def test_del():
     m = cache.UnlimitedCache()
     dummy_message = Message(tensors, vectors)

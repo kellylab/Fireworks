@@ -53,3 +53,16 @@ def test_junction():
 
     for count in counts.values():
         assert count == 3 # Make sure each element showed up 3 times, corresponding to the 3 inputs
+
+def test_RandomHubJunction():
+
+    a = Message({'x':np.random.rand(100)})
+    b = Message({'x':np.random.rand(100)})
+    rob = jn.RandomHubJunction(components={'a':a, 'b':b})
+    i = 0
+    for x in rob:
+        i+=1
+    assert i == 200
+    for x in rob:
+        i+=1
+    assert i == 400

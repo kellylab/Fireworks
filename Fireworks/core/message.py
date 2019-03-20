@@ -6,7 +6,7 @@ from copy import deepcopy
 from collections import Hashable
 from Fireworks.utils import index_to_list, slice_length
 
-to_methods = ['json', 'dict', 'html', 'feather', 'latex', 'stata', 'msgpack', 'gbq', 'records', 'sparse', 'dense', 'string', 'clipboard']
+to_methods = ['csv', 'json', 'dict', 'html', 'feather', 'latex', 'stata', 'msgpack', 'gbq', 'records', 'sparse', 'dense', 'string', 'clipboard']
 read_methods = {
     'json': pd.read_json, 'csv': pd.read_csv, 'excel': pd.read_excel, 'hdf': pd.read_hdf, 'parquet': pd.read_parquet,
     'pickle': pd.read_pickle, 'sql_table': pd.read_sql_table, 'state': pd.read_stata, 'table': pd.read_table,
@@ -108,6 +108,8 @@ class Message:
             self.check_length()
         else:
             self.length = length
+
+        self._current_index = 0 # For iteration
 
     @classmethod
     def from_objects(cls, *args, **kwargs):
@@ -241,6 +243,24 @@ class Message:
             raise ValueError("Every element of the message, including tensors and arrays, must have the same length unless one or both are None.")
         else:
             self.length = len(self.tensor_message)
+
+    def __iter__(self):
+
+        self._current_index = 0
+        return self
+
+    def reset(self):
+
+        return self.__iter__()
+    
+    def __next__(self):
+
+        try:
+            iteration = self[self._current_index]
+            self._current_index += 1
+            return iteration
+        except (KeyError, IndexError) as e:
+            raise StopIteration
 
     def __len__(self):
         """
@@ -495,6 +515,11 @@ class Message:
         appended_tensors = self.tensor_message.append(other.tensor_message)
         appended_df = self.df.append(other.df).reset_index(drop=True)
         return Message(appended_tensors, appended_df)
+
+    def enable_gradients(self, columns=None):
+        columns = columns or self.tensor_message.columns
+        for c in columns:
+            self[c].requires_grad=True
 
     def merge(self, other):
         """
@@ -957,6 +982,14 @@ class TensorMessage:
         """
         # NOTE: Index currently has no meaning, because messages are currently required to be indexed from 0:length
         return pd.RangeIndex(0,self.length)
+
+    def enable_gradients(self, columns=None):
+        columns = columns or self.columns
+        for c in columns:
+            self[c].requires_grad=True
+
+    def disable_gradients(self, columns=None):
+        pass
 
     def append(self, other):
         """

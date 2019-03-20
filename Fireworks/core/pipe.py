@@ -85,7 +85,13 @@ class Pipe(ABC):
 
     def __iter__(self, *args, **kwargs):
 
-        self.input = self.input.__iter__(*args, **kwargs)
+        if hasattr(self.input, '__iter__'):
+            self.input = self.input.__iter__(*args, **kwargs)
+        elif hasattr(self.input, '__getitem__'):
+            pass
+        else:
+            raise AttributeError("Input {0} to {1} is not iterable.".format(self.input, self))
+
         return self
 
     def __getattr__(self, name):

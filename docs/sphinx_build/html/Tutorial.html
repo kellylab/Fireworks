@@ -16,7 +16,7 @@
     <script type="text/javascript" src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="API Reference" href="Fireworks.html" />
+    <link rel="next" title="Examples" href="Example.html" />
     <link rel="prev" title="Installation" href="Installation.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
@@ -44,13 +44,16 @@
 <li class="toctree-l1"><a class="reference internal" href="License.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#basic-operations">Basic Operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#chaining-pipes-junctions-and-models">Chaining Pipes, Junctions, and Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#messages">Messages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chaining-pipes-and-junctions">Chaining Pipes and Junctions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#using-databases">Using Databases</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model-training">Model Training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#state">State</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#saving-and-loading">Saving and Loading</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#hyperparameter-optimization">Hyperparameter Optimization</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="Example.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Fireworks.html">API Reference</a></li>
 </ul>
 
@@ -59,7 +62,7 @@
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
       <li>Previous: <a href="Installation.html" title="previous chapter">Installation</a></li>
-      <li>Next: <a href="Fireworks.html" title="next chapter">API Reference</a></li>
+      <li>Next: <a href="Example.html" title="next chapter">Examples</a></li>
   </ul></li>
 </ul>
 </div>
@@ -93,31 +96,302 @@
             
   <div class="section" id="tutorial">
 <h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="basic-operations">
-<h2>Basic Operations<a class="headerlink" href="#basic-operations" title="Permalink to this headline">¶</a></h2>
+<p>The code snippets in this tutorial are meant to provide a demonstration of the core functionality and tools provided by the Fireworks library. If you have trouble
+running any of these snippets or understanding any of the text, feel free to ask a question on Github or reach out to me (smk508) directly.</p>
+<div class="section" id="messages">
+<h2>Messages<a class="headerlink" href="#messages" title="Permalink to this headline">¶</a></h2>
 <blockquote>
-<div><ul class="simple">
-<li>Message usage</li>
-<li>Constructing a Pipeline</li>
-</ul>
+<div><blockquote>
+<div><p>Tabular data formats show up everywhere in data analysis software and languages. SQL, Stata, Excel, R DataFrames, Python Pandas, etc. all represent data as
+using variations of the concept of a table. This is a matrix where the columns are named and the rows are indexed by number, data, time, etc.
+Working with data in this format is convenient because you can easily keep track of what each column represents, and the format is generic enough to support
+pretty much any task.</p>
+<img alt="_images/DataFrame.png" class="align-center" src="_images/DataFrame.png" />
+<p>It can be tricky to use DataFrames with machine learning tasks, however, because you often have data of many different types, as in the example below. In
+particular, to make this work, you would need the ability to have columns containing the tensor-like objects that are used by deep learning frameworks to
+represent data.</p>
+<img alt="_images/DataFrame-1-Row.png" class="align-center" src="_images/DataFrame-1-Row.png" />
+<p>Fireworks aims to solve this issue and make it easy to use DataFrames with batch processing and machine learning workloads, and specifically PyTorch.
+In particular, it provides an implementation of DataFrames called Message that can contain torch.Tensor objects. It also provides a set of primitives for
+performing and composing batch processing tasks using this data structure, and this is aimed to make it easier to perform preprocessing tasks, which is
+often a pain point when doing machine learning on large datasets.</p>
+<p>For the most part, you can use Messages like Pandas DataFrames. That is, you can call Fireworks.Message() instead of pd.DataFrame(). There are a few key differences.
+First, Messages don’t have a way to adjust their index. In Pandas, you can choose how the rows of a DataFrame are indexed. For example, the rows could refer
+to timestamps or dates. Here, the only way to index rows is by number (ie. the nth row is accessed by calling message[n]). This simplifies usage when feeding
+data to a statistical model which only cares about getting the next batch of data.</p>
+<p>Secondly, Messages can have torch.Tensor objects inside them. You can set a column of a Message to a torch.Tensor, and operations like append and indexing will work
+as you expect.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">a</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">a</span><span class="p">})</span>
+<span class="k">print</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="o">&gt;&gt;</span>  <span class="n">Message</span> <span class="k">with</span>
+<span class="o">&gt;&gt;</span>  <span class="n">Tensors</span><span class="p">:</span>
+<span class="o">&gt;&gt;</span>  <span class="n">TensorMessage</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">tensor</span><span class="p">([[</span> <span class="mf">0.3087</span><span class="p">,</span>  <span class="mf">0.9619</span><span class="p">,</span>  <span class="mf">0.5176</span><span class="p">],</span>
+<span class="o">&gt;&gt;</span>         <span class="p">[</span> <span class="mf">0.2747</span><span class="p">,</span>  <span class="mf">0.6640</span><span class="p">,</span>  <span class="mf">0.2813</span><span class="p">]])}</span>
+<span class="o">&gt;&gt;</span>  <span class="n">Metadata</span><span class="p">:</span>
+<span class="o">&gt;&gt;</span>  <span class="n">Empty</span> <span class="n">DataFrame</span>
+<span class="o">&gt;&gt;</span> <span class="n">Columns</span><span class="p">:</span> <span class="p">[]</span>
+<span class="o">&gt;&gt;</span> <span class="n">Index</span><span class="p">:</span> <span class="p">[]</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">b</span><span class="p">})</span>
+<span class="k">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
+<span class="o">&gt;&gt;</span> <span class="mi">6</span>
+<span class="k">assert</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">][</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<span class="k">assert</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">6</span><span class="p">][</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">b</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>Internally, the Message stores torch.Tensors in an object called a TensorMessage, which is analogous to a DataFrame. All other types of data are stored inside
+a DataFrame. You can move data to and from these two formats as well.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>message = message.to_dataframe([&#39;x&#39;]) # Leave blank to move all tensor columns
+print(type(message[&#39;x&#39;]))
+&gt;&gt; &lt;class &#39;pandas.core.series.Series&#39;&gt;
+message = message.to_tensors([&#39;x&#39;]) # Leave blank to move all dataframe columns
+print(type(message[&#39;x&#39;]))
+&gt;&gt; &lt;class &#39;torch.Tensor&#39;&gt;
+</pre></div>
+</div>
+<p>You can also move tensors to and from different devices.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">cuda</span><span class="p">(</span><span class="n">device_num</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">])</span> <span class="c1"># Leave blank to default to device 0 and all tensor columns</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">cpu</span><span class="p">(</span><span class="n">keys</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">])</span> <span class="c1"># Leave blank to default to all tensor columns</span>
+</pre></div>
+</div>
 </div></blockquote>
 </div>
-<div class="section" id="chaining-pipes-junctions-and-models">
-<h2>Chaining Pipes, Junctions, and Models<a class="headerlink" href="#chaining-pipes-junctions-and-models" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="chaining-pipes-and-junctions">
+<h2>Chaining Pipes and Junctions<a class="headerlink" href="#chaining-pipes-and-junctions" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><p>Pipes are meant to represent transformations that can be stacked. This is similar to the approach in functional programming,
+where individual functions can be chained together to combine their functionality. The methods of a Pipe object are meant
+to be used in this manner. In particular, the magic methods ‘__getitem__’, ‘__next__’, and ‘__call__’ behave this way for Pipes.
+Hence, when you call __getitem__ on a pipe (eg. pipe[10]), the pipe will call __getitem__ on its input first before returning.
+This gives you a functional (in the sense of functional programming) way to chain objects that represent data accessors and/or
+iterators. This functionality can also be applied to any other method by using the &#64;recursive decorator provided
+in Fireworks.core.Pipes. Pipes also have another form of recursion: if you call a method/attribute on a Pipe that does not have
+that method/attribute, it will try to make the call on its input. Hence, you could have a Pipe in the middle of your pipeline
+that implements some method or has some attribute that a downstream Pipe can use without having to implement it directly.</p>
+<img alt="_images/Pipes.png" class="align-center" src="_images/Pipes.png" />
+<p>Let’s look at an example of composing Pipes:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">Fireworks.toolbox.pipes</span> <span class="kn">import</span> <span class="n">BatchingPipe</span><span class="p">,</span> <span class="n">TensorPipe</span>
+<span class="kn">from</span> <span class="nn">Fireworks</span> <span class="kn">import</span> <span class="n">Message</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="n">message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">({</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">100</span><span class="p">)})</span>
+<span class="n">shuffler</span> <span class="o">=</span> <span class="n">ShufflerPipe</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">message</span><span class="p">)</span>
+<span class="n">minibatcher</span> <span class="o">=</span> <span class="n">BatchingPipe</span><span class="p">(</span><span class="n">shuffler</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">25</span><span class="p">)</span>
+<span class="n">train_set</span> <span class="o">=</span> <span class="n">TensorPipe</span><span class="p">(</span><span class="n">minibatcher</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">train_set</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In this example, we start off with some message as the first input. This could alternatively be some Pipe that reads in data from a database, file, etc.
+As we loop through the last pipe, train_set, the following steps occur at each loop:</p>
 <blockquote>
 <div><ul class="simple">
-<li>Explain the difference</li>
-<li>Explain recursive method calling</li>
-<li>Examples</li>
+<li>train_set calls for the next element from its input, minibatcher.</li>
+<li>minibatcher calls for the next 25 elements from its input, shuffler. This corresponds to the next batch.</li>
+<li>shuffler return 25 elements from its input, message, to minibatcher. The elements are randomly chosen based on a precomputed shuffle that resets on every full loop through the dataset.</li>
+<li>minibatcher returns the 25 elements to its output, train_set</li>
+<li>train_set converts the columns of its 25 element batch to torch.Tensors and returns the batch. If cuda is installed and enabled, this also moves those tensors to the GPU.</li>
 </ul>
+</div></blockquote>
+<p>During each step of this process, the elements being returned are Messages. Because of this, the Pipes are decoupled and be re-used and re-composed. Pipes upstream in the pipeline can handle
+‘formatting’ tasks such as reading in the data and constructing batches, whereas more downstream pipes can perform preprocessing transformations on those batches, such as normalization, vectorization,
+and moving data to the GPU. Each successive Pipe adds an additional layer of abstraction, and from the perspective of a downstream Pipe, the input is the only thing that it needs to worry about.</p>
+<p>Whereas pipes have a single input, Junctions can have multiple. Having a single input makes recursive method calling well defined; a Pipe can simply refers to its one input.
+On the other hand, there is ambiguity when doing this for multiple inputs. Should all of the inputs be called or only one? What order should they be called? How should the outputs be combined?
+Because of this, Pipes have defined methods for recursive method calling which makes it easy to compose them, but Junctions do not.
+Instead, that logic is implemented on an individual basis depending on what that Junction intends to do.</p>
+<img alt="_images/Junctions.png" class="align-center" src="_images/Junctions.png" />
+<p>Lets look at a more involved example involving Junctions:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">Fireworks.toolbox.pipes</span> <span class="kn">import</span> <span class="n">LoopingPipe</span><span class="p">,</span> <span class="n">CachingPipe</span><span class="p">,</span> <span class="n">ShufflerPipe</span><span class="p">,</span> <span class="n">BatchingPipe</span><span class="p">,</span> <span class="n">TensorPipe</span>
+<span class="kn">from</span> <span class="nn">Fireworks.toolbox.junctions</span> <span class="kn">import</span> <span class="n">RandomHubJunction</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">Fireworks</span> <span class="kn">import</span> <span class="n">Message</span>
+
+<span class="n">a</span> <span class="o">=</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">100</span><span class="p">)})</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">200</span><span class="p">)})</span>
+<span class="n">sampler</span> <span class="o">=</span> <span class="n">RandomHubJunction</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span><span class="n">a</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span><span class="n">b</span><span class="p">})</span>
+<span class="n">looper</span> <span class="o">=</span> <span class="n">LoopingPipe</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span>
+<span class="n">cache</span> <span class="o">=</span> <span class="n">CachingPipe</span><span class="p">(</span><span class="n">looper</span><span class="p">,</span> <span class="n">cache_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="n">shuffler</span> <span class="o">=</span> <span class="n">ShufflerPipe</span><span class="p">(</span><span class="n">cache</span><span class="p">)</span>
+<span class="n">minibatcher</span> <span class="o">=</span> <span class="n">BatchingPipe</span><span class="p">(</span><span class="n">shuffler</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+<span class="n">train_set</span> <span class="o">=</span> <span class="n">TensorPipe</span><span class="p">(</span><span class="n">minibatcher</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">train_set</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The RandomHubJunction randomly samples elements from its multiple inputs during iteration. Here, we use this to combine two different data sets (a and b) into a single stream. The RandomHubJunction can only
+iterate through its inputs in a forward direction; you can’t access items by index (eg. sampled[n]). The LoopingPipe creates the illusion of this functionality by moving the iteration forwards in order to get
+a requested element. For example, you can call looper[20], and this will return the element that is returned by iterating through sampler 20 times. The CachingPipe stores this information in memory as the name implies.
+This can be useful for working with extremely large datasets or inputs that are expensive to produce.</p>
 </div></blockquote>
 </div>
 <div class="section" id="using-databases">
 <h2>Using Databases<a class="headerlink" href="#using-databases" title="Permalink to this headline">¶</a></h2>
 <blockquote>
-<div><ul class="simple">
-<li>Example</li>
-</ul>
+<div><p>It’s often useful to use a database query as the starting point for a pipeline, or to write data in the form of a Message into a database.
+The database module is built on top of SQLalchemy and facilitates this. Let’s say you have a SQL alchemy table (a subclass of declarative_base)
+which describes your schema and an engine object which can connect to the database. You can create a TablePipe which can query this database
+as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">Fireworks.extensions.database</span> <span class="kn">import</span> <span class="n">TablePipe</span>
+
+<span class="n">db</span> <span class="o">=</span> <span class="n">TablePipe</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">engine</span><span class="p">)</span>
+<span class="n">query_all</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">query_all</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="c1"># This will print every column in the table as Messages</span>
+ <span class="n">query_some</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">([</span><span class="s1">&#39;column_1&#39;</span><span class="p">,</span><span class="s1">&#39;column_2&#39;</span><span class="p">])</span>
+ <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">query_some</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="c1"># This will print only &#39;column_1&#39; and &#39;column_2&#39;</span>
+</pre></div>
+</div>
+<p>When you use the query method, the object returned is a DBPipe. This can serve as input to a pipeline, as it is iterable.
+Additionally, you can make your query more precise by applying filters which apply predicates. This lets you make
+queries of the form “SELECT a FROM b WHERE c” and so on.</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">filtered</span> <span class="o">=</span> <span class="n">query_some</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="s1">&#39;column_n&#39;</span><span class="p">,</span> <span class="s1">&#39;between&#39;</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span><span class="mi">9</span><span class="p">)</span> <span class="c1"># &quot;SELECT column_1, column_2 FROM table WHERE column_n BEWEEN 4 AND 8&quot;</span>
+<span class="n">filtered</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="c1"># Returns the entire query as a single Message</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>The allowed predicates correspond to the allowed filters in SQLalchemy (see <a class="reference external" href="https://docs.sqlalchemy.org/en/latest/orm/query.html#the-query-object">https://docs.sqlalchemy.org/en/latest/orm/query.html#the-query-object</a> for more information.)
+You can also insert Messages into this table, assuming the column names and data types align with the table’s schema. Along with this,
+you can rollback and commit operations.</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">db</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+<span class="n">db</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span> <span class="c1"># The insertion will be undone</span>
+<span class="n">db</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+<span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span> <span class="c1"># The transaction will be committed to the db</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div></blockquote>
+</div>
+<div class="section" id="model-training">
+<h2>Model Training<a class="headerlink" href="#model-training" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><p>Models function like a hybrid between Pipes and Junctions. They are conceptually like a Pipe in terms of an input/output relationship, but they can be parameterized,
+and these parameters are represented as components like with a Junction. For example, if we have a model that represents y = m*x+b, the input is x, the output is y,
+and the parameters are x and b, which are components of the model. This distinction makes it easy to separate out the functional aspect of a model from the stateful
+aspects.</p>
+<img alt="_images/JustModels.png" class="align-center" src="_images/JustModels.png" />
+<p>Let’s look at an example of a Pytorch Model:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">Fireworks</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">PyTorch_Model</span>
+
+<span class="k">class</span> <span class="nc">NonlinearModel</span><span class="p">(</span><span class="n">PyTorch_Model</span><span class="p">):</span>
+
+    <span class="n">required_components</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">init_default_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="n">letter</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_column</span> <span class="o">=</span> <span class="s1">&#39;x&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_column</span> <span class="o">=</span> <span class="s1">&#39;y_pred&#39;</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">in_column</span><span class="p">]</span>
+        <span class="n">message</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">out_column</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">d</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">e</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">4</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">message</span>
+
+ <span class="n">my_model</span> <span class="o">=</span> <span class="n">NonlinearModel</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:[</span><span class="mf">1.</span><span class="p">],</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">2.</span><span class="p">]})</span>
+ <span class="n">sample_input</span> <span class="o">=</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">10</span><span class="p">)})</span>
+ <span class="n">sample_output</span> <span class="o">=</span> <span class="n">my_model</span><span class="p">(</span><span class="n">sample_input</span><span class="p">)</span>
+ <span class="k">print</span><span class="p">(</span><span class="n">sample_output</span><span class="p">[</span><span class="s1">&#39;y_pred&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Here, a model is initialized with the parameter ‘a’ set to 1 and ‘c’ set to 2. The other parameters
+are initialized using the init_default_components method. This method, along with having a ‘required_components’
+list is optional, but if defined, the model must have the components specified in ‘required_components’
+by the time initialization is complete.
+Every Model must implement a method called forward() which performs an evaluation on input data. Notice that in this example,
+the model is evaluated by directly calling it on the argument sample_input. This is the recommended way to invoke a model, because
+the __call__ method is overridden to first call the Model’s input (if it exists). This lets you compose models by simply placing
+them in a pipeline. For example, you can do</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_1</span> <span class="o">=</span> <span class="n">NonlinearModel</span><span class="p">()</span>
+<span class="n">model_2</span> <span class="o">=</span> <span class="n">NonlinearModel</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">model_1</span><span class="p">)</span>
+<span class="n">sample_output</span> <span class="o">=</span> <span class="n">model_2</span><span class="p">(</span><span class="n">sample_input</span><span class="p">)</span>
+<span class="c1"># This is equivalent to:</span>
+<span class="n">same_thing</span> <span class="o">=</span> <span class="n">model_2</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">model_1</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">sample_input</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Additionally, the __getitem__ and __next__ method’s are overridden in this way, so you can place models in a pipeline and have them
+apply their forward transformation to data as it is accessed.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_1</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">train_set</span> <span class="c1"># train_set was defined in an earlier example</span>
+<span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">model_2</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="c1"># This will loop through all batches of train_set and apply model_1.forward, followed by model_2.forward</span>
+</pre></div>
+</div>
+<p>You can also enable or disable this functionality:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_1</span><span class="o">.</span><span class="n">disable_evaluation</span><span class="p">()</span> <span class="c1"># model_1 will no longer automatically apply it&#39;s forward method when recursively called.</span>
+<span class="n">sample_output</span> <span class="o">=</span> <span class="n">model_2</span><span class="p">(</span><span class="n">sample_input</span><span class="p">)</span> <span class="c1"># This is equivalent to model_2.forward(sample_input)</span>
+<span class="n">sample_output</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">model_2</span><span class="p">)</span> <span class="c1"># model_1 will still pass through method calls, so that this will return the next batch from train_set, and apply model_2.forward while skipping model_1.forward</span>
+<span class="n">model_1</span><span class="o">.</span><span class="n">enable_evaluation</span><span class="p">()</span> <span class="c1"># Now, model_1 will evaluate when recursively called</span>
+<span class="n">sample_output</span> <span class="o">=</span> <span class="n">model_2</span><span class="p">(</span><span class="n">sample_input</span><span class="p">)</span>
+<span class="n">sample_output</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">model_2</span><span class="p">)</span> <span class="c1"># This will apply model_1.forward and model_2.forward on the batch as before</span>
+</pre></div>
+</div>
+<p>Pytorch_Models are also subclasses of PyTorch’s own Module class. This means that you can use them like normal PyTorch Modules and train them using any of the libraries available for
+training PyTorch models (Ignite, TorchNet, etc.). Fireworks also provides wrappers for the Ignite library for this purpose (see <a class="reference external" href="https://github.com/pytorch/ignite">https://github.com/pytorch/ignite</a> for more information).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">Fireworks.extensions</span> <span class="kn">import</span> <span class="n">IgniteJunction</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">NonlinearModel</span><span class="p">()</span>
+<span class="n">base_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span>
+<span class="n">loss</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">batch</span><span class="p">:</span> <span class="n">base_loss</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s1">&#39;y_pred&#39;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">])</span>
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">IgniteJunction</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span> <span class="s1">&#39;dataset&#39;</span><span class="p">:</span> <span class="n">train_set</span><span class="p">},</span> <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="s1">&#39;Adam&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="o">=.</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">max_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>As the name implies, IgniteJunction is a Junction that wraps the functionality of an Ignite Engine (the core class in Ignite). We initialize it by providing
+a model to train along with a training set as components. We also provide a loss function that is evaluated during each iteration on the output of the model.
+Additional arguments such as the optimizer type to use, learning rate, learning rate schedulers, etc. can be provided as well (see IgniteJunction docs).
+The IgniteJunction will automatically extract the trainable parameters from the provided model and iterate through the provided training set, computing the
+loss function and using the chosen optimizer to update the model. You can also manually specify the training closure that is used at each step by providing
+an option argument ‘update_function’ (see Ignite and Fireworks.extensions.training docs for more details).</p>
+<p>If the model being trained has inputs or components that are also models, then their parameters will be updated as well. You can see all of the parameters
+internally or externally associated with a Model (ie. the parameters that could be involved in model training) by calling the all_parameters() method.
+You can also control which parameters should be updated by using the freeze() and unfreeze() methods:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_1</span> <span class="o">=</span> <span class="n">NonlinearModel</span><span class="p">()</span>
+<span class="n">model_2</span> <span class="o">=</span> <span class="n">NonlinearModel</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">model_1</span><span class="p">)</span>
+<span class="n">model_2</span><span class="o">.</span><span class="n">all_parameters</span><span class="p">()</span> <span class="c1"># This will list all of the torch.Parameter objects in model_1 and model_2 (model_1.a, model_2.a, etc.)</span>
+<span class="n">model_1</span><span class="o">.</span><span class="n">freeze</span><span class="p">([</span><span class="s1">&#39;a&#39;</span><span class="p">,</span><span class="s1">&#39;d&#39;</span><span class="p">])</span> <span class="c1"># This will prevent model_1.a and model_2.d from updating during training</span>
+<span class="n">model_2</span><span class="o">.</span><span class="n">freeze</span><span class="p">()</span> <span class="c1"># This will freeze all parameters in model_2 during training</span>
+<span class="n">model_2</span><span class="o">.</span><span class="n">unfreeze</span><span class="p">([</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="s1">&#39;c&#39;</span><span class="p">,</span><span class="s1">&#39;d&#39;</span><span class="p">])</span> <span class="c1"># This will unfreeze model_2.b, model_2.c, model_2.d during training</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="state">
+<h2>State<a class="headerlink" href="#state" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><p>All of the core structures in Fireworks have methods for serializing their state, which makes it straightforward to save and load Pipes, Junctions, and Models. On any of these objects, you can call the get_state()
+method to get a dictionary-serialized representation of their current state. You can also call set_state() to update this state.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="n">model_1</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+<span class="k">print</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="n">model_1</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The returned state object consists of two dictionaries, an internal and external.
+The internal dict is a mapping where the keys are attribute names and the values are serialized attributes that
+the the object considers part of its state. Pipes have to designate which attributes are considered stateful in their
+by adding their names to the Pipe.stateful_attributes list. Junctions and objects automatically assign all attributes
+that don’t begin with ‘__’ to their internal state.
+The external dict represents variables that an object is using but don’t ‘belong’ to that object. It is a mapping where
+the values are the names of the object that the attribute belongs to. This provides a method for a model to use parameters
+from another model without directly copying it. Any updates to that parameter will then be reflected in both models.
+You could use this to simultaneously train multiple models that are linked together. There is a special syntax for
+linking parameters in this way:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_1</span> <span class="o">=</span> <span class="n">NonlinearModel</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.</span><span class="p">],</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.</span><span class="p">]})</span>
+<span class="n">model_2</span> <span class="o">=</span> <span class="n">NonlinearModel</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">model_2</span><span class="p">,</span><span class="s1">&#39;a&#39;</span><span class="p">)})</span>
+</pre></div>
+</div>
+<p>In this case, ‘a’ is an external attribute of model_2, and model_2.a is a reference to model_1.a. Any time a component
+assignment of the form (object, str) is made as in the above example, the Model will assume that this is an external
+link and treat it as such.</p>
 </div></blockquote>
 </div>
 <div class="section" id="saving-and-loading">

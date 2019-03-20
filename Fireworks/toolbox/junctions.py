@@ -16,7 +16,7 @@ class HubJunction(Junction):
     This junction takes multiple sources implementing __next__ as input and implements a new __next__ method that samples
     its input sources.
     """
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.check_inputs()
@@ -38,16 +38,19 @@ class HubJunction(Junction):
         try:
             return self.components[sample].__next__()
         except StopIteration: # Remove sample from available_inputs list
-            self.available_inputs.remove(sample)
-            if not self.available_inputs: # Set of inputs is empty, because they have all finished iterating
+            self._available_inputs.remove(sample)
+            if not self._available_inputs: # Set of inputs is empty, because they have all finished iterating
                 raise StopIteration
             else: # Recursively try again
                 return self.__next__()
 
     def reset(self):
         for name, source in self.components.items():
-            source.reset()
-        self.available_inputs = set(self.components.keys()) # Keep track of which sources have not yet run out.
+            if name != '_available_inputs':
+                source.reset()
+        self._available_inputs = set(self.components.keys()) # Keep track of which sources have not yet run out.
+        if '_available_inputs' in self._available_inputs:
+            self._available_inputs.remove('_available_inputs')
 
     def __iter__(self):
         self.reset()
@@ -67,7 +70,7 @@ class RandomHubJunction(HubJunction):
     # TODO: Add support for weighted random sampling
 
     def sample_inputs(self):
-        return random.sample(self.available_inputs, 1)[0]
+        return random.sample(self._available_inputs, 1)[0]
 
 class ClockworkHubJunction(HubJunction):
     """
@@ -77,7 +80,7 @@ class ClockworkHubJunction(HubJunction):
 
     def reset(self):
         super().reset()
-        self.cycle_dict = {i: name for i,name in zip(count(),self.available_inputs)}
+        self.cycle_dict = {i: name for i,name in zip(count(),self._available_inputs)}
         self.current_cycle = 0
 
     def sample_inputs(self):
@@ -89,7 +92,7 @@ class ClockworkHubJunction(HubJunction):
         while True:
             sample = self.cycle_dict[self.current_cycle]
             self.current_cycle = (self.current_cycle + 1) % len(self.cycle_dict)
-            if sample in self.available_inputs:
+            if sample in self._available_inputs:
                 return sample
 
 class SwitchJunction(Junction):

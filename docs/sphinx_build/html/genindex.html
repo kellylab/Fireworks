@@ -43,6 +43,7 @@
 <li class="toctree-l1"><a class="reference internal" href="License.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Fireworks.html">API Reference</a></li>
 </ul>
 
@@ -251,6 +252,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="Fireworks.html#Fireworks.core.message.TensorMessage.df">df (Fireworks.core.message.TensorMessage attribute)</a>
 </li>
+      <li><a href="Fireworks.html#Fireworks.core.message.TensorMessage.disable_gradients">disable_gradients() (Fireworks.core.message.TensorMessage method)</a>
+</li>
       <li><a href="Fireworks.html#Fireworks.core.model.Model.disable_inference">disable_inference() (Fireworks.core.model.Model method)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.core.model.Model.disable_inference_all">disable_inference_all() (Fireworks.core.model.Model method)</a>
@@ -265,14 +268,20 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="Fireworks.html#Fireworks.core.message.Message.enable_gradients">enable_gradients() (Fireworks.core.message.Message method)</a>
+
+      <ul>
+        <li><a href="Fireworks.html#Fireworks.core.message.TensorMessage.enable_gradients">(Fireworks.core.message.TensorMessage method)</a>
+</li>
+      </ul></li>
       <li><a href="Fireworks.html#Fireworks.core.model.Model.enable_inference">enable_inference() (Fireworks.core.model.Model method)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.core.model.Model.enable_inference_all">enable_inference_all() (Fireworks.core.model.Model method)</a>
 </li>
-      <li><a href="Fireworks.html#Fireworks.core.model.Model.enable_updates">enable_updates() (Fireworks.core.model.Model method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="Fireworks.html#Fireworks.core.model.Model.enable_updates">enable_updates() (Fireworks.core.model.Model method)</a>
+</li>
       <li><a href="Fireworks.html#Fireworks.core.model.Model.enable_updates_all">enable_updates_all() (Fireworks.core.model.Model method)</a>
 </li>
       <li><a href="Fireworks.html#Fireworks.utils.exceptions.EndHyperparameterOptimization">EndHyperparameterOptimization</a>
@@ -389,6 +398,8 @@
         <li><a href="Fireworks.html#Fireworks.core.pipe.Pipe.get_state">(Fireworks.core.pipe.Pipe method)</a>
 </li>
       </ul></li>
+      <li><a href="Fireworks.html#Fireworks.toolbox.pipes.GradientPipe">GradientPipe (class in Fireworks.toolbox.pipes)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -687,9 +698,13 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="Fireworks.html#Fireworks.toolbox.junctions.ClockworkHubJunction.reset">reset() (Fireworks.toolbox.junctions.ClockworkHubJunction method)</a>
+      <li><a href="Fireworks.html#Fireworks.core.message.Message.reset">reset() (Fireworks.core.message.Message method)</a>
 
       <ul>
+        <li><a href="Fireworks.html#Fireworks.extensions.database.DBPipe.reset">(Fireworks.extensions.database.DBPipe method)</a>
+</li>
+        <li><a href="Fireworks.html#Fireworks.toolbox.junctions.ClockworkHubJunction.reset">(Fireworks.toolbox.junctions.ClockworkHubJunction method)</a>
+</li>
         <li><a href="Fireworks.html#Fireworks.toolbox.junctions.HubJunction.reset">(Fireworks.toolbox.junctions.HubJunction method)</a>
 </li>
         <li><a href="Fireworks.html#Fireworks.toolbox.pipes.BatchingPipe.reset">(Fireworks.toolbox.pipes.BatchingPipe method)</a>

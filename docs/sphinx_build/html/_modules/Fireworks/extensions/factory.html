@@ -42,6 +42,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../License.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Example.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Fireworks.html">API Reference</a></li>
 </ul>
 
@@ -133,7 +134,7 @@
                 <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                     <span class="n">metric</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">evaluator</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="c1"># TODO: Make sure this resets the metric</span>
                 <span class="c1"># Running the evaluator should perform training on the dataset followed by evlaution and return evaluation metrics</span>
-                <span class="n">evaluator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eval_set</span><span class="p">)</span>
+                <span class="n">evaluator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eval_set</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
                 <span class="c1"># Evaluate the metrics that were attached to the evaluator</span>
                 <span class="n">computed_metrics</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">metric</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">computed_metrics</span><span class="p">)</span>
@@ -205,9 +206,9 @@
 
 <div class="viewcode-block" id="SQLFactory.write"><a class="viewcode-back" href="../../../Fireworks.html#Fireworks.extensions.factory.SQLFactory.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">metrics</span><span class="p">):</span>
 
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Parameters and Metrics messages must be equal length.&quot;</span><span class="p">)</span>
-
+        <span class="c1"># if len(params) != len(metrics):</span>
+        <span class="c1">#     raise ValueError(&quot;Parameters and Metrics messages must be equal length.&quot;)</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">computed_metrics</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">computed_metrics</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metric</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">metrics_pipes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">metric</span><span class="p">)</span>

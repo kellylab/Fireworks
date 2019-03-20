@@ -57,7 +57,6 @@ Fireworks.database has Pipes that can read from and write to a database. Because
 In order to make machine learning research reproducible, we have to be able to store metadata and outputs associated with experiments. Fireworks.experiment implements an Experiment class that creates a folder and can generate file handles and SQLite tables residing in that folder to save information to. It can also store user defined metadata, all in a given experiment’s folder. This folder can be reloaded at any time in order to access the results of that experiment, regenerate plots, perform additional analyses, and so on.
 Additionally, it is possible to save and load the state of an entire computation graph using the Fireworks.scaffold module. Pipes, Junctions, and Models each implement methods for serializing and de-serializing their internal state. These methods can be customized by the user and are compatible with PyTorch's built-in save mechanisms. This allows you to save not just the internal parameters of a Model, but also a snapshot of the data used to train the model and the state of whatever preprocessing operations were performed, along with the outputs and logs that were produced. By saving the entire pipeline in this manner, it's easier to reason about reproducibility of experiments.
 
-
 **Not Yet Implemented / Roadmap Objectives**
 
 **Plotting**
@@ -80,7 +79,6 @@ Many sources have to occasionally perform time consuming O(1) tasks (such as pre
 **Static Performance Optimization**
 
 Right now, the focus is on establishing the interface and abstractions associated with Fireworks. There are many places where operations can be optimized using better algorithms, cython implementations of important code sections, and eliminating redundant code.
-
 
 Contents
 =====================================

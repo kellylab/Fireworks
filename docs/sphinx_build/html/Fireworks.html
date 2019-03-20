@@ -16,7 +16,7 @@
     <script type="text/javascript" src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Tutorial" href="Tutorial.html" />
+    <link rel="prev" title="Examples" href="Example.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -43,6 +43,7 @@
 <li class="toctree-l1"><a class="reference internal" href="License.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example.html">Examples</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#messages">Messages</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#pipes">Pipes</a></li>
@@ -61,7 +62,7 @@
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="Tutorial.html" title="previous chapter">Tutorial</a></li>
+      <li>Previous: <a href="Example.html" title="previous chapter">Examples</a></li>
   </ul></li>
 </ul>
 </div>
@@ -254,6 +255,11 @@ path_or_buf) is provided, it will be used as a filepath to save to.</p>
 If one of the two is empty (length 0), then that is fine.</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="Fireworks.core.message.Message.reset">
+<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="attribute">
 <dt id="Fireworks.core.message.Message.columns">
 <code class="descname">columns</code><a class="headerlink" href="#Fireworks.core.message.Message.columns" title="Permalink to this definition">¶</a></dt>
@@ -288,6 +294,11 @@ every column continues to have the same length as needed.</td>
 </tbody>
 </table>
 </dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.message.Message.enable_gradients">
+<code class="descname">enable_gradients</code><span class="sig-paren">(</span><em>columns=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#Message.enable_gradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.Message.enable_gradients" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.message.Message.merge">
@@ -523,6 +534,16 @@ data to and from Tensor format, so you can mix your deep learning tasks with oth
 <code class="descname">index</code><a class="headerlink" href="#Fireworks.core.message.TensorMessage.index" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the index for internal tensors</p>
 </dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.message.TensorMessage.enable_gradients">
+<code class="descname">enable_gradients</code><span class="sig-paren">(</span><em>columns=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#TensorMessage.enable_gradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.TensorMessage.enable_gradients" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Fireworks.core.message.TensorMessage.disable_gradients">
+<code class="descname">disable_gradients</code><span class="sig-paren">(</span><em>columns=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/message.html#TensorMessage.disable_gradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.message.TensorMessage.disable_gradients" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="Fireworks.core.message.TensorMessage.append">
@@ -1131,7 +1152,9 @@ containing the provided title of the input Pipe to to all outputs.</p>
 <dt id="Fireworks.toolbox.pipes.RepeaterPipe">
 <em class="property">class </em><code class="descclassname">Fireworks.toolbox.pipes.</code><code class="descname">RepeaterPipe</code><span class="sig-paren">(</span><em>input</em>, <em>*args</em>, <em>repetitions=10</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/pipes.html#RepeaterPipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.pipes.RepeaterPipe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.core.pipe.Pipe" title="Fireworks.core.pipe.Pipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.pipe.Pipe</span></code></a></p>
-<p>Given an input Pipe that is iterable, enables repeat iteration.</p>
+<p>Given an input Pipe that is iterable, enables repeat iteration. In other words, one loop through a RepeaterPipe is equivalent to n loops
+through the original dataset, where n is the number of repetitions that have been configured. Thsi can be useful for oversampling a data
+set without having to duplicate it.</p>
 <dl class="method">
 <dt id="Fireworks.toolbox.pipes.RepeaterPipe.reset">
 <code class="descname">reset</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Fireworks.toolbox.pipes.RepeaterPipe.reset" title="Permalink to this definition">¶</a></dt>
@@ -1200,6 +1223,14 @@ This can be useful for quickly inserting a function into the middle of a pipelin
 <em class="property">class </em><code class="descclassname">Fireworks.toolbox.pipes.</code><code class="descname">TensorPipe</code><span class="sig-paren">(</span><em>*args</em>, <em>columns=None</em>, <em>cuda=True</em>, <em>device=0</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/pipes.html#TensorPipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.pipes.TensorPipe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.core.pipe.HookedPassThroughPipe" title="Fireworks.core.pipe.HookedPassThroughPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.pipe.HookedPassThroughPipe</span></code></a></p>
 <p>This Pipe converts Messages to tensors. You can specify which columns should be converted.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="Fireworks.toolbox.pipes.GradientPipe">
+<em class="property">class </em><code class="descclassname">Fireworks.toolbox.pipes.</code><code class="descname">GradientPipe</code><span class="sig-paren">(</span><em>*args</em>, <em>columns=None</em>, <em>cuda=True</em>, <em>device=0</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/toolbox/pipes.html#GradientPipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.toolbox.pipes.GradientPipe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#Fireworks.core.pipe.HookedPassThroughPipe" title="Fireworks.core.pipe.HookedPassThroughPipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.pipe.HookedPassThroughPipe</span></code></a></p>
+<p>This Pipe sets requires_grad=True for Tensor Columns. This is necessary for computing gradients when training a model.
+You can specify which columns should be converted.</p>
 </dd></dl>
 
 </div>
@@ -2067,6 +2098,11 @@ default, this will be set to an instance of declarative_base from SQLalchemy.</l
 <dd><p>Bases: <a class="reference internal" href="#Fireworks.core.pipe.Pipe" title="Fireworks.core.pipe.Pipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fireworks.core.pipe.Pipe</span></code></a></p>
 <p>Pipe that can iterate through the output of a database query.</p>
 <dl class="method">
+<dt id="Fireworks.extensions.database.DBPipe.reset">
+<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/database.html#DBPipe.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.database.DBPipe.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="Fireworks.extensions.database.DBPipe.reset_session">
 <code class="descname">reset_session</code><span class="sig-paren">(</span><em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/database.html#DBPipe.reset_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.database.DBPipe.reset_session" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -2256,7 +2292,7 @@ save any data in Message format relatively easily.</p>
 
 <dl class="class">
 <dt id="Fireworks.extensions.experiment.Experiment">
-<em class="property">class </em><code class="descclassname">Fireworks.extensions.experiment.</code><code class="descname">Experiment</code><span class="sig-paren">(</span><em>experiment_name</em>, <em>db_path</em>, <em>description=None</em>, <em>load=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/experiment.html#Experiment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.experiment.Experiment" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">Fireworks.extensions.experiment.</code><code class="descname">Experiment</code><span class="sig-paren">(</span><em>experiment_name</em>, <em>db_path='.'</em>, <em>description=None</em>, <em>load=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/extensions/experiment.html#Experiment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.extensions.experiment.Experiment" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="method">
 <dt id="Fireworks.extensions.experiment.Experiment.load_experiment">

@@ -8,7 +8,7 @@ class DummyEvaluator:
 
     def __init__(self): pass
 
-    def run(self, dataloader): pass
+    def run(self, dataloader, **kwargs): pass
 
 def dummy_trainer():
 
