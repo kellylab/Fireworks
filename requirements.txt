@@ -1,1 +1,1 @@
-pytorch-ignite>=0.1.0
+pytorch-ignite>=0.1.0.post2
