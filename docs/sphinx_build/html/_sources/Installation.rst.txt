@@ -4,7 +4,8 @@ Installation
 Install from PyPi
 -----------------------
 
-You will be able to install Fireworks using pip (Note: this doesn't work yet.):
+Fireworks was written using Python 3.5 and has only been tested on Python 3.5+.
+You can install Fireworks using pip/pip3:
 
 ::
 
