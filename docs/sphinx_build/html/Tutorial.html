@@ -397,19 +397,68 @@ link and treat it as such.</p>
 <div class="section" id="saving-and-loading">
 <h2>Saving and Loading<a class="headerlink" href="#saving-and-loading" title="Permalink to this headline">¶</a></h2>
 <blockquote>
-<div><ul class="simple">
-<li>Experiment example</li>
-<li>Scaffold example</li>
-</ul>
+<div><p>Fireworks provides utilities for saving data produced by a training run and organizing those files into a single directory. The Experiment
+class deals with the latter.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">Fireworks.extensions</span> <span class="kn">import</span> <span class="n">Experiment</span>
+
+<span class="n">description</span> <span class="o">=</span> <span class="s2">&quot;Summary of this experiment&quot;</span>
+<span class="n">my_experiment</span> <span class="o">=</span> <span class="n">Experiment</span><span class="p">(</span><span class="s2">&quot;path_to_experiment_directory&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will create a folder in the given directory for this experiment and initialize a sqlite file with metadata related to the experiment
+containing information like the description, time stamp,etc. We can now create file handles and database connections within this directory.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">my_experiment</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;example.txt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;hello&#39;</span><span class="p">)</span>
+
+<span class="n">folder_str</span> <span class="o">=</span> <span class="n">my_experiment</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;example2.txt&#39;</span><span class="p">,</span> <span class="n">string_only</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="n">engine</span> <span class="o">=</span> <span class="n">my_experiment</span><span class="o">.</span><span class="n">get_engine</span><span class="p">(</span><span class="s1">&#39;my_engine&#39;</span><span class="p">)</span> <span class="c1"># Returns an engine pointing to &#39;my_engine.sqlite&#39; in the directory</span>
+<span class="n">connection</span> <span class="o">=</span> <span class="n">my_experiment</span><span class="o">.</span><span class="n">get_connection</span><span class="p">(</span><span class="s1">&#39;my_engine&#39;</span><span class="p">)</span> <span class="c1"># Returns a connection pointing to &#39;my_engine.sqlite&#39; and creates engine if it doesn&#39;t exist</span>
+</pre></div>
+</div>
+<p>The Experiment.open() method works just like the standard open() function in Python. Additionally, if you set string_only=True, then you
+can get a string with the path to the location instead.</p>
+<p>A scaffold can be used to track multiple objects in a pipeline. You can simultaneously save and load the states of all of the entire pipeline
+at once, and this way you can record not just model checkpoints, but the state of your preprocessing stages (the random shuffle, current batch, etc.)</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">Fireworks</span> <span class="kn">import</span> <span class="n">Scaffold</span>
+
+<span class="n">message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">({</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">100</span><span class="p">)})</span>
+<span class="n">shuffler</span> <span class="o">=</span> <span class="n">ShufflerPipe</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">message</span><span class="p">)</span>
+<span class="n">minibatcher</span> <span class="o">=</span> <span class="n">BatchingPipe</span><span class="p">(</span><span class="n">shuffler</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">25</span><span class="p">)</span>
+<span class="n">train_set</span> <span class="o">=</span> <span class="n">TensorPipe</span><span class="p">(</span><span class="n">minibatcher</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">NonlinearModel</span><span class="p">()</span>
+<span class="n">my_scaffold</span> <span class="o">=</span> <span class="n">Scaffold</span><span class="p">({</span><span class="s1">&#39;shuffler&#39;</span><span class="p">:</span> <span class="n">shuffler</span><span class="p">,</span> <span class="s1">&#39;minibatcher&#39;</span><span class="p">:</span> <span class="n">minibatcher</span><span class="p">,</span> <span class="s1">&#39;train_set&#39;</span><span class="p">:</span> <span class="n">train_set</span><span class="p">,</span> <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">model</span><span class="p">})</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">scaffold</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span> <span class="c1"># Get a dict with the states of every object tracked by scaffold</span>
+<span class="n">scaffold</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">folder_str</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">)</span> <span class="c1"># Save the state dicts to a json file</span>
+<span class="n">scaffold</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">folder_str</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">)</span> <span class="c1"># Load the state dicts from a json file into all of the tracked components</span>
+</pre></div>
+</div>
 </div></blockquote>
 </div>
 <div class="section" id="hyperparameter-optimization">
 <h2>Hyperparameter Optimization<a class="headerlink" href="#hyperparameter-optimization" title="Permalink to this headline">¶</a></h2>
 <blockquote>
-<div><ul class="simple">
-<li>Explain what this is</li>
-<li>Factory example</li>
+<div><p>The Factory class works by repeatedly spawning independent instances of a model, training and evaluating them, and recording computed
+metrics. These are then used to generate a new set of parameters and repeat the process.</p>
+<dl class="docutils">
+<dt>A factory class takes four arguments:</dt>
+<dd><ul class="first simple">
+<li>Trainer - A function that takes a dictionary of hyperparameters,  trains a model and returns the trained model</li>
+<li>Metrics_dict - A dictionary of objects that compute metrics during model training or evaluation.</li>
+<li>Generator - A function that takes the computed metrics and parameters up to this point as arguments and generates a new set of metrics to</li>
 </ul>
+<p>use for training. The generator represents the search strategy that you are using.
+- Eval_dataloader - A dataloader (an iterable that produces minibatches as Message objects) that represents the evaluation dataset.</p>
+<blockquote class="last">
+<div><ul class="simple">
+<li>Params_table - An SQLalchemy table specifying the schema for storing parameters.</li>
+<li>Metrics_tables - A dict of SQLalchemy tables specifying the schema for storing metrics.</li>
+<li>Engine - An SQLalchemy engine, representing the database connection.</li>
+</ul>
+</div></blockquote>
+</dd>
+</dl>
+<p>See the model selection example for a demonstration of this process, and the API reference for more details.</p>
 </div></blockquote>
 </div>
 </div>
@@ -425,7 +474,7 @@ link and treat it as such.</p>
       &copy;2018, Saad Khan.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.4</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

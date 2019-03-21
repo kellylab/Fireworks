@@ -59,19 +59,19 @@ Messages
 
     .. code-block:: python
 
-            message = message.to_dataframe(['x']) # Leave blank to move all tensor columns
-            print(type(message['x']))
-            >> <class 'pandas.core.series.Series'>
-            message = message.to_tensors(['x']) # Leave blank to move all dataframe columns
-            print(type(message['x']))
-            >> <class 'torch.Tensor'>
+        message = message.to_dataframe(['x']) # Leave blank to move all tensor columns
+        print(type(message['x']))
+        >> <class 'pandas.core.series.Series'>
+        message = message.to_tensors(['x']) # Leave blank to move all dataframe columns
+        print(type(message['x']))
+        >> <class 'torch.Tensor'>
 
     You can also move tensors to and from different devices.
 
     .. code-block:: python
 
-            message = message.cuda(device_num=0, keys=['x']) # Leave blank to default to device 0 and all tensor columns
-            message = message.cpu(keys=['x']) # Leave blank to default to all tensor columns
+        message = message.cuda(device_num=0, keys=['x']) # Leave blank to default to device 0 and all tensor columns
+        message = message.cpu(keys=['x']) # Leave blank to default to all tensor columns
 
 Chaining Pipes and Junctions
 ------------------------------
@@ -336,10 +336,65 @@ State
 
 Saving and Loading
 ------------------------------
-    - Experiment example
-    - Scaffold example
+
+    Fireworks provides utilities for saving data produced by a training run and organizing those files into a single directory. The Experiment
+    class deals with the latter.
+
+    .. code-block:: python
+
+       from Fireworks.extensions import Experiment
+
+       description = "Summary of this experiment"
+       my_experiment = Experiment("path_to_experiment_directory", description=description)
+
+    This will create a folder in the given directory for this experiment and initialize a sqlite file with metadata related to the experiment
+    containing information like the description, time stamp,etc. We can now create file handles and database connections within this directory.
+
+    .. code-block:: python
+
+        with my_experiment.open('example.txt') as f:
+            f.write('hello')
+
+        folder_str = my_experiment.open('example2.txt', string_only=True)
+
+        engine = my_experiment.get_engine('my_engine') # Returns an engine pointing to 'my_engine.sqlite' in the directory
+        connection = my_experiment.get_connection('my_engine') # Returns a connection pointing to 'my_engine.sqlite' and creates engine if it doesn't exist
+
+    The Experiment.open() method works just like the standard open() function in Python. Additionally, if you set string_only=True, then you
+    can get a string with the path to the location instead.
+
+    A scaffold can be used to track multiple objects in a pipeline. You can simultaneously save and load the states of all of the entire pipeline
+    at once, and this way you can record not just model checkpoints, but the state of your preprocessing stages (the random shuffle, current batch, etc.)
+
+    .. code-block:: python
+
+        from Fireworks import Scaffold
+
+        message = Message({"x": np.random.rand(100)})
+        shuffler = ShufflerPipe(input=message)
+        minibatcher = BatchingPipe(shuffler, batch_size=25)
+        train_set = TensorPipe(minibatcher)
+        model = NonlinearModel()
+        my_scaffold = Scaffold({'shuffler': shuffler, 'minibatcher': minibatcher, 'train_set': train_set, 'model': model})
+        state = scaffold.serialize() # Get a dict with the states of every object tracked by scaffold
+        scaffold.save(path=folder_str, method='json') # Save the state dicts to a json file
+        scaffold.load(folder_str, method='json') # Load the state dicts from a json file into all of the tracked components
 
 Hyperparameter Optimization
 -------------------------------
-    - Explain what this is
-    - Factory example
+
+    The Factory class works by repeatedly spawning independent instances of a model, training and evaluating them, and recording computed
+    metrics. These are then used to generate a new set of parameters and repeat the process.
+
+    A factory class takes four arguments:
+     - Trainer - A function that takes a dictionary of hyperparameters,  trains a model and returns the trained model
+     - Metrics_dict - A dictionary of objects that compute metrics during model training or evaluation.
+     - Generator - A function that takes the computed metrics and parameters up to this point as arguments and generates a new set of metrics to
+     use for training. The generator represents the search strategy that you are using.
+     - Eval_dataloader - A dataloader (an iterable that produces minibatches as Message objects) that represents the evaluation dataset.
+
+        - Params_table - An SQLalchemy table specifying the schema for storing parameters.
+        - Metrics_tables - A dict of SQLalchemy tables specifying the schema for storing metrics.
+        - Engine - An SQLalchemy engine, representing the database connection.
+
+    See the model selection example for a demonstration of this process, and the API reference for more details.

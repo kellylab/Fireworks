@@ -116,11 +116,11 @@ Nonlinear Regression
                 self.log_interval = log_interval
 
             def iteration_completed(self, engine):
-                    iter = (engine.state.iteration-1)
-                    if iter % self.log_interval == 0:
-                        current_state = Message.from_objects(deepcopy(engine.state.output['state']))
-                        current_state['iteration'] = [iter]
-                        self.model_state = self.model_state.append(current_state)
+                iter = (engine.state.iteration-1)
+                if iter % self.log_interval == 0:
+                    current_state = Message.from_objects(deepcopy(engine.state.output['state']))
+                    current_state['iteration'] = [iter]
+                    self.model_state = self.model_state.append(current_state)
 
             def compute(self):
                 # Return most recent model state
@@ -215,6 +215,8 @@ Model Selection
     'best' model is? This is where we can use model selection and hyper-parameter optimization to test out different variations of our training
     process and models in order to select an optimal one.
 
+    The make_model function takes a dictionary of parameters and produces a Model from those parameters:
+
     .. code-block:: python
 
         def make_model(parameters):
@@ -227,6 +229,8 @@ Model Selection
             for letter in exclude: # Prevent training from taking place for these parameters
                 model.freeze(letter)
             return model
+
+    The next function takes a set of parameters and trains and returns a model initialized off those parameters.
 
     .. code-block:: python
 
@@ -243,6 +247,11 @@ Model Selection
                 return trainer
 
             return train_from_params
+
+    The next object is a function that takes two arguments: a Message containing all of the previously used parameters, along with a dictionary
+    of Messages containing all of the previously computed metrics. In general, such a function can use these arguments to implement any desired
+    model selection or hyperparameter selection algorithm. To keep things simple, we simply make this parameterizer iterate through every
+    possible class of fourth order polynomial.
 
     .. code-block:: python
 
@@ -266,6 +275,9 @@ Model Selection
 
                 except StopIteration:
                     raise EndHyperparameterOptimization
+
+    Lastly, we can provide as many Metrics as we want to be computed during this process. Here, we define an accuracy metric which simply
+    evaluates the average L2-loss on the test set:
 
     .. code-block:: python
 
@@ -291,6 +303,8 @@ Model Selection
                     )
                 return Message({'average-loss': [self.l2 / self.num_examples]}).to_dataframe()
 
+    We put all of these components together via a LocalMemoryFactory and run the model selection process.
+
     .. code-block:: python
 
         description = "In this experiment, we will compare the performance of different polynomial models when regressed against data generated from a random polynomial."
@@ -305,6 +319,10 @@ Model Selection
 
         factory.run()
 
+    Now, we can read the metrics and models that were saved at each step and plot the results. If you look at the final metrics, you should
+    observe that the model of the form 'a + bx + cx^2' had the lowest test set error. The next code block also saves the parameters and
+    metrics into the experiment directory.
+
     .. code-block:: python
 
         params, metrics = factory.read()
@@ -315,7 +333,10 @@ Model Selection
         params_file = experiment.open('params.csv', string_only=True)
         params.to('csv', path=params_file)
 
-    .. youtube:: yEZ7EvC9Zxc&t=5s
+    The resulting animation should loop through and plot each of the models that were trained against the true model. Here is an example
+    of that output:
+
+    .. youtube:: yEZ7EvC9Zxc
 
 Using Databases
 ------------------------------

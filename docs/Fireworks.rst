@@ -23,6 +23,8 @@ With a uniform data structure for information transfer established, we can creat
 
 These transformations are represented as classes rather than functions because we sometimes want to be able to apply transformations in a just-in-time or ahead-of-time manner, or have the transformations be dependent on some upstream or downstream aspect of the pipeline. For example, the Pipe that creates minibatches for training can convert its inputs to tensors and move them to GPU as a minibatch is created, using the tensor-conversion method implemented by an upstream Pipe. Or a Pipe that caches its inputs can prefetch objects to improve overall performance, and so on.
 
+.. image:: Pipes-notext.png
+
 .. automodule:: Fireworks.core.pipe
     :members:
     :undoc-members:
@@ -46,6 +48,8 @@ define how recursive method calls would work in this situation, it is the respon
 aggregate its components in order to respond to method calls from downstream sources. This provides a way to construct more complex
 computation graphs.
 
+.. image:: Junctions-notext.png
+
 .. automodule:: Fireworks.core.junction
     :members:
     :undoc-members:
@@ -65,12 +69,17 @@ The goal of the Models class is to decouple the parameterization of a model from
 swapped in and out as needed, while the computation logic is contained in the code itself. This structure makes it easy to save and load models.
 For example, if a Model computes y = m*x+b, the parameters m and b can be provided during initialization, they can be learned using gradient
 descent, or loaded in from a database.
+
+.. image:: JustModels-notext.png
+
 Models function like Junctions with respect to their parameters, which are called components. These components can be PyTorch Parameters,
 PyTorch Modules, or some other object that has whatever methods/attributes the Model requires.
 Models function like Pipes with respect to their arguments. Hence, you can insert a Model inside a Pipeline. Models also function like
 PyTorch Modules with respect to computation and training. Hence, once you have created a Model, you can train it using a method like gradient
 descent. PyTorch will keep track of gradients and Parameters inside your Models automatically. You can also freeze and unfreeze components
 of a Model using the freeze/unfreeze methods.
+
+.. image:: JustModels-notext2.png
 
 .. code-block:: python
 

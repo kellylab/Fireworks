@@ -195,11 +195,11 @@ to have examples/nonlinear_regression_utils.py be importable for this to work as
         <span class="bp">self</span><span class="o">.</span><span class="n">log_interval</span> <span class="o">=</span> <span class="n">log_interval</span>
 
     <span class="k">def</span> <span class="nf">iteration_completed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
-            <span class="nb">iter</span> <span class="o">=</span> <span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">iter</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_interval</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">current_state</span> <span class="o">=</span> <span class="n">Message</span><span class="o">.</span><span class="n">from_objects</span><span class="p">(</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">]))</span>
-                <span class="n">current_state</span><span class="p">[</span><span class="s1">&#39;iteration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">iter</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">model_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_state</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_state</span><span class="p">)</span>
+        <span class="nb">iter</span> <span class="o">=</span> <span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">iter</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_interval</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">current_state</span> <span class="o">=</span> <span class="n">Message</span><span class="o">.</span><span class="n">from_objects</span><span class="p">(</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">]))</span>
+            <span class="n">current_state</span><span class="p">[</span><span class="s1">&#39;iteration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">iter</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_state</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_state</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># Return most recent model state</span>
@@ -287,6 +287,7 @@ during training. The resulting graph should show a very close fit.</p>
 <div><p>We were able to get a good fit because we already knew what the true model was. What if we wanted to algorithmically determine what the
 ‘best’ model is? This is where we can use model selection and hyper-parameter optimization to test out different variations of our training
 process and models in order to select an optimal one.</p>
+<p>The make_model function takes a dictionary of parameters and produces a Model from those parameters:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">make_model</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
     <span class="n">temp_parameters</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
     <span class="n">include</span> <span class="o">=</span> <span class="p">[</span><span class="n">letter</span> <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="s1">&#39;c&#39;</span><span class="p">,</span><span class="s1">&#39;d&#39;</span><span class="p">,</span><span class="s1">&#39;e&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">]</span>
@@ -299,6 +300,7 @@ process and models in order to select an optimal one.</p>
     <span class="k">return</span> <span class="n">model</span>
 </pre></div>
 </div>
+<p>The next function takes a set of parameters and trains and returns a model initialized off those parameters.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_trainer</span><span class="p">(</span><span class="n">train_set</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">train_from_params</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
@@ -314,6 +316,10 @@ process and models in order to select an optimal one.</p>
     <span class="k">return</span> <span class="n">train_from_params</span>
 </pre></div>
 </div>
+<p>The next object is a function that takes two arguments: a Message containing all of the previously used parameters, along with a dictionary
+of Messages containing all of the previously computed metrics. In general, such a function can use these arguments to implement any desired
+model selection or hyperparameter selection algorithm. To keep things simple, we simply make this parameterizer iterate through every
+possible class of fourth order polynomial.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Parameterizer</span><span class="p">:</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -336,6 +342,8 @@ process and models in order to select an optimal one.</p>
             <span class="k">raise</span> <span class="n">EndHyperparameterOptimization</span>
 </pre></div>
 </div>
+<p>Lastly, we can provide as many Metrics as we want to be computed during this process. Here, we define an accuracy metric which simply
+evaluates the average L2-loss on the test set:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">AccuracyMetric</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_transform</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span><span class="n">x</span><span class="p">):</span>
@@ -359,6 +367,7 @@ process and models in order to select an optimal one.</p>
         <span class="k">return</span> <span class="n">Message</span><span class="p">({</span><span class="s1">&#39;average-loss&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">l2</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_examples</span><span class="p">]})</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
 </pre></div>
 </div>
+<p>We put all of these components together via a LocalMemoryFactory and run the model selection process.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">description</span> <span class="o">=</span> <span class="s2">&quot;In this experiment, we will compare the performance of different polynomial models when regressed against data generated from a random polynomial.&quot;</span>
 <span class="n">experiment</span> <span class="o">=</span> <span class="n">Experiment</span><span class="p">(</span><span class="s2">&quot;model_selection&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">)</span>
 
@@ -372,6 +381,9 @@ process and models in order to select an optimal one.</p>
 <span class="n">factory</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </div>
+<p>Now, we can read the metrics and models that were saved at each step and plot the results. If you look at the final metrics, you should
+observe that the model of the form ‘a + bx + cx^2’ had the lowest test set error. The next code block also saves the parameters and
+metrics into the experiment directory.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">params</span><span class="p">,</span> <span class="n">metrics</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
 <span class="n">accuracy_file</span> <span class="o">=</span> <span class="n">experiment</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;accuracy.csv&#39;</span><span class="p">,</span> <span class="n">string_only</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;csv&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">accuracy_file</span><span class="p">)</span>
@@ -381,7 +393,9 @@ process and models in order to select an optimal one.</p>
 <span class="n">params</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;csv&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">params_file</span><span class="p">)</span>
 </pre></div>
 </div>
-<iframe src="https://www.youtube.com/embed/yEZ7EvC9Zxc&amp;t=5s" style="border: 0; height: 345px; width: 560px">
+<p>The resulting animation should loop through and plot each of the models that were trained against the true model. Here is an example
+of that output:</p>
+<iframe src="https://www.youtube.com/embed/yEZ7EvC9Zxc" style="border: 0; height: 345px; width: 560px">
 </iframe></div></blockquote>
 </div>
 <div class="section" id="using-databases">
@@ -509,7 +523,7 @@ in the experiment folder storing historical parameters and metrics.</p>
       &copy;2018, Saad Khan.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.4</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

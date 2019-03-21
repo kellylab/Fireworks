@@ -625,6 +625,7 @@ containing the remaining pairs.</p>
 <h2>Pipes<a class="headerlink" href="#pipes" title="Permalink to this headline">¶</a></h2>
 <p>With a uniform data structure for information transfer established, we can create functions and classes that are reusable because of the standardized I/O expectations. A Pipe object represents some transformation that is applied to data as it flows through a pipeline. For example, a pipeline could begin with a source that reads from the database, followed by one that cache those reads in memory, then one that applies embedding transformations to create tensors, and so on.</p>
 <p>These transformations are represented as classes rather than functions because we sometimes want to be able to apply transformations in a just-in-time or ahead-of-time manner, or have the transformations be dependent on some upstream or downstream aspect of the pipeline. For example, the Pipe that creates minibatches for training can convert its inputs to tensors and move them to GPU as a minibatch is created, using the tensor-conversion method implemented by an upstream Pipe. Or a Pipe that caches its inputs can prefetch objects to improve overall performance, and so on.</p>
+<img alt="_images/Pipes-notext.png" src="_images/Pipes-notext.png" />
 <span class="target" id="module-Fireworks.core.pipe"></span><dl class="function">
 <dt id="Fireworks.core.pipe.recursive">
 <code class="descclassname">Fireworks.core.pipe.</code><code class="descname">recursive</code><span class="sig-paren">(</span><em>accumulate=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/pipe.html#recursive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.pipe.recursive" title="Permalink to this definition">¶</a></dt>
@@ -1240,6 +1241,7 @@ You can specify which columns should be converted.</p>
 define how recursive method calls would work in this situation, it is the responsibility of each Junction to have built-in logic for how to
 aggregate its components in order to respond to method calls from downstream sources. This provides a way to construct more complex
 computation graphs.</p>
+<img alt="_images/Junctions-notext.png" src="_images/Junctions-notext.png" />
 <span class="target" id="module-Fireworks.core.junction"></span><dl class="class">
 <dt id="Fireworks.core.junction.Junction">
 <em class="property">class </em><code class="descclassname">Fireworks.core.junction.</code><code class="descname">Junction</code><span class="sig-paren">(</span><em>*args</em>, <em>components=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Fireworks/core/junction.html#Junction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Fireworks.core.junction.Junction" title="Permalink to this definition">¶</a></dt>
@@ -1370,13 +1372,15 @@ function that you want.
 The goal of the Models class is to decouple the parameterization of a model from its computation. By doing this, those parameters can be
 swapped in and out as needed, while the computation logic is contained in the code itself. This structure makes it easy to save and load models.
 For example, if a Model computes y = m*x+b, the parameters m and b can be provided during initialization, they can be learned using gradient
-descent, or loaded in from a database.
-Models function like Junctions with respect to their parameters, which are called components. These components can be PyTorch Parameters,
+descent, or loaded in from a database.</p>
+<img alt="_images/JustModels-notext.png" src="_images/JustModels-notext.png" />
+<p>Models function like Junctions with respect to their parameters, which are called components. These components can be PyTorch Parameters,
 PyTorch Modules, or some other object that has whatever methods/attributes the Model requires.
 Models function like Pipes with respect to their arguments. Hence, you can insert a Model inside a Pipeline. Models also function like
 PyTorch Modules with respect to computation and training. Hence, once you have created a Model, you can train it using a method like gradient
 descent. PyTorch will keep track of gradients and Parameters inside your Models automatically. You can also freeze and unfreeze components
 of a Model using the freeze/unfreeze methods.</p>
+<img alt="_images/JustModels-notext2.png" src="_images/JustModels-notext2.png" />
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">m</span> <span class="o">=</span> <span class="n">LinearModel</span><span class="p">(</span><span class="n">components</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;m&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.</span><span class="p">]})</span> <span class="c1"># Initialize model for y = m*x+b with m = 1.</span>
 <span class="k">print</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">required_components</span><span class="p">)</span> <span class="c1"># This will return [&#39;m&#39;, &#39;b&#39;]. A model can optionally have initialization logic for components not provided</span>
 <span class="c1"># For example, the y-intercept b can have a default initialization if not provided here.</span>
@@ -2805,7 +2809,7 @@ See documentation for Ignite (<a class="reference external" href="https://github
       &copy;2018, Saad Khan.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.4</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
