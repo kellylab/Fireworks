@@ -24,7 +24,7 @@ model = NonlinearModel()
 # Construct training closure and train using ignite
 base_loss = torch.nn.MSELoss()
 loss = lambda batch: base_loss(batch['y_pred'], batch['y'])
-trainer = IgniteJunction(components={'model': model, 'dataset': train_set}, loss=loss, optimizer='Adam', lr=.1)
+trainer = IgniteJunction(components={'model': model, 'dataset': train_set}, loss=loss, optimizer='Adam', lr=.1, visdom=False)
 
 class ModelSaverMetric(Metric):
 
@@ -62,7 +62,7 @@ if __name__== "__main__":
     initial_state = model.get_state()
     Message.from_objects(initial_state).to('json', path=file_path)
 
-    trainer.train(max_epochs=30)
+    trainer.train(max_epochs=200)
 
     final_loss = loss(model(test_set[0:250]))
     print("Final loss on test set:: {0}".format(final_loss))

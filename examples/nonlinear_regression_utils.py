@@ -12,9 +12,9 @@ def generate_data(n=1000):
     a = randint(-10,10)
     b = randint(-10,10)
     c = randint(-10,10)
-    errors = np.random.normal(0, .5, n)
+    errors = np.random.normal(0, .15, n)
     x = np.random.rand(n) * 100 - 50
-    y = a + b*x + c*x**2
+    y = a + b*x + c*x**2 + errors
 
     return Message({'x': x, 'y': y, 'errors': errors}), {'a': a, 'b': b, 'c': c}
 

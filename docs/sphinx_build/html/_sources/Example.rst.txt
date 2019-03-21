@@ -1,8 +1,17 @@
 Examples
 =====================================
+The below examples walk through the scripts in the examples examples directory of the main project on Github.
 
 Making a Model
 ------------------------------
+
+    In this example, we will use least squares regression to fit a polynomial of order 5 to data generated
+    by a random polynomial. In the process, we will see how to pre-process data, interface with databases,
+    do model selection, save checkpoints, and visualize the data using Fireworks. All of these techniques
+    would be directly applicable to training arbitrary models, such as neural networks, and they take
+    advantage of PyTorch's ability to train a model using GPUs.
+
+    Let's begin with the code in examples/nonlinear_regression_utils.py. We have the model definition:
 
     .. code-block:: python
 
@@ -25,8 +34,18 @@ Making a Model
 
                 return message
 
-Nonlinear Regression
-------------------------------
+    The class PyTorch_Model is a subclass of torch.nn.Module and has all of the functionality of a PyTorch module.
+    It has some additional functionality, such as the ability to produce a dictionary representation of its state,
+    the ability to be part of a pipeline, and the ability to specify parameters that must be provided upon initialization
+    or via init_default_components using the required_components list.
+
+    Every Model must implement a method called forward() which performs an evaluation on input data. Notice that in this example,
+    the model is evaluated by directly calling it on the argument sample_input. This is the recommended way to invoke a model, because
+    the __call__ method is overridden to first call the Model's input (if it exists).
+
+    Additionally, there are some functions to generate the training data from a random polynomial. You can change the parameterization
+    settings here to play with the model training in the next example. Notice that we inject some noise in the data to make the problem
+    more difficult:
 
     .. code-block:: python
 
@@ -37,9 +56,11 @@ Nonlinear Regression
             c = randint(-10,10)
             errors = np.random.normal(0, .5, n)
             x = np.random.rand(n) * 100 - 50
-            y = a + b*x + c*x**2
+            y = a + b*x + c*x**2 + errors
 
             return Message({'x': x, 'y': y, 'errors': errors}), {'a': a, 'b': b, 'c': c}
+
+    Next, we define a function to return the data after performing a train/test split:
 
     .. code-block:: python
 
@@ -50,11 +71,24 @@ Nonlinear Regression
 
             shuffler = ShufflerPipe(train)
             minibatcher = BatchingPipe(shuffler, batch_size=25)
-            train_set = TensorPipe(minibatcher, columns=['x','y'])
+            train_set = TensorPipe(minibatcher, columns=['x','y']) # Only columns 'x' and 'y' will be tensorized
 
             test_set = TensorPipe(test, columns=['x','y'])
 
             return train_set, test_set, params
+
+    This function randomly breaks apart the original data into two Pipes that produce tensorized minibatches
+    that are randomly sampled from each set. If you have a Cuda-enabled GPU available, these batches will also
+    be moved to GPU memory.
+
+Nonlinear Regression
+------------------------------
+
+    Next, let's look at the code in examples/nonlinear_regression.py. You can run this script and see the model
+    training, along with the final output which plots a visualization of the training trajectory. You will need
+    to have examples/nonlinear_regression_utils.py be importable for this to work as well.
+
+    Let's walk through the code in detail:
 
     .. code-block:: python
 
@@ -69,6 +103,8 @@ Nonlinear Regression
         base_loss = torch.nn.MSELoss()
         loss = lambda batch: base_loss(batch['y_pred'], batch['y'])
         trainer = IgniteJunction(components={'model': model, 'dataset': train_set}, loss=loss, optimizer='Adam', lr=.1)
+
+    The Experiment class facilitates.
 
     .. code-block:: python
 
@@ -90,6 +126,9 @@ Nonlinear Regression
                 # Return most recent model state
                 l = len(self.model_state)
                 return self.model_state[l-1]
+
+    This metric saves a dict representing the state of our model after every 100 training steps. The IgniteJunction returns the
+    current model state by default in its ouput dict. See Ignite documentation for more details about Metrics and Engines.
 
     .. code-block:: python
 
@@ -113,6 +152,8 @@ Nonlinear Regression
         final_loss = loss(model(test_set[0:250]))
         print("Final loss on test set:: {0}".format(final_loss))
 
+    Here, we initialize our Metric and attach it to the IgniteJunction trainer. We also perform an initial evaluation run of the model
+    on the test set, save a snapshot of the initialized model, train the model, and print a final test set evaluation.
 
     .. code-block:: python
 
@@ -128,6 +169,11 @@ Nonlinear Regression
         Message.from_objects(initial_state).to('json', path=file_path)
 
         fig, ax = plt.subplots()
+
+    Now we visualize the results by plotting the learned polynomial over time as the model was trained. We can do this easily because
+    we have the intermediate states in Message format. We can simply loop through this Message and call set_state on a new NonlinearModel
+    instance to get a snapshot of the model during a given iteration. The animate() function below uses these snapshots to draw a graph
+    of those models against a graph of the true data.
 
     .. code-block:: python
 
@@ -152,9 +198,22 @@ Nonlinear Regression
 
     .. youtube:: WJw-iIegq3o
 
+    The results weren't that great, and this is partially because we are using a 4th order polynomial to fit data from a 2nd order polynomial.
+    What happens if we restrict our model? We can do this by freezing arbitrary parameters. Let's uncomment out these two lines from
+    the script and rerun the script. This initializes the model with 'd' and 'e' set to 0 and then freezes them so they will not update
+    during training. The resulting graph should show a very close fit.
+
+    .. code-block:: python
+
+       model = NonlinearModel(components={'d': [0], 'e':[0]})
+       model.freeze(['d','e'])
 
 Model Selection
 ------------------------------
+
+    We were able to get a good fit because we already knew what the true model was. What if we wanted to algorithmically determine what the
+    'best' model is? This is where we can use model selection and hyper-parameter optimization to test out different variations of our training
+    process and models in order to select an optimal one.
 
     .. code-block:: python
 
@@ -261,6 +320,11 @@ Model Selection
 Using Databases
 ------------------------------
 
+    If your dataset is really big, then it might make sense to store it in a database. We can stream in data from a database query at the
+    start of our pipeline. First, we dump our training data into a sqlite table (this could be any database supported by sqlalchemy). We
+    define a list of columns for our table and use the Fireworks.extensions.database.create_table() function to create a simple SQLalchemy
+    table object. Let's look at the code in examples/database_example.py
+
     .. code-block:: python
 
         columns = [
@@ -270,6 +334,9 @@ Using Databases
         ]
 
         table = create_table("nonlinear_regression", columns)
+
+    We then create a TablePipe, which has methods for insertion and queries to our table. We inert our data (in Message format) to this DBPipe.
+    We also write the true model parameters to a file for posterity.
 
     .. code-block:: python
 
@@ -290,6 +357,11 @@ Using Databases
 
             db.commit()
 
+    Next, we write a function that produces a DBPipe which can iterate through this table. Notice how you only have to provide the
+    name of the table in order to query it. DBPipe uses schema reflection to infer the appropriate schema by searching for a table in the
+    database with the same name as the provided string.
+    We can also perform arbitrary SQL queries on this object if we want, but the default is a "SELECT * FROM table" query.
+
     .. code-block:: python
 
         def load_data(filename='example.sqlite'):
@@ -303,6 +375,9 @@ Using Databases
 
             return db, params
 
+    We combine all of this into a new get_data() function. In examples/nonlinear_regression.py, modify the import statements to import
+    this get_data function instead of the one in examples/nonlinear_regression_utils.py. Now, when you run examples/nonlinear_regression.py,
+    you will be training your model using data from a db query.
 
     .. code-block:: python
 
@@ -325,6 +400,12 @@ Using Databases
 
 Model Selection With Databases
 ------------------------------
+
+    We can also save our metrics from the model selection example to a database. To do so, we will use a SQLFactory instead of a
+    LocalMemoryFactory. The only difference between these two is that the former takes additional arguments for table objects that describe
+    the schema to use for storing parameters and metrics, along with an engine to connect to the database. Run the code in
+    examples/model_selection_database.py to get something similar to the original model_selection example, except there will be sqlite files
+    in the experiment folder storing historical parameters and metrics.
 
     .. code-block:: python
 
