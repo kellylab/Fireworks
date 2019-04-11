@@ -4,6 +4,8 @@ Introduction
 
 Fireworks is a python-first batch-processing framework for performing the data processing steps of machine learning in a modular and reusable manner. It provides a set of core components (Message, Pipes, Junctions, and Models) that can be used to implement different operations and can be joined together to construct a data science workflow along with a set of tools built around these components. Data is represented using an object called a Message, which generalizes the concept of a DataFrame to include PyTorch tensors (analogous to a TensorFrame in other frameworks), and there are modules here for training machine learning models, reading and writing to databases using Messages, hyperparameter optimization, and saving/loading snapshots and logs of your data pipeline for re-usability and reproducibility.
 
+See documentation at https://fireworks.readthedocs.io
+
 Overview
 =====================================
 
