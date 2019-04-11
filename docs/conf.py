@@ -20,7 +20,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Fireworks'
-copyright = '2018, Saad Khan'
+copyright = '2019, Saad Khan'
 author = 'Saad Khan'
 
 # The short X.Y version
@@ -49,7 +49,6 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
     'sphinx.ext.napoleon',
-    'sphinxcontrib.youtube'
 ]
 
 autodoc_member_order = 'bysource'
