@@ -1,4 +1,5 @@
-fireworks-ml
+pytorch-ignite>=0.1.0
+fireworks-ml>=0.3.0
 torch>=1.0.1.post2
 alabaster>=0.7.12
 atomicwrites>=1.1.5
