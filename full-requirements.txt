@@ -20,7 +20,6 @@ itsdangerous==0.24
 Jinja2==2.10
 MarkupSafe==1.0
 more-itertools==4.1.0
-numpy>=1.14.3
 packaging==19.0
 pandas>=0.23.0
 pbr==5.1.3
