@@ -95,7 +95,8 @@ def test_paths():
     xmen = exp.Experiment('xmen', 'data')
     xbois = exp.Experiment('xbois',os.path.join(os.getcwd(),'data'))
     for folder in os.listdir('data'):
-        rmtree(os.path.join('data',folder))
+        if folder != 'README.md':
+            rmtree(os.path.join('data',folder))
 
 def test_load_experiment():
     dirs = os.listdir()
