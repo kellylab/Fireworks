@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/kellylab/Fireworks.svg?branch=development)](https://travis-ci.org/kellylab/Fireworks)
+
 # Fireworks
 Introduction
 =====================================
