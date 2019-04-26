@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from Bio import SeqIO
 import pandas as pd
-from Fireworks import Message, Junction
+from Fireworks.core import Message, Junction
 from Fireworks.utils import index_to_list
 from Fireworks.core.cache import LRUCache, LFUCache, UnlimitedCache
 from abc import ABC, abstractmethod

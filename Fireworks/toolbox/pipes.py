@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from Bio import SeqIO
 import pandas as pd
 import Fireworks
-from Fireworks import Pipe, HookedPassThroughPipe, recursive
-from Fireworks import Message
+from Fireworks.core import Pipe, HookedPassThroughPipe, recursive
+from Fireworks.core import Message
 from Fireworks.utils import index_to_list
 from Fireworks.core.cache import LRUCache, LFUCache, UnlimitedCache
 from Fireworks.utils import one_hot

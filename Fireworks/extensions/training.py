@@ -1,4 +1,4 @@
-from Fireworks import Junction, Model, Message
+from Fireworks.core import Junction, Model, Message
 from Fireworks.utils import subset_dict
 import torch
 from torch import optim

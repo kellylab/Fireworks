@@ -1,5 +1,5 @@
 import abc
-from Fireworks import Message, Junction
+from Fireworks.core import Message, Junction
 from .training import IgniteJunction
 from Fireworks.utils.exceptions import EndHyperparameterOptimization
 from .database import create_table, TablePipe

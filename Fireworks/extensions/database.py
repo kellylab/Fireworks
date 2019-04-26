@@ -2,7 +2,7 @@ import sqlalchemy
 from sqlalchemy import Table, Column, Integer, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Query
-from Fireworks import Message, cat, Pipe
+from Fireworks.core import Message, cat, Pipe
 import numpy as np
 import pandas as pd
 
@@ -228,7 +228,7 @@ class DBPipe(Pipe):
     def reset(self):
 
         self.__iter__()
-        
+
     def __iter__(self):
 
         self.iterator = self.query.__iter__()
