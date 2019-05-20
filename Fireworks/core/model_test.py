@@ -108,7 +108,6 @@ def test_Model_get_set_state():
     state = neuralnet.get_state()
     neuralnet2 = ComplexModel()
     neuralnet2.set_state(state, reset=False)
-    assert False
 
 def test_Model_save_load():
 

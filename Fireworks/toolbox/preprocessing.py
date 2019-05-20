@@ -4,6 +4,7 @@ import numpy as np
 from Fireworks.toolbox import pipes as pl
 from Fireworks.core import Model, PyTorch_Model
 from collections import defaultdict
+import torch 
 
 """
 This file contains models that can perform common preprocessing tasks, such as batch normalization.
@@ -63,7 +64,7 @@ class Normalizer(PyTorch_Model):
 
     def init_default_components(self):
 
-        self.components['mean'] = defaultdict(lambda : 0)
+        self.components['mean'] = defaultdict(lambda : [0])
         self.components['variance'] = defaultdict(lambda : 1)
         self.components['count'] = [0.]
         self.components['rolling_sum'] = defaultdict(lambda : 0.)
@@ -77,7 +78,10 @@ class Normalizer(PyTorch_Model):
         keys = self.mean.keys()
         for key in keys:
             if key in batch:
-                batch[key] = (batch[key] - self.mean[key])/np.sqrt(self.variance[key])
+                if self.variance[key].device.type == 'cuda':
+                    batch[key] = (batch[key] - self.mean[key])/torch.sqrt(self.variance[key])
+                else:
+                    batch[key] = (batch[key] - self.mean[key])/np.sqrt(self.variance[key])
 
         return batch
 
@@ -89,7 +93,7 @@ class Normalizer(PyTorch_Model):
             self.count += len(batch)
             for key in batch.keys(): #WARNING: This is numerically unstable
                 self.rolling_sum[key] += sum(batch[key])
-                self.rolling_squares[key] += sum((batch[key]-self.mean[key])**2)
+                self.rolling_squares[key] += sum((batch[key]-self.mean[key][0])**2)
                 # self.rolling_squares[key] += np.var(batch[key])
                 self.compile()
 

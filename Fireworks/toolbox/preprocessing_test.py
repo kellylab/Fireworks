@@ -7,6 +7,7 @@ import numpy as np
 from .pipes import ShufflerPipe, BatchingPipe
 import math
 from itertools import count
+import torch 
 
 def test_Normalizer():
 
@@ -21,6 +22,8 @@ def test_Normalizer():
     normie = pr.Normalizer(input=batcher)
     normie.disable_inference()
     assert normie.count == 0
+    if torch.cuda.is_available():
+        normie.cuda()
     for batch in normie: # Loop through the dataset
         continue
     assert normie.count == n
@@ -29,10 +32,10 @@ def test_Normalizer():
     normie.compile()
     means = normie.mean
     variances = normie.variance
-    assert (abs(means['ok'] - a) < .4).all()
-    assert (abs(means['good'] - c) < .4).all()
-    assert (abs(variances['ok'] - b**2) < 2).all()
-    assert (abs(variances['good'] - d**2) < 5).all()
+    assert (abs(means['ok'] - a) < .5).all()
+    assert (abs(means['good'] - c) < .5).all()
+    assert (abs(variances['ok'] - b**2) < 3).all()
+    assert (abs(variances['good'] - d**2) < 6).all()
     normie.disable_updates()
     normie.enable_inference()
     batch = normie[0:100]
@@ -46,6 +49,8 @@ def test_Normalizer():
     assert abs(mood )< .3
     assert abs(vok -1 )< .4
     normie2 = pr.Normalizer(input=normie)
+    if torch.cuda.is_available():
+        normie2.cuda()
     normie2.disable_inference()
     normie.enable_inference()
     normie.disable_updates()
@@ -56,10 +61,10 @@ def test_Normalizer():
     normie2.compile()
     means = normie2.mean
     variances = normie2.variance
-    assert (abs(means['ok']) < .4).all()
-    assert (abs(means['good']) < .4).all()
-    assert (abs(variances['ok'] - 1) < .4).all()
-    assert (abs(variances['good'] - 1) < .4).all()
+    assert (abs(means['ok']) < .5).all()
+    assert (abs(means['good']) < .5).all()
+    assert (abs(variances['ok'] - 1) < .5).all()
+    assert (abs(variances['good'] - 1) < .5).all()
 
     assert normie.mean['good'] != normie2.mean['good']
     assert normie.mean['ok'] != normie2.mean['ok']
