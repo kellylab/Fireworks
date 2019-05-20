@@ -149,6 +149,29 @@ class smart_dummy(Pipe):
     def __iter__(self):
         return self.reset()
 
+class ComplexModel(PyTorch_Model):
+
+    required_components = ['activation']
+
+    def __init__(self, components = {}, input = None, in_column = 'x', out_column = 'y', in_features=4, out_features=2):
+        PyTorch_Model.__init__(self, components, input = input)
+        self.in_column = in_column
+        self.out_column = out_column
+        self.in_features = in_features
+        self.out_features = out_features
+        self.components['layer1'] = torch.nn.modules.Linear(100, 23)
+
+    def init_default_components(self):
+        self.components['activation'] = torch.nn.Sigmoid()
+        
+
+    def forward(self, message):
+
+        y = self.activation(self.linear(message[self.in_column]))
+        message[self.out_column] = y
+
+        return message 
+
 class DummyModel(PyTorch_Model):
     """ Implements y = m*x + b """
     required_components = ['m', 'b']

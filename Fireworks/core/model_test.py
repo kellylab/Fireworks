@@ -1,7 +1,7 @@
 from .model import Model, model_from_module
 from Fireworks.utils.exceptions import ParameterizationError
 from Fireworks.toolbox.pipes import BatchingPipe, LoopingPipe, ShufflerPipe, RepeaterPipe
-from Fireworks.utils.test_helpers import DummyModel, DummyMultilinearModel, LinearJunctionModel, LinearModule, RandomJunction, generate_linear_model_data, generate_multilinear_model_data, DummyUpdateModel
+from Fireworks.utils.test_helpers import DummyModel, DummyMultilinearModel, LinearJunctionModel, LinearModule, RandomJunction, generate_linear_model_data, generate_multilinear_model_data, DummyUpdateModel, ComplexModel
 from Fireworks import Message, Junction
 import random
 import torch
@@ -104,6 +104,11 @@ def test_Model_get_set_state():
     assert cstate2['external']['m'] == (sabura, 'm')
     assert (cstate2['internal'].keys()) == set(['out_column', 'in_column', 'b'])
     assert cstate2['internal']['b'] == 0.
+    neuralnet = ComplexModel()
+    state = neuralnet.get_state()
+    neuralnet2 = ComplexModel()
+    neuralnet2.set_state(state, reset=False)
+    assert False
 
 def test_Model_save_load():
 

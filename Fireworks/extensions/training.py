@@ -95,7 +95,7 @@ class IgniteJunction(Junction):
         'ReduceLROnPlateau': ['mode', 'factor', 'patience', 'verbose', 'threshold', 'threshold_mode', 'cooldown', 'min_lr', 'eps'],
     }
 
-    def __init__(self, components, loss, optimizer, scheduler=None, update_function=default_training_closure, visdom=True, **kwargs):
+    def __init__(self, components, loss, optimizer, scheduler=None, update_function=default_training_closure, visdom=True, environment='default', description='', **kwargs):
 
         Junction.__init__(self, components = components)
         parameters = [x for x in self.model.all_parameters() if x.requires_grad]
@@ -110,7 +110,7 @@ class IgniteJunction(Junction):
         # Configure metrics and events
         if visdom:
             # self.model_state = Message()
-            self.attach_events(environment='default', description='')
+            self.attach_events(environment=environment, description=description)
 
     def train(self, dataset = None, max_epochs=10):
 

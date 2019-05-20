@@ -1,6 +1,6 @@
 from sqlalchemy import Table, Column, Integer, String, create_engine
 from Fireworks import Message
-from Fireworks import database as db
+from Fireworks.extensions import database as db
 from Fireworks import pipe as pl
 import os
 import numpy as np
