@@ -4,7 +4,7 @@ with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
 setup(
-    name='Fireworks-ml',
+    name='fireworks-ml',
     version='0.3.1',
     packages=find_packages(),
     author_email="skhan8@mail.einstein.yu.edu",
