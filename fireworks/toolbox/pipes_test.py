@@ -1,15 +1,15 @@
-import Fireworks
+import fireworks
 import os
 import pandas as pd
-from Fireworks.toolbox import pipes as pl
-from Fireworks import Message
-from Fireworks.utils import index_to_list
-from Fireworks.utils.test_helpers import *
+from fireworks.toolbox import pipes as pl
+from fireworks import Message
+from fireworks.utils import index_to_list
+from fireworks.utils.test_helpers import *
 import torch
 import numpy as np
 import itertools
 
-test_dir = Fireworks.test_dir
+test_dir = fireworks.test_dir
 
 def conforms_to_spec(pipe):
 

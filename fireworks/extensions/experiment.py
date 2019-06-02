@@ -2,7 +2,7 @@ import os
 from sqlalchemy import create_engine, Column, Float, Integer, String, DateTime
 from sqlalchemy.orm import sessionmaker
 import datetime
-from Fireworks.core import Message
+from fireworks.core import Message
 from . import database as db
 from deprecated import deprecated
 

@@ -1,9 +1,9 @@
-import Fireworks
+import fireworks
 import os
-from Fireworks.toolbox import junctions as jn
-from Fireworks import Message
-from Fireworks.utils import index_to_list
-from Fireworks.utils.test_helpers import *
+from fireworks.toolbox import junctions as jn
+from fireworks import Message
+from fireworks.utils import index_to_list
+from fireworks.utils.test_helpers import *
 import numpy as np
 import itertools
 

@@ -2,7 +2,7 @@ import sqlalchemy
 from sqlalchemy import Table, Column, Integer, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Query
-from Fireworks.core import Message, cat, Pipe
+from fireworks.core import Message, cat, Pipe
 import numpy as np
 import pandas as pd
 

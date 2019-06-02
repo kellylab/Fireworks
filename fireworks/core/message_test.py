@@ -1,5 +1,5 @@
-from Fireworks import message as messi
-from Fireworks import Message, TensorMessage
+from fireworks import message as messi
+from fireworks import Message, TensorMessage
 import torch
 import numpy as np
 from itertools import product

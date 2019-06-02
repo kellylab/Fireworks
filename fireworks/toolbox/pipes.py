@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 from Bio import SeqIO
 import pandas as pd
-import Fireworks
-from Fireworks.core import Pipe, HookedPassThroughPipe, recursive
-from Fireworks.core import Message
-from Fireworks.utils import index_to_list
-from Fireworks.core.cache import LRUCache, LFUCache, UnlimitedCache
-from Fireworks.utils import one_hot
+import fireworks
+from fireworks.core import Pipe, HookedPassThroughPipe, recursive
+from fireworks.core import Message
+from fireworks.utils import index_to_list
+from fireworks.core.cache import LRUCache, LFUCache, UnlimitedCache
+from fireworks.utils import one_hot
 from abc import ABC, abstractmethod
 from itertools import count
 import types
@@ -117,12 +117,12 @@ class LoopingPipe(Pipe):
         above = [i for i in index if i >= self.position] # Go forward to reach these
         below = [i for i in index if i < self.position] # Will have to reset the loop to reach these
         if len(above) > 0:
-            above_values = Fireworks.cat([self.step_forward(i+1) for i in above])
+            above_values = fireworks.cat([self.step_forward(i+1) for i in above])
         else:
             above_values = Message()
         if len(below) > 0:
             self.reset() # Position will now be reset to 0
-            below_values = Fireworks.cat([self.step_forward(i+1) for i in below])
+            below_values = fireworks.cat([self.step_forward(i+1) for i in below])
         else:
             below_values = Message()
         return below_values.append(above_values) # TODO: Resort this message so values are in the order requested by index
@@ -194,8 +194,8 @@ class LoopingPipe(Pipe):
         x = Message()
         for _ in range(n - self.position):
             try:
-                # x = x.append(Fireworks.merge([Pipe.__next__() for Pipe in self.inputs.values()]))
-                # x = Fireworks.merge([pipe.__next__() for pipe in self.inputs.values()])
+                # x = x.append(fireworks.merge([Pipe.__next__() for Pipe in self.inputs.values()]))
+                # x = fireworks.merge([pipe.__next__() for pipe in self.inputs.values()])
                 x = self.input.__next__()
                 self.position += 1
             except StopIteration:
@@ -261,7 +261,7 @@ class CachingPipe(Pipe):
     def init_cache(self, *args, **kwargs):
         """
         This initializes a cache object at self.cache. There are currently two types of Cache available; LRUCache and LFUCache, and you can
-        choose which one by specifying the cache_type argument in the initializer. See Fireworks/core/cache.py for more information on
+        choose which one by specifying the cache_type argument in the initializer. See fireworks/core/cache.py for more information on
         Message caches.
         """
         choices = {'LRU': LRUCache, 'LFU': LFUCache}

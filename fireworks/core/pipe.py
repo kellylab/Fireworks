@@ -1,6 +1,6 @@
 from abc import ABC
 from .message import Message
-from Fireworks.utils import index_to_list
+from fireworks.utils import index_to_list
 from .cache import LRUCache, LFUCache, UnlimitedCache
 from types import MethodType
 from abc import ABC, abstractmethod

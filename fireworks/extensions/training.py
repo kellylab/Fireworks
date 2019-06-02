@@ -1,5 +1,5 @@
-from Fireworks.core import Junction, Model, Message
-from Fireworks.utils import subset_dict
+from fireworks.core import Junction, Model, Message
+from fireworks.utils import subset_dict
 import torch
 from torch import optim
 from ignite.engine import Engine, Events

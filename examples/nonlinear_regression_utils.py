@@ -1,8 +1,8 @@
 import torch
-from Fireworks import Message, PyTorch_Model
-from Fireworks.extensions import IgniteJunction
-from Fireworks.toolbox import ShufflerPipe, BatchingPipe, TensorPipe
-from Fireworks.toolbox.preprocessing import train_test_split, Normalizer
+from fireworks import Message, PyTorch_Model
+from fireworks.extensions import IgniteJunction
+from fireworks.toolbox import ShufflerPipe, BatchingPipe, TensorPipe
+from fireworks.toolbox.preprocessing import train_test_split, Normalizer
 
 import numpy as np
 from random import randint

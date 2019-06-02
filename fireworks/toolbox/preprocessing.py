@@ -1,8 +1,8 @@
 from functools import lru_cache
 import math
 import numpy as np
-from Fireworks.toolbox import pipes as pl
-from Fireworks.core import Model, PyTorch_Model
+from fireworks.toolbox import pipes as pl
+from fireworks.core import Model, PyTorch_Model
 from collections import defaultdict
 import torch 
 

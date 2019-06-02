@@ -1,11 +1,11 @@
 from .pipe import Pipe, HookedPassThroughPipe
 from .message import Message
-from Fireworks.utils import index_to_list
-from Fireworks.utils.test_helpers import *
+from fireworks.utils import index_to_list
+from fireworks.utils.test_helpers import *
 import numpy as np
 import itertools
 
-test_dir = Fireworks.test_dir
+test_dir = fireworks.test_dir
 
 # def conforms_to_spec(pipe):
 #

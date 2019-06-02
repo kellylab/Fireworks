@@ -1,8 +1,8 @@
 from .model import Model, model_from_module
-from Fireworks.utils.exceptions import ParameterizationError
-from Fireworks.toolbox.pipes import BatchingPipe, LoopingPipe, ShufflerPipe, RepeaterPipe
-from Fireworks.utils.test_helpers import DummyModel, DummyMultilinearModel, LinearJunctionModel, LinearModule, RandomJunction, generate_linear_model_data, generate_multilinear_model_data, DummyUpdateModel, ComplexModel
-from Fireworks import Message, Junction
+from fireworks.utils.exceptions import ParameterizationError
+from fireworks.toolbox.pipes import BatchingPipe, LoopingPipe, ShufflerPipe, RepeaterPipe
+from fireworks.utils.test_helpers import DummyModel, DummyMultilinearModel, LinearJunctionModel, LinearModule, RandomJunction, generate_linear_model_data, generate_multilinear_model_data, DummyUpdateModel, ComplexModel
+from fireworks import Message, Junction
 import random
 import torch
 from torch.nn import Parameter

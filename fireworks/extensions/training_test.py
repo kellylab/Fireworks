@@ -1,6 +1,6 @@
-from Fireworks.extensions import training
-from Fireworks.toolbox.pipes import BatchingPipe, ShufflerPipe, FunctionPipe
-from Fireworks.utils.test_helpers import DummyModel, generate_linear_model_data
+from fireworks.extensions import training
+from fireworks.toolbox.pipes import BatchingPipe, ShufflerPipe, FunctionPipe
+from fireworks.utils.test_helpers import DummyModel, generate_linear_model_data
 import torch
 
 base_loss = torch.nn.MSELoss()

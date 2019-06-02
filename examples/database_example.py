@@ -1,7 +1,7 @@
 from sqlalchemy import Table, Column, Float, String, create_engine
-from Fireworks.extensions.database import create_table, TablePipe, DBPipe
-from Fireworks.toolbox.preprocessing import train_test_split
-from Fireworks.toolbox.pipes import LoopingPipe, CachingPipe, ShufflerPipe, BatchingPipe, TensorPipe
+from fireworks.extensions.database import create_table, TablePipe, DBPipe
+from fireworks.toolbox.preprocessing import train_test_split
+from fireworks.toolbox.pipes import LoopingPipe, CachingPipe, ShufflerPipe, BatchingPipe, TensorPipe
 import os
 import json
 """ Modify the nonlinear regression examples to read from a database for input data and write to database for factory metrics """

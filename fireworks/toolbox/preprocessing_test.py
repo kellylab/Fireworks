@@ -1,8 +1,8 @@
 import numpy as np
-from Fireworks import Message
-from Fireworks.toolbox import preprocessing as pr
-from Fireworks.toolbox import CachingPipe, TensorPipe
-from Fireworks.utils.test_helpers import generate_linear_model_data
+from fireworks import Message
+from fireworks.toolbox import preprocessing as pr
+from fireworks.toolbox import CachingPipe, TensorPipe
+from fireworks.utils.test_helpers import generate_linear_model_data
 import numpy as np
 from .pipes import ShufflerPipe, BatchingPipe
 import math

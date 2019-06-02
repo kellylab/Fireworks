@@ -1,6 +1,6 @@
-import Fireworks
-from Fireworks import Message
-from Fireworks.extensions import IgniteJunction, Experiment
+import fireworks
+from fireworks import Message
+from fireworks.extensions import IgniteJunction, Experiment
 from ignite.metrics import Metric
 
 import torch

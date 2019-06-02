@@ -1,21 +1,21 @@
-import Fireworks
+import fireworks
 import os
 import pandas as pd
-from Fireworks.core.pipe import recursive
-from Fireworks import Message, Junction, Pipe, Model, PyTorch_Model, model_from_module
-from Fireworks.utils import index_to_list
+from fireworks.core.pipe import recursive
+from fireworks import Message, Junction, Pipe, Model, PyTorch_Model, model_from_module
+from fireworks.utils import index_to_list
 import numpy as np
 import math
 import itertools
-from Fireworks.utils.exceptions import ParameterizationError
-from Fireworks.toolbox.pipes import BatchingPipe, LoopingPipe, ShufflerPipe, RepeaterPipe
-from Fireworks import Message, Junction
+from fireworks.utils.exceptions import ParameterizationError
+from fireworks.toolbox.pipes import BatchingPipe, LoopingPipe, ShufflerPipe, RepeaterPipe
+from fireworks import Message, Junction
 import random
 import torch
 from torch.nn import Parameter
 from random import randint
 
-test_dir = Fireworks.test_dir
+test_dir = fireworks.test_dir
 """
 This file contains numerous mock objects which are used by the tests.
 """

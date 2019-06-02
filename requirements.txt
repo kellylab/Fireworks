@@ -1,4 +1,4 @@
-torch>=0.1.0.post2
+torch==0.1.1.0
 bidict>=0.17.2
 biopython>=1.71
 Deprecated>=1.2.3

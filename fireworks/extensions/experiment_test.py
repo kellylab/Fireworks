@@ -1,6 +1,6 @@
-from Fireworks import Message
-from Fireworks import experiment as exp
-from Fireworks import database as db
+from fireworks import Message
+from fireworks import experiment as exp
+from fireworks import database as db
 from sqlalchemy import Column, Integer, String
 from shutil import rmtree
 import datetime

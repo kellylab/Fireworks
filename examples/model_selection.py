@@ -1,12 +1,12 @@
 import torch
 from copy import deepcopy
-from Fireworks import Message
-from Fireworks.extensions import IgniteJunction
-from Fireworks.utils.exceptions import EndHyperparameterOptimization
+from fireworks import Message
+from fireworks.extensions import IgniteJunction
+from fireworks.utils.exceptions import EndHyperparameterOptimization
 from ignite.metrics import Metric
 from ignite.exceptions import NotComputableError
-from Fireworks.extensions import LocalMemoryFactory, Experiment
-from Fireworks.extensions.training import default_training_closure, default_evaluation_closure
+from fireworks.extensions import LocalMemoryFactory, Experiment
+from fireworks.extensions.training import default_training_closure, default_evaluation_closure
 from itertools import combinations, count
 
 import numpy as np

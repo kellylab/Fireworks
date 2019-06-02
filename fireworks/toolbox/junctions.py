@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from Bio import SeqIO
 import pandas as pd
-from Fireworks.core import Message, Junction
-from Fireworks.utils import index_to_list
-from Fireworks.core.cache import LRUCache, LFUCache, UnlimitedCache
+from fireworks.core import Message, Junction
+from fireworks.utils import index_to_list
+from fireworks.core.cache import LRUCache, LFUCache, UnlimitedCache
 from abc import ABC, abstractmethod
 from itertools import count
 import types

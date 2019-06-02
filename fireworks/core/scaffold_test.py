@@ -1,5 +1,5 @@
-from Fireworks.core.scaffold import Scaffold
-from Fireworks.utils.test_helpers import *
+from fireworks.core.scaffold import Scaffold
+from fireworks.utils.test_helpers import *
 import os
 from shutil import rmtree
 

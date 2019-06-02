@@ -1,7 +1,7 @@
 from sqlalchemy import Table, Column, Float, Integer, create_engine
-from Fireworks.extensions.database import create_table, TablePipe, DBPipe
-from Fireworks.extensions import SQLFactory
-from Fireworks.extensions import Experiment
+from fireworks.extensions.database import create_table, TablePipe, DBPipe
+from fireworks.extensions import SQLFactory
+from fireworks.extensions import Experiment
 import os
 
 from examples.model_selection import loss, train_set, test_set, params, get_trainer, Parameterizer, AccuracyMetric

@@ -1,4 +1,4 @@
-from Fireworks.core.component_map import Component_Map, PyTorch_Component_Map
+from fireworks.core.component_map import Component_Map, PyTorch_Component_Map
 import torch
 
 class DummyClass:

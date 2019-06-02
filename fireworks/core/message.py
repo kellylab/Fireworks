@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from copy import deepcopy
 from collections import Hashable
-from Fireworks.utils import index_to_list, slice_length
+from fireworks.utils import index_to_list, slice_length
 
 to_methods = ['csv', 'json', 'dict', 'html', 'feather', 'latex', 'stata', 'msgpack', 'gbq', 'records', 'sparse', 'dense', 'string', 'clipboard']
 read_methods = {

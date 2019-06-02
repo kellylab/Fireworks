@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod, abstractproperty
 import torch
 from torch.nn import Module, Parameter
 from abc import abstractmethod
-from Fireworks.utils.exceptions import ParameterizationError
+from fireworks.utils.exceptions import ParameterizationError
 from .message import Message
 from .junction import Junction, PyTorch_Junction
 from .component_map import Component_Map, PyTorch_Component_Map

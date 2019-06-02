@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from Bio import SeqIO
 import pandas as pd
 from .message import Message
-from Fireworks.utils import index_to_list
-from Fireworks.utils.exceptions import ParameterizationError
+from fireworks.utils import index_to_list
+from fireworks.utils.exceptions import ParameterizationError
 from .component_map import Component_Map, PyTorch_Component_Map
 from .cache import LRUCache, LFUCache, UnlimitedCache
 from abc import ABC, abstractmethod
