@@ -57,18 +57,19 @@ class Normalizer(PyTorch_Model):
 
     required_components = ['mean', 'variance', 'count', 'rolling_sum', 'rolling_squares']
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, keys=None, **kwargs):
 
         PyTorch_Model.__init__(self, *args, **kwargs)
         self.freeze(['mean', 'variance', 'count', 'rolling_sum', 'rolling_squares'])
+        self.keys = keys
 
     def init_default_components(self):
 
-        self.components['mean'] = defaultdict(lambda : [0])
-        self.components['variance'] = defaultdict(lambda : 1)
-        self.components['count'] = [0.]
-        self.components['rolling_sum'] = defaultdict(lambda : 0.)
-        self.components['rolling_squares'] = defaultdict(lambda : 0.)
+        self.components['mean'] = {}
+        self.components['variance'] = {}
+        self.components['count'] = 0
+        self.components['rolling_sum'] = {}
+        self.components['rolling_squares'] = {}
 
     def forward(self, batch):
         """
@@ -91,9 +92,17 @@ class Normalizer(PyTorch_Model):
         """
         if method == 'next' or method is None:
             self.count += len(batch)
-            for key in batch.keys(): #WARNING: This is numerically unstable
-                self.rolling_sum[key] += sum(batch[key])
-                self.rolling_squares[key] += sum((batch[key]-self.mean[key][0])**2)
+            if self.keys is None: 
+                to_iter = batch.keys()
+            else: 
+                to_iter = self.keys
+            for key in to_iter: #WARNING: This is numerically unstable
+                if key in self.rolling_sum:
+                    self.rolling_sum[key] += sum(batch[key])
+                    self.rolling_squares[key] += sum((batch[key]-self.mean[key][0])**2)
+                else:
+                    self.rolling_sum[key] = sum(batch[key])
+                    self.rolling_squares[key] = sum((batch[key] - sum(batch[key])/len(batch) )**2)
                 # self.rolling_squares[key] += np.var(batch[key])
                 self.compile()
 
@@ -103,8 +112,8 @@ class Normalizer(PyTorch_Model):
         """
         for key in self.rolling_sum:
             self.mean[key] = self.rolling_sum[key] / self.count
-            self.variance[key] = (self.rolling_squares[key] - (self.rolling_sum[key])**2/self.count) / self.count + self.mean[key]**2
-            self.variance[key] = self.rolling_squares[key] / self.count
+            #self.variance[key] = (self.rolling_squares[key] - (self.rolling_sum[key])**2/self.count) / self.count + self.mean[key]**2
+            self.variance[key] = self.rolling_squares[key] / self.count + .0001 #self.rolling_squares[key] == 0 # If variance == 0, then the data point is always 0
 
     # def fit(self, dataset=None, continuamos=False):
     #
