@@ -1,19 +1,19 @@
 [![Build Status](https://travis-ci.org/kellylab/fireworks.svg?branch=development)](https://travis-ci.org/kellylab/fireworks)
 
-# fireworks
+# Fireworks - PyTorch with DataFrames
+
 Introduction
 =====================================
 
-The goal of fireworks is to make machine learning research more reproducible and consistent by providing tools to construct machine learning pipelines (the process of going from a raw dataset to a model to training that model, saving checkpoints, and analyzing its results) in a modular and structured manner.
-
-Specifically, fireworks is a batch-processing framework for Python and PyTorch. It is meant to provide an easy method to stream data from a dataset into a machine learning model while performing preprocessing steps such as randomization, train/test split, batch normalization, etc. along the way. fireworks offers more flexibility and structure for constructing input pipelines than the built-in dataset modules in PyTorch, but is also meant to be easier to use than frameworks such as Apache Spark. In particular, fireworks makes it easy to move objects to and from torch.Tensor and to and from the GPU, which is not natively possible in other batch-processing frameworks.
+This library provides an implementation of DataFrames which are compatible with PyTorch Tensors. This means that you can construct models that refer to their inputs by column name, which makes it easier to keep track of your variables when working with complex datasets. This also makes it easier to integrate those models into your existing Pandas-based data science workflow.
+Additionally, we provide a complete machine learning framework built around DataFrames to facilitate model training, saving/loading, preprocessing, and hyperparameter optimization.
 
 Overview
 =====================================
 
-Data is represented in fireworks using an object called a Message, which generalizes the concept of a DataFrame to include PyTorch tensors (analogous to a TensorFrame in other frameworks). This data structure is popular in data science because of how well it organizes information while remaining flexible enough to facilitate any statistical analysis. By providing an implementation of a DataFrame that supports torch.Tensor objects, we can now use this data structure with PyTorch. You can easily to move columns in a Message to and from torch.Tensor and to and from the GPU all within one object.
+Data is represented in Fireworks using an object called a Message, which generalizes the concept of a DataFrame to include PyTorch tensors (analogous to a TensorFrame in other frameworks). This data structure is popular in statistical research because of how well it organizes information while remaining flexible enough to facilitate any statistical analysis. By providing an implementation of a DataFrame that supports torch.Tensor objects, we can now use this data structure with PyTorch. You can easily to move columns in a Message to and from torch.Tensor and to and from the GPU all within one object.
 
-fireworks provides a set of abstract primitives (Pipes, Junctions, and Models) that can be be used to implement specific operations and then be stacked together to construct a data pipeline. Because of the standardization of input/output that these primitives expect, these components are reusable. Rather than constructing a new data pipeline in an ad-hoc manner for every project, you can modularly compose your pipeline using existing components provided by fireworks or that you have made previously.
+We provide a set of abstract primitives (Pipes, Junctions, and Models) that can be be used to implement specific operations and can be stacked together to construct a data pipeline. Because of the standardization of input/output that these primitives expect, these components are reusable. Rather than constructing a new data pipeline in an ad-hoc manner for every project, you can modularly compose your pipeline using existing components provided by fireworks or that you have made previously.
 
 This library also provides a set of tools built around these components. There are modules here for training machine learning models, reading and writing to databases using Messages, hyperparameter optimization, and saving/loading snapshots/logs of your data pipeline for re-usability and reproducibility.
 
