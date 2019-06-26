@@ -1,4 +1,5 @@
 #%%
+
 from fireworks import PyTorch_Model, Message, HookedPassThroughPipe, Experiment
 from fireworks.toolbox import ShufflerPipe, TensorPipe, BatchingPipe, FunctionPipe
 from fireworks.toolbox.preprocessing import train_test_split
@@ -13,13 +14,15 @@ import matplotlib.pyplot as plt
 import visdom
 
 env_name = 'mnist_fashion'
-vis = visdom.Visdom(env=env_name)
+# vis = visdom.Visdom(env=env_name) # If you have a running Visdom server, you can uncomment this to generate plots.
 description = "Here, we will train a convolutional neural network on the Fashion MNIST dataset to demonstrate the usage of Fireworks."
 experiment = Experiment(env_name, description=description)
 #%%
-mnist_dir = env.get('MNIST_DIR', '/var/MNIST/')
+
+mnist_dir = env.get('MNIST_DIR', './MNIST/')
 print(mnist_dir)
 
+# First, we download our dataset and plot one of its elements as an example.
 mnist = FashionMNIST(mnist_dir, download=True)
 dataset = Message({'examples': mnist.data, 'labels': mnist.targets})
 example = dataset['examples'][0]
@@ -27,6 +30,7 @@ plt.imshow(example)
 plt.show()
 
 #%%
+# Now we construct our training and test sets as a pipeline.
 train, test = train_test_split(dataset, test=.1)
 
 # We can compose pipes to create an input pipeline that will shuffle the training set on each iteration and produce minibatches formatted for our image classifier.
@@ -73,6 +77,8 @@ test_set = \
         ),
         function=reshape_batch
     )
+
+#%%
 
 # Construct Model
 class mnistModel(PyTorch_Model):
@@ -125,6 +131,11 @@ class Classifier(PyTorch_Model):
 embedder = mnistModel()
 classifier = Classifier(input=embedder) 
 
+if torch.cuda.is_available():
+    embedder.cuda()
+    classifier.cuda()
+#%%
+
 # Set up loss function and training loop
 ce_loss = torch.nn.CrossEntropyLoss()
 loss = lambda batch: ce_loss(batch['predictions'], batch['labels'])
@@ -138,14 +149,16 @@ trainer = IgniteJunction(
         }, 
     loss=loss, optimizer='Adam', 
     lr=.0001, weight_decay=.001, 
-    visdom=True, 
+    visdom=False, # If you have a running Visdom server, you can set this to true to plot training loss over time.
     environment=env_name
     )
 
-trainer.run(max_epochs=10)
+trainer.run(max_epochs=10) # This will take almost 20 minutes on CPU and around 1 minute on GPU
 
 #%%
 # Now that we've trained our model, we can compute some metrics on the test set.
+# Here, we construct a Pipe that will compute metrics such as sensitivity, specificity, f1, etc.
+# on the test set.
 
 classes = {i: class_name for i, class_name in zip(count(), mnist.classes)}
 class Metrics(HookedPassThroughPipe):
@@ -161,6 +174,10 @@ class Metrics(HookedPassThroughPipe):
         self.prediction_counts = {class_name: 0 for class_name in classes.values()}
 
     def _call_hook(self, batch):
+        """ 
+        This will get called every time the model is called. As a result, this pipe will continuously update
+        itself as we iterate through the test set.
+        """
         labels = batch['labels']
         predictions = torch.max(batch['predictions'],1)[1]
         correct_indices = (predictions == labels).nonzero().flatten().tolist()
@@ -175,8 +192,10 @@ class Metrics(HookedPassThroughPipe):
         self.total_count += len(batch)
         return batch
 
-    def compile(self):
-
+    def compile_metrics(self):
+        """ 
+        After we have gone through the entire test set, we can call this method to compute the actual metrics.
+        """
         class_names = classes.values()
         negative_counts = {name: sum(self.label_counts[other] for other in class_names if other != name) for name in class_names}
         self.sensitivity = {name: self.true_positives[name] / self.label_counts[name] for name in class_names}
@@ -188,7 +207,9 @@ class Metrics(HookedPassThroughPipe):
         self.accuracy = {name: (self.true_positives[name] + self.true_negatives[name]) / self.total_count for name in class_names}
 
     def get_metrics(self):
-
+        """
+        Lastly, we will use this method to return the computed metrics as a Pandas DataFrame.
+        """
         columns = ['sensitivity', 'specificity', 'ppv', 'npv', 'f1', 'accuracy']
         df = pd.DataFrame(columns=columns, index=classes.values())
         for attribute in columns:
@@ -209,6 +230,10 @@ for batch in test_set:
 metrics_computer.compile()
 df = metrics_computer.get_metrics()
 print(df)
+
+# You can also convert this DataFrame to a Message.
+m = Message(df)
+print(m)
 
 # Lastly, we can save our results from this experiment
 # At it's simplest, the experiment object gives you a way of organizing files.
