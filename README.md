@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/kellylab/fireworks.svg?branch=development)](https://travis-ci.org/kellylab/fireworks)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/kellylab/Fireworks/mnistDemo?filepath=examples%2Fmnist.ipynb)
 
 # Fireworks - PyTorch with DataFrames
 
