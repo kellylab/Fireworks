@@ -7,7 +7,7 @@ import json
 """ Modify the nonlinear regression examples to read from a database for input data and write to database for factory metrics """
 
 # Read generated data from database
-from examples.nonlinear_regression_utils import generate_data
+from nonlinear_regression_utils import generate_data
 
 columns = [
     Column('x', Float),

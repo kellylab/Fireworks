@@ -13,8 +13,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-from examples.nonlinear_regression_utils import NonlinearModel, get_data
-from examples.nonlinear_regression import base_loss, ModelSaverMetric
+from nonlinear_regression_utils import NonlinearModel, get_data
+from nonlinear_regression import base_loss, ModelSaverMetric
 
 train_set, test_set, params = get_data(n=1000)
 loss = lambda batch: base_loss(batch['y_pred'], batch['y'])

@@ -4,7 +4,7 @@ from fireworks.extensions import SQLFactory
 from fireworks.extensions import Experiment
 import os
 
-from examples.model_selection import loss, train_set, test_set, params, get_trainer, Parameterizer, AccuracyMetric
+from model_selection import loss, train_set, test_set, params, get_trainer, Parameterizer, AccuracyMetric
 
 if __name__=="__main__":
 

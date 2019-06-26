@@ -108,9 +108,9 @@ class IgniteJunction(Junction):
         self.engine = Engine(self.update_function)
 
         # Configure metrics and events
-        if visdom:
-            # self.model_state = Message()
-            self.attach_events(environment=environment, description=description)
+        if not visdom:
+            environment = None
+        self.attach_events(environment=environment, description=description)
 
     def train(self, dataset = None, max_epochs=10):
 
@@ -129,7 +129,7 @@ class IgniteJunction(Junction):
 
         return self.engine.has_event_handler(*args, **kwargs)
 
-    def attach_events(self, environment, description, save_file = None):
+    def attach_events(self, description, environment=None, save_file = None):
 
         tim = Timer()
         tim.attach( self.engine,
@@ -137,25 +137,34 @@ class IgniteJunction(Junction):
                     step=Events.ITERATION_COMPLETED,
         )
 
-        vis = visdom.Visdom(env=environment)
-
-        def create_plot_window(vis, xlabel, ylabel, title):
-            return vis.line(X=np.array([1]), Y=np.array([np.nan]), opts=dict(xlabel=xlabel, ylabel=ylabel, title=title))
-
-        train_loss_window = create_plot_window(vis, '#Iterations', 'Loss', 'Training Loss {0}'.format(description))
         log_interval = 100
+        plot_interval = 10
 
         @self.engine.on(Events.ITERATION_COMPLETED)
-        def plot_training_loss(engine):
+        def print_training_loss(engine):
             iter = (engine.state.iteration -1)
             if iter % log_interval == 0:
                 print("Epoch[{}] Iteration: {} Time: {} Loss: {:.2f}".format(
                     engine.state.epoch, iter, str(datetime.timedelta(seconds=int(tim.value()))), engine.state.output['loss']
                 ))
-            vis.line(X=np.array([engine.state.iteration]),
-                     Y=np.array([engine.state.output['loss']]),
-                     update='append',
-                     win=train_loss_window)
+        if environment:
+
+            vis = visdom.Visdom(env=environment)
+
+            def create_plot_window(vis, xlabel, ylabel, title):
+                return vis.line(X=np.array([1]), Y=np.array([np.nan]), opts=dict(xlabel=xlabel, ylabel=ylabel, title=title))
+
+            train_loss_window = create_plot_window(vis, '#Iterations', 'Loss', 'Training Loss {0}'.format(description))
+
+            @self.engine.on(Events.ITERATION_COMPLETED)
+            def plot_training_loss(engine):
+                iter = (engine.state.iteration -1)
+                if iter % plot_interval == 0:
+                    vis.line(X=np.array([engine.state.iteration]),
+                            Y=np.array([engine.state.output['loss']]),
+                            update='append',
+                            win=train_loss_window)
+
 
         # @self.engine.on(Events.ITERATION_COMPLETED)
         # def log_model_state(engine):

@@ -5,6 +5,7 @@ from fireworks.toolbox import pipes as pl
 from fireworks.core import Model, PyTorch_Model
 from collections import defaultdict
 import torch 
+import random
 
 """
 This file contains models that can perform common preprocessing tasks, such as batch normalization.
@@ -29,9 +30,9 @@ def train_test_split(pipe, test=.2):
 
     l = len(pipe)
     num_test = math.floor(l*test)
-    indices = [i for i in range(l)]
-    test_indices = sorted(np.random.choice(indices, num_test, replace=False))
-    train_indices = [i for i in indices if i not in test_indices]
+    indices = random.sample(range(l), l)    
+    train_indices = indices[0:l-num_test]
+    test_indices = indices[l-num_test:]
 
     test_pipe = pl.IndexMapperPipe(input=pipe, input_indices=range(0,len(test_indices)), output_indices=test_indices)
     train_pipe = pl.IndexMapperPipe(input=pipe, input_indices=range(0,len(train_indices)), output_indices=train_indices)
