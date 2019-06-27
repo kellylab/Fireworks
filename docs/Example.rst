@@ -1,7 +1,7 @@
 Examples
 =====================================
 The below examples walk through the scripts in the examples examples directory of the main project on Github.
-All of these examples can be run as Jupyter notebooks on 'Binder <https://mybinder.org/v2/gh/kellylab/Fireworks/master>'_
+All of these examples can be run as Jupyter notebooks on `Binder <https://mybinder.org/v2/gh/kellylab/Fireworks/master>`_
 
 
 Making a Model
@@ -540,7 +540,7 @@ We can also construct a pipleine in a less verbose manner, as shown here for the
 Now we can construct our model. We will make two models: a convolutional network which maps input images into a low-dimensional space, and a classifier network which predicts labels given those low-dimensional embeddings. The code here is similar to how you would implement this using torch.nn.modules, and PyTorch_Models
 are subclasses of torch.nn.modules, thus inheriting all of their methods and attributes. However, these models can also be chained together as Pipes:
 
-    ..code-block:: python
+    .. code-block:: python
 
         class mnistModel(PyTorch_Model):
             """ Embeds each image into a 10-dimensional vector. """
@@ -598,7 +598,7 @@ are subclasses of torch.nn.modules, thus inheriting all of their methods and att
 
 Now we set up a loss function and train our model using the IgniteJunction which is a wrapper around the Engine class in the Ignite library:
 
-    ..code-block:: python
+    .. code-block:: python
 
         ce_loss = torch.nn.CrossEntropyLoss()
         loss = lambda batch: ce_loss(batch['predictions'], batch['labels'])
@@ -621,7 +621,7 @@ Now we set up a loss function and train our model using the IgniteJunction which
 Once that is done, we can evaluate the trained model against the test set and compute metrics. There are a family of classification metrics based on the number of true positives, false positives, true negatives, and false negatives the model 
 makes for different labels. The class below implements a Pipe that will compute those metrics.
 
-    ..code-block:: python
+    .. code-block:: python
 
         classes = {i: class_name for i, class_name in zip(count(), mnist.classes)}
         class Metrics(HookedPassThroughPipe):
@@ -688,7 +688,7 @@ makes for different labels. The class below implements a Pipe that will compute 
 We have now have two pipelines: the test set, and the model pipeline which consists of the embedder, classifier, and metrics pipe. Every time this model pipeline is evaluated on a batch from the test set, the embedder will pipe its output to the classifier which will send its prediction to the metrics
 pipe which will update its internal state:
 
-    ..code-block:: python
+    .. code-block:: python
 
         for batch in test_set:
             # We can simply call this object repeatedly on batches in the test set
@@ -703,7 +703,7 @@ pipe which will update its internal state:
 
 Lastly, we can save our results in the Experiment object.
 
-    ..code-block:: python
+    .. code-block:: python
 
         df.to_csv(experiment.open("metrics.csv", string_only=True))
         # Since our models are still subclasses of torch.nn.module, we can save them using the standard torch.save feature
