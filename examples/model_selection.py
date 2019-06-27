@@ -36,10 +36,10 @@ def get_trainer(train_set, loss, optimizer, **kwargs):
     def train_from_params(parameters):
 
         model = make_model(parameters)
-        trainer = IgniteJunction(components={'model': model, 'dataset': train_set}, loss=loss, optimizer=optimizer, **kwargs)
+        trainer = IgniteJunction(components={'model': model, 'dataset': train_set}, loss=loss, optimizer=optimizer, visdom=False, **kwargs)
         print("Now training model for parameters {0}".format(parameters))
         trainer.train(max_epochs=10)
-        evaluator = IgniteJunction(components={'model': model, 'dataset': train_set}, loss=loss, optimizer=optimizer, update_function=default_evaluation_closure, **kwargs)
+        evaluator = IgniteJunction(components={'model': model, 'dataset': train_set}, loss=loss, optimizer=optimizer, update_function=default_evaluation_closure, visdom=False, **kwargs)
         print("Now evaluating trained model.")
         return trainer
 

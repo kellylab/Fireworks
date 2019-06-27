@@ -1,6 +1,5 @@
 import abc
 from fireworks.core import Message, Junction
-from .training import IgniteJunction
 from fireworks.utils.exceptions import EndHyperparameterOptimization
 from .database import create_table, TablePipe
 from sqlalchemy.orm import sessionmaker
