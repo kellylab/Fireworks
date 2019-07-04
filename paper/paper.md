@@ -10,7 +10,6 @@ authors:
       orcid: 0000-0003-4686-4923
       affiliation: "1"
     - name: Libusha Kelly
-      orcid:
       affiliation: "1"
 affiliations:
     - name: Systems & Computational Biology, Albert Einstein College of Medicine
