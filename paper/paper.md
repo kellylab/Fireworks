@@ -13,6 +13,7 @@ authors:
       affiliation: "1"
 affiliations:
     - name: Systems & Computational Biology, Albert Einstein College of Medicine
+      index: 1
 date: 23 April 2019
 bibliography: paper.bib
 ---
