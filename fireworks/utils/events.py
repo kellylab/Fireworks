@@ -1,5 +1,8 @@
 from ignite.handlers import ModelCheckpoint, Timer
+import logging
 import visdom
+
+logging.getLogger(name=__name__)
 
 """
 This code is largely adapted from the demos from the PyTorch and Ignite documentation.
@@ -32,7 +35,7 @@ def visdom_loss_handler(modules_dict, model_name):
     def log_training_loss(engine):
         iter = (engine.state.iteration -1)
         if iter % log_interval == 0:
-            print("Epoch[{}] Iteration: {} Time: {} Loss: {:.2f}".format(
+            logging.info("Epoch[{}] Iteration: {} Time: {} Loss: {:.2f}".format(
                 engine.state.epoch, iter, str(datetime.timedelta(seconds=int(tim.value()))), engine.state.output
             ))
         vis.line(X=np.array([engine.state.iteration]),

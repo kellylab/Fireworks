@@ -1,6 +1,7 @@
 from fireworks import message as messi
 from fireworks import Message, TensorMessage
 import torch
+import os
 import numpy as np
 from itertools import product
 import pandas as pd
@@ -641,3 +642,11 @@ def test_to_json():
 def test_to_string():
     m = Message(tensors, vectors)
     pass #TODO: Implement
+
+def test_save_load():
+    m = Message(tensors, vectors)
+    test_path = 'test.fireworks'
+    m.save(test_path)
+    new_m = Message.load(test_path)
+    assert new_m == m
+    os.remove(test_path)
