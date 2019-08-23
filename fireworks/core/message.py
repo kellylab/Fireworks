@@ -2,6 +2,10 @@ import collections
 import torch
 import pandas as pd
 import numpy as np
+import os 
+import io
+import pyarrow
+import tarfile
 from copy import deepcopy
 from collections import Hashable
 from fireworks.utils import index_to_list, slice_length
@@ -229,6 +233,57 @@ class Message:
     def to_string(self, *args, **kwargs):
         """ Converts Message to a string. """
         return self.to('string', *args, **kwargs)
+
+    def save(self, path):
+        """
+        Converts message to a custom serialized format which retains column structure for tensor and DataFrame components.
+        The format is essentially a tarfile containing:
+        - Parquet representation of the DataFrame
+        - Pickle representation of each tensor
+        - JSON mapping column names to their values
+        """
+
+        with tarfile.open(path, "w:gz") as tar:
+            # Save DataFrame
+            df_buffer = io.BytesIO()
+            self.df.to_parquet(df_buffer)
+            df_buffer.seek(0)
+            df_info = tarfile.TarInfo("df.parquet")
+            df_info.size = len(df_buffer.read())
+            df_buffer.seek(0)
+            tar.addfile(df_info, df_buffer)
+            df_buffer.close()
+
+            # Save tensors one by one
+            for key, value in self.tensor_message.items():
+                buffer = io.BytesIO()
+                torch.save(value, buffer)
+                buffer.seek(0) # Make sure we are at beginning of buffer after writing
+                info = tarfile.TarInfo("{key}.torch".format(key=key))
+                info.size = len(buffer.read())
+                buffer.seek(0)
+                tar.addfile(info, buffer)
+                buffer.close()
+
+    @classmethod
+    def load(cls, path):
+        """
+        Loads in serialized message at the given path.        
+        """
+        
+        df = None
+        tensors = {}
+        with tarfile.open(path, "r:gz") as tar:
+            for filename in tar.getnames():
+                if filename.endswith('.parquet'): # Is the DataFrame
+                    buffer = tar.extractfile(tar.getmember(filename))
+                    df = pd.read_parquet(buffer)
+                elif filename.endswith('.torch'): # Is a Tensor
+                    buffer = tar.extractfile(tar.getmember(filename))
+                    name = filename.rstrip('.torch')
+                    tensors[name] = torch.load(buffer)
+        return cls(tensors, df)
+
 
     def check_length(self):
         """

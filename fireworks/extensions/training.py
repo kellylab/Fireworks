@@ -9,7 +9,10 @@ import visdom
 import datetime
 import numpy as np
 import types
+import logging
 from copy import deepcopy
+
+logging.getLogger(name=__name__)
 
 def default_training_closure(model, optimizer, loss_fn):
     """
@@ -141,10 +144,10 @@ class IgniteJunction(Junction):
         plot_interval = 10
 
         @self.engine.on(Events.ITERATION_COMPLETED)
-        def print_training_loss(engine):
+        def log_training_loss(engine):
             iter = (engine.state.iteration -1)
             if iter % log_interval == 0:
-                print("Epoch[{}] Iteration: {} Time: {} Loss: {:.2f}".format(
+                logging.info("Epoch[{}] Iteration: {} Time: {} Loss: {:.2f}".format(
                     engine.state.epoch, iter, str(datetime.timedelta(seconds=int(tim.value()))), engine.state.output['loss']
                 ))
         if environment:

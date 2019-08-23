@@ -17,7 +17,7 @@ Flask==1.0.2
 idna==2.6
 imagesize==1.1.0
 itsdangerous==0.24
-Jinja2==2.10
+Jinja2==2.10.1
 MarkupSafe==1.0
 more-itertools==4.1.0
 packaging==19.0
@@ -51,10 +51,10 @@ torchvision==0.3.0
 tornado==5.0.2
 tqdm==4.24.0
 twine==1.13.0
-urllib3==1.24.1
+urllib3==1.24.2
 visdom==0.1.8.4
 webencodings==0.5.1
 websocket-client==0.47.0
-Werkzeug==0.14.1
+Werkzeug==0.15.3
 wmctrl==0.3
 wrapt==1.10.11

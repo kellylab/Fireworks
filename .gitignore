@@ -105,3 +105,11 @@ venv.bak/
 
 sync\.py
 \.vscode/
+
+avenger_0/metadata\.sqlite
+
+:jolyne\.sqlite
+
+avenger_0/ironman\.sqlite
+
+jotaro\.sqlite
