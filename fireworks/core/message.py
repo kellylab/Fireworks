@@ -234,16 +234,24 @@ class Message:
         """ Converts Message to a string. """
         return self.to('string', *args, **kwargs)
 
-    def save(self, path):
+    def save(self, path_or_buffer):
         """
         Converts message to a custom serialized format which retains column structure for tensor and DataFrame components.
         The format is essentially a tarfile containing:
         - Parquet representation of the DataFrame
         - Pickle representation of each tensor
         - JSON mapping column names to their values
-        """
 
-        with tarfile.open(path, "w:gz") as tar:
+        Args:
+            path_or_buffer: Can by a path to a file on disk, or a io.BytesIO buffer for serializing/deserializing in memory.
+        """
+        kwargs = {'mode': 'w:gz'}
+        if type(path_or_buffer) is str:
+            kwargs['name'] = path_or_buffer
+        elif isinstance(path_or_buffer, io.BufferedIOBase):
+            kwargs['fileobj'] = path_or_buffer
+
+        with tarfile.open(**kwargs) as tar:
             # Save DataFrame
             df_buffer = io.BytesIO()
             self.df.to_parquet(df_buffer)
@@ -266,14 +274,23 @@ class Message:
                 buffer.close()
 
     @classmethod
-    def load(cls, path):
+    def load(cls, path_or_buffer):
         """
         Loads in serialized message at the given path.        
+
+        Args:
+            path_or_buffer: Can by a path to a file on disk, or a io.BytesIO buffer for serializing/deserializing in memory.
         """
+        kwargs = {'mode': 'r:gz'}
+        if type(path_or_buffer) is str:
+            kwargs['name'] = path_or_buffer
+        elif isinstance(path_or_buffer, io.BufferedIOBase):
+            kwargs['fileobj'] = path_or_buffer
+            path_or_buffer.seek(0)
         
         df = None
         tensors = {}
-        with tarfile.open(path, "r:gz") as tar:
+        with tarfile.open(**kwargs) as tar:
             for filename in tar.getnames():
                 if filename.endswith('.parquet'): # Is the DataFrame
                     buffer = tar.extractfile(tar.getmember(filename))

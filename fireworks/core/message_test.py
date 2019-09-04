@@ -6,6 +6,7 @@ import numpy as np
 from itertools import product
 import pandas as pd
 from itertools import count
+from io import BytesIO
 
 tensors = {
     'a': torch.Tensor([1,2,3]),
@@ -650,3 +651,7 @@ def test_save_load():
     new_m = Message.load(test_path)
     assert new_m == m
     os.remove(test_path)
+    buffer = BytesIO()
+    m.save(buffer)
+    buffed_m = Message.load(buffer)
+    assert buffed_m == m 
