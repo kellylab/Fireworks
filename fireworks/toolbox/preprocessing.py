@@ -45,6 +45,7 @@ def apply_noise(): pass
 
 #IDEA: Instead of implementing this, what if we couple a LoopingSource + CachingSource to a SKLearn estimator?
 # Doing so would create a path to seamless insertion of SKlearn modules into pipelines.
+
 class Normalizer(PyTorch_Model):
     """
     Normalizes Data by Mean and Variance. Analogous to sklearn.preprocessing.Normalizer
@@ -107,23 +108,22 @@ class Normalizer(PyTorch_Model):
             self.variance[key] = (self.rolling_squares[key] - (self.rolling_sum[key])**2/self.count) / self.count + self.mean[key]**2
             self.variance[key] = self.rolling_squares[key] / self.count
 
-    # def fit(self, dataset=None, continuamos=False):
-    #
-    #     if dataset is None:
-    #         dataset = self.input
-    #
-    #     if not continuamos:
-    #         self.reset()
-    #
-    #     for batch in dataset:
+    def get_state(self):
+        """
+        Since defaultdicts are not picklable, we implement custom serialization logic for a normalizer.
+        """
+        state = super().get_state()
+        for key in ['mean', 'variance', 'rolling_sum', 'rolling_squares']:
+            state['internal'][key] = dict(state['internal'][key])
+        
+        return state
 
-    # def reset(self):
-    #
-    #     self.count = 0
-    #     self.rolling_sum = defaultdict(lambda : 0)
-    #     self.rolling_squares = defaultdict(lambda : 0)
-    #
-    #     try:
-    #         self.recursive_call('reset')()
-    #     except:
-    #         pass
+    def set_state(self, state, reset=False):
+        """
+        Since defaultdicts are not picklable, we implement custom serialization logic for a normalizer.
+        """
+        super().set_state(state, reset=reset)
+        self.init_default_components()
+        for key in ['mean', 'variance', 'rolling_sum', 'rolling_squares']:
+            for k,v in state['internal'][key].items():
+                self.components[key][k] = v

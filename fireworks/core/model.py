@@ -324,7 +324,7 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
         Attribute modifications ignore the recursive aspect of Pipes.
         """
 
-        if name in ['_flags', 'input']:
+        if name in ['_flags', 'input'] or name.startswith('_'):
             object.__setattr__(self, name, value)
         else:
             if self._flags['components_initialized']:

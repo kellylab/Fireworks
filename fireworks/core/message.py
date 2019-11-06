@@ -302,6 +302,16 @@ class Message:
         return cls(tensors, df)
 
 
+    def __setstate__(self, state):
+        loaded = self.__class__.load(state)
+        self.df = loaded.df
+        self.tensor_message = loaded.tensor_message
+
+    def __getstate__(self):
+        buffer = io.BytesIO()
+        self.save(buffer)
+        return buffer
+
     def check_length(self):
         """
         Checks that lengths of the internal tensor_message and dataframe are the same and equalto self.len
@@ -545,6 +555,14 @@ class Message:
 
     def __repr__(self):
         return "Message with \n Tensors: \n {0} \n Metadata: \n {1}".format(self.tensor_message, self.df)
+
+    def __copy__(self):
+        copy = Message(self.tensor_message, self.df)
+        return copy
+
+    def __deepcopy__(self, memo):
+        copy = Message(deepcopy(self.tensor_message), deepcopy(self.df))
+        return copy
 
     @property
     def columns(self):
