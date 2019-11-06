@@ -7,6 +7,7 @@ import numpy as np
 from .pipes import ShufflerPipe, BatchingPipe
 import math
 from itertools import count
+import pickle
 import torch 
 
 def test_Normalizer():
@@ -72,6 +73,16 @@ def test_Normalizer():
     normie2.set_state(state, reset=False)
     assert normie.mean['good'] == normie2.mean['good']
     assert normie.mean['ok'] == normie2.mean['ok']
+
+    # Test serialization
+    state = normie.get_state()
+    blarmie = pr.Normalizer()
+    blarmie.set_state(state)
+    for key in ['mean', 'variance', 'rolling_sum', 'rolling_squares']:
+        assert blarmie.components['mean'].keys() == normie.components['mean'].keys()
+        assert sum(np.array(list(blarmie.components['mean'].values())) - np.array(list(normie.components['mean'].values()))) <= .01
+
+    pickle.dumps(state) # Confirm that this is serializable
 
 def test_train_test_split():
 
