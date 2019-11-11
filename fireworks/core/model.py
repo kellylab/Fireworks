@@ -414,12 +414,12 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
     @recursive()
     def cuda(self, *args, **kwargs):
         """ Recursively moves this model and its inputs to GPU memory. The allowed arguments are the same as torch.nn.Module.cuda() """
-        return super(Module, self).cuda(*args, **kwargs)
+        return Module.cuda(self, *args, **kwargs)
 
     @recursive()
     def cpu(self, *args, **kwargs):
         """ Recursively moves this model and its inputs to GPU memory. The allowed arguments are the same as torch.nn.Module.cuda() """
-        return super(Module, self).cpu(*args, **kwargs)
+        return Module.cpu(self, *args, **kwargs)
 
     def freeze(self, components = None):
         """
@@ -428,7 +428,7 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
         are not updated during training.
         """
         self._change_temperature(False, components)
-
+        
     def unfreeze(self, components = None):
         """
         Unfreezes the given components of the model (or all of them if none are specified) in order to prevent gradient updates.
