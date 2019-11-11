@@ -411,6 +411,16 @@ class PyTorch_Model(Module, Model, PyTorch_Junction ):
 
         return serialized_state
 
+    @recursive()
+    def cuda(self, *args, **kwargs):
+        """ Recursively moves this model and its inputs to GPU memory. The allowed arguments are the same as torch.nn.Module.cuda() """
+        return super(Module, self).cuda(*args, **kwargs)
+
+    @recursive()
+    def cpu(self, *args, **kwargs):
+        """ Recursively moves this model and its inputs to GPU memory. The allowed arguments are the same as torch.nn.Module.cuda() """
+        return super(Module, self).cpu(*args, **kwargs)
+
     def freeze(self, components = None):
         """
         Freezes the given components of the model (or all of them if none are specified) in order to prevent gradient updates.
