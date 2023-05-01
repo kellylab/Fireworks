@@ -1,3 +1,4 @@
+import copy
 from fireworks import message as messi
 from fireworks import Message, TensorMessage
 import torch
@@ -304,8 +305,10 @@ def test_join():
 
 def test_Message_set_get():
 
+    _tensors = copy.deepcopy(tensors)
+    _vectors = copy.deepcopy(vectors)
     # Test point updates
-    email = Message(tensors, vectors)
+    email = Message(_tensors, _vectors)
     gmail = Message({'a':torch.Tensor([1,42,3]), 'b':torch.Tensor([4,43,6]), 'c': np.array([7,99,9]), 'd': np.array([10,100,12])})
     replacement = {'a': torch.Tensor([42]), 'b': torch.Tensor([43]), 'c': np.array([99]), 'd': np.array([100])}
     assert len(email) == 3
@@ -313,14 +316,14 @@ def test_Message_set_get():
     email[1] = replacement
     assert email == gmail
     # Test ranged updates
-    email = Message(tensors, vectors)
+    email = Message(_tensors, _vectors)
     gmail = Message({'a':torch.Tensor([1,42,33]), 'b':torch.Tensor([4,43,66]), 'c': np.array([7,99,99]), 'd': np.array([10,100,122])})
     replacement = {'a': torch.Tensor([42,33]), 'b': torch.Tensor([43,66]), 'c': np.array([99,99]), 'd': np.array([100,122])}
     assert email != gmail
     email[1:3] = replacement
     assert email == gmail
     # Test updates using lists as indexes
-    email = Message(tensors, vectors)
+    email = Message(_tensors, _vectors)
     assert email != gmail
     email[[1,2]] = replacement
     assert email == gmail
@@ -330,7 +333,7 @@ def test_Message_set_get():
     email['c'] = np.array([9,9,9])
     assert email['c'].equals(pd.Series([9,9,9]))
     # Test column updates that switch from df to tensor and vice-versa
-    email = Message(tensors, vectors)
+    email = Message(_tensors, _vectors)
     assert set(email.columns) == set(['a','b','c','d'])
     assert set(email.tensor_message.columns) == set(['a','b'])
     assert set(email.df.columns) == set(['c','d'])
@@ -347,7 +350,7 @@ def test_Message_set_get():
     assert set(email.df.columns) == set(['a','d'])
     assert (email['c'] == new_c).all()
     # Test column updates that end up clearing either self.df or self.tensor_message
-    email = Message(tensors, vectors)
+    email = Message(_tensors, _vectors)
     df = email.dataframe(['a', 'b'])
     assert len(email) == 3
     assert len(email.tensor_message) == 3

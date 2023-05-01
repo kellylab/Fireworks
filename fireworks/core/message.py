@@ -398,8 +398,12 @@ class Message:
                 return self.tensor_message[index]
             elif index in self.df.keys():
                 return self.df[index]
-        else:
-            raise KeyError("{0} is not a column name or a valid index for this message.".format(str(index)))
+        elif t is pd.Series:
+            if index.dtype == bool:
+                indices = np.where(index)[0].tolist()
+                return self._getindex(indices)
+
+        raise KeyError("{0} is not a column name or a valid index for this message.".format(str(index)))
 
     def _getindex(self, index):
         """

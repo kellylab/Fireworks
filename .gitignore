@@ -108,10 +108,10 @@ sync\.py
 
 avenger_0/metadata\.sqlite
 
-:jolyne\.sqlite
+:test_dbe\.sqlite
 
 avenger_0/ironman\.sqlite
 
-jotaro\.sqlite
+test_db2\.sqlite
 
 avenger_0/

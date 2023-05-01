@@ -1,5 +1,5 @@
 bidict>=0.18.0
-biopython>==1.73
+biopython>=1.73
 Deprecated>=1.2.5
 numpy>=1.16.4
 pandas>=0.24.2

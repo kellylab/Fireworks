@@ -136,10 +136,10 @@ def test_TablePipe_implicit():
 
 def test_DBPipe():
     dummy = dummy_pipe()
-    tab = dummy_table('jotaro')
-    engine = create_engine('sqlite:///jotaro.sqlite', echo=True)
-    if os.path.exists('jotaro.sqlite'):
-        os.remove('jotaro.sqlite')
+    tab = dummy_table('test_db2')
+    engine = create_engine('sqlite:///test_db2.sqlite', echo=True)
+    if os.path.exists('test_db2.sqlite'):
+        os.remove('test_db2.sqlite')
     tab.metadata.create_all(engine)
     ts = db.TablePipe(tab, engine, ['name', 'values'], input=dummy)
     batch = ts[2:10]
@@ -153,7 +153,7 @@ def test_DBPipe():
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
 
     # Test using reflections
-    ts = db.DBPipe('jotaro', engine)
+    ts = db.DBPipe('test_db2', engine)
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
     deedee.reset_session()
@@ -169,7 +169,7 @@ def test_DBPipe():
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
 
     # Test using reflections
-    ts = db.DBPipe('jotaro', engine)
+    ts = db.DBPipe('test_db2', engine)
     for row, i in zip(deedee, itertools.count()):
         assert row == Message({'id':[i+1],'name': ['johnny'], 'values':[i+2]})
     deedee.reset_session()
@@ -220,9 +220,9 @@ def test_DBPipe_query():
 
 def test_reflect_table():
 
-    tab = dummy_table('jolyne')
-    engine = create_engine('sqlite:///:jolyne.sqlite', echo=True)
+    tab = dummy_table('test_dbe')
+    engine = create_engine('sqlite:///:test_dbe.sqlite', echo=True)
     tab.metadata.create_all(engine)
-    jolyne = db.reflect_table('jolyne', engine)
-    assert type(jolyne) is Table
-    assert jolyne.columns.keys() == tab.__table__.columns.keys()
+    test_dbe = db.reflect_table('test_dbe', engine)
+    assert type(test_dbe) is Table
+    assert test_dbe.columns.keys() == tab.__table__.columns.keys()
